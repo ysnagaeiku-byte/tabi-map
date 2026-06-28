@@ -13,6 +13,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="たびマップ" />
+<!-- 配信時にGitHub ActionsがSecretからキーを注入（リポジトリ本体には実キーを置かない）。未注入時はプレースホルダのまま→端末ごとの手入力にフォールバック -->
+<script>window.__TABI_KEYS__={gmap:"__GMAP_KEY__",mapbox:"__MAPBOX_KEY__"};</script>
 <style>
   :root{
     --bg:#eef1f5; --panel:#ffffff; --panel-blur:rgba(255,255,255,.85);
@@ -506,8 +508,15 @@ window.initGMap=function(){
   buildTabs(); updateGasNote();
   google.maps.event.addListenerOnce(map,'idle',()=>{restoreState();setPlain();showStatus('🔍 検索、または下のチップで温泉郷・ルートなどを表示',false);hideStatusLater();});
 };
+// キー取得：端末localStorage（個別上書き）→ 配信時注入の共有キー の順。未置換プレースホルダ(__xxx__)は無視。
+function cfgKey(name){
+  const ls=localStorage.getItem(name==='gmap'?'tabi_gmap_key':'tabi_mapbox_key');
+  if(ls)return ls;
+  const inj=(window.__TABI_KEYS__||{})[name];
+  return (inj&&!/^__.*__$/.test(inj))?inj:'';
+}
 function bootGoogle(){
-  const key=localStorage.getItem('tabi_gmap_key');
+  const key=cfgKey('gmap');
   if(!key){document.getElementById('nokey').classList.add('show');return;}
   const s=document.createElement('script');
   s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&libraries=places,geometry&loading=async&callback=initGMap';
@@ -591,7 +600,7 @@ async function fetchIsochrone(lat,lng){
   const mb=sel.filter(m=>m<=60);
   let mbData=null;
   if(mb.length){
-    const tok=localStorage.getItem('tabi_mapbox_key');
+    const tok=cfgKey('mapbox');
     if(!tok){showStatus('Mapboxトークンを ⚙️設定 で入力してください',false);hideStatusLater();return;}
     const url=`https://api.mapbox.com/isochrone/v1/mapbox/${isoProfile}/${lng},${lat}?contours_minutes=${mb.join(',')}&polygons=true&denoise=1&access_token=${encodeURIComponent(tok)}`;
     showStatus('到達圏を計算中…',true);
@@ -984,7 +993,7 @@ function renderLayerPanel(){
 }
 async function routeViaRoutesAPI(opts){
   opts=opts||{};
-  const key=localStorage.getItem('tabi_gmap_key');if(!key)throw new Error('APIキー未設定');
+  const key=cfgKey('gmap');if(!key)throw new Error('APIキー未設定');
   if(!(google.maps.geometry&&google.maps.geometry.encoding))throw new Error('geometryライブラリ未ロード');
   const hasInter=points.length>2;
   const body={origin:{location:{latLng:{latitude:points[0].lat,longitude:points[0].lng}}},destination:{location:{latLng:{latitude:points[points.length-1].lat,longitude:points[points.length-1].lng}}},travelMode:'DRIVE',routingPreference:'TRAFFIC_AWARE',polylineQuality:'HIGH_QUALITY',extraComputations:['TRAFFIC_ON_POLYLINE'],routeModifiers:{avoidTolls:routePref==='avoid',avoidHighways:routePref==='avoid'},languageCode:'ja',units:'METRIC'};
@@ -1448,7 +1457,12 @@ document.getElementById('segBtn').onclick=()=>{const a=+document.getElementById(
 document.getElementById('researchBtn').onclick=runSearch;
 document.getElementById('locBtn').onclick=()=>{if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}showStatus('現在地を取得中…',true);navigator.geolocation.getCurrentPosition(pos=>{const la=pos.coords.latitude,ln=pos.coords.longitude;map.setCenter({lat:la,lng:ln});map.setZoom(15);statusEl.classList.remove('show');showCurrentLoc(la,ln,pos.coords.accuracy);runSearch();},err=>{showStatus('現在地を取得できませんでした',false);hideStatusLater();},{enableHighAccuracy:true,timeout:8000});};
 const overlay=document.getElementById('overlay');
-document.getElementById('setBtn').onclick=()=>{document.getElementById('gmapInput').value=localStorage.getItem('tabi_gmap_key')||'';document.getElementById('rakInput').value=localStorage.getItem('tabi_rakuten_id')||'';document.getElementById('orsInput').value=localStorage.getItem('tabi_ors_id')||'';document.getElementById('mbxInput').value=localStorage.getItem('tabi_mapbox_key')||'';overlay.classList.add('open');};
+document.getElementById('setBtn').onclick=()=>{document.getElementById('gmapInput').value=localStorage.getItem('tabi_gmap_key')||'';document.getElementById('rakInput').value=localStorage.getItem('tabi_rakuten_id')||'';document.getElementById('orsInput').value=localStorage.getItem('tabi_ors_id')||'';document.getElementById('mbxInput').value=localStorage.getItem('tabi_mapbox_key')||'';
+  // 共有キー（配信時注入）が有効なら入力欄に明示し、空欄でも動作することを伝える
+  const inj=window.__TABI_KEYS__||{};const ggInj=inj.gmap&&!/^__.*__$/.test(inj.gmap),mbInj=inj.mapbox&&!/^__.*__$/.test(inj.mapbox);
+  document.getElementById('gmapInput').placeholder=ggInj?'共有キー設定済み（上書きする場合のみ入力）':'Google Maps APIキー';
+  document.getElementById('mbxInput').placeholder=mbInj?'共有トークン設定済み（上書きする場合のみ入力）':'Mapbox public token (pk.xxx)';
+  overlay.classList.add('open');};
 document.getElementById('setClose').onclick=()=>overlay.classList.remove('open');
 overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.classList.remove('open');});
 document.getElementById('gmapSave').onclick=()=>{const v=document.getElementById('gmapInput').value.trim();v?localStorage.setItem('tabi_gmap_key',v):localStorage.removeItem('tabi_gmap_key');document.getElementById('gmapMsg').textContent='保存しました。再読込します…';setTimeout(()=>location.reload(),700);};

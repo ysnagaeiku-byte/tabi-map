@@ -1,0 +1,54 @@
+name: Deploy to GitHub Pages (with key injection)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Inject API keys from secrets (repo に実キーは残さない)
+        env:
+          GMAP_KEY: ${{ secrets.GMAP_KEY }}
+          MAPBOX_KEY: ${{ secrets.MAPBOX_KEY }}
+        run: |
+          python3 - <<'PY'
+          import os
+          p = 'index-google.html'
+          s = open(p, encoding='utf-8').read()
+          s = s.replace('__GMAP_KEY__',  os.environ.get('GMAP_KEY', ''))
+          s = s.replace('__MAPBOX_KEY__', os.environ.get('MAPBOX_KEY', ''))
+          open(p, 'w', encoding='utf-8').write(s)
+          # 注入確認（キー値そのものはログに出さない）
+          print('gmap injected:', '__GMAP_KEY__' not in s and bool(os.environ.get('GMAP_KEY')))
+          print('mapbox injected:', '__MAPBOX_KEY__' not in s and bool(os.environ.get('MAPBOX_KEY')))
+          PY
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
