@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ja" data-theme="light">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=5.0" />
+<title>たびマップ（プロトタイプ）</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root{
+    --bg:#eef1f5; --panel:#ffffff; --panel-blur:rgba(255,255,255,.85);
+    --surface:#ffffff; --surface-2:#f1f4f8; --fg:#16181d; --muted:#6b7280;
+    --line:#e3e7ee; --accent:#3b6fff; --accent-weak:#e8efff; --shadow:rgba(20,30,60,.13);
+    --c-onsen:#f76707; --c-parking:#3b6fff; --c-hotel:#ae3ec9;
+    --c-conveni:#2f9e44; --c-food:#e8590c; --c-fuel:#f59f00; --c-sapa:#0ca678; --c-onsengo:#e64980; --route:#3b82f6;
+    --open:#2f9e44; --closed:#e03131;
+  }
+  :root[data-theme="dark"]{
+    --bg:#0c0e13; --panel:#14171e; --panel-blur:rgba(17,20,27,.80);
+    --surface:#181c24; --surface-2:#212733; --fg:#e7eaf0; --muted:#98a2b0;
+    --line:#2a313d; --accent:#6f9bff; --accent-weak:rgba(111,155,255,.16); --shadow:rgba(0,0,0,.55);
+    --c-onsen:#ff922b; --c-parking:#6f9bff; --c-hotel:#da77f2;
+    --c-conveni:#51cf66; --c-food:#ff922b; --c-fuel:#ffd43b; --c-sapa:#20c997; --c-onsengo:#f06595; --route:#5b8cff;
+    --open:#51cf66; --closed:#ff6b6b;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;color:var(--fg);background:var(--bg);transition:background-color .3s,color .3s;}
+  #map{position:absolute;inset:0;height:100dvh;width:100vw;z-index:0;background:var(--bg);}
+  .leaflet-container{background:var(--bg);}
+  #topbar{position:fixed;top:0;left:0;right:0;z-index:1000;background:var(--panel-blur);backdrop-filter:saturate(180%) blur(12px);-webkit-backdrop-filter:saturate(180%) blur(12px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top);box-shadow:0 4px 20px var(--shadow);transition:background-color .3s,border-color .3s;}
+  .title{display:flex;align-items:center;justify-content:space-between;padding:11px 14px 6px;}
+  .brand{display:flex;align-items:baseline;gap:8px;min-width:0;}
+  .brand b{font-size:17px;white-space:nowrap;} .brand span{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .hdr-actions{display:flex;gap:8px;flex:0 0 auto;}
+  .icon-btn{width:38px;height:38px;border-radius:11px;border:1px solid var(--line);background:var(--surface);font-size:17px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--fg);transition:transform .12s,background-color .3s;}
+  .icon-btn:active{transform:scale(.92);}
+  .tabs{display:flex;gap:8px;overflow-x:auto;padding:4px 12px 11px;scrollbar-width:none;}
+  .tabs::-webkit-scrollbar{display:none;}
+  .tab{flex:0 0 auto;border:1px solid var(--line);background:var(--surface);color:var(--fg);padding:9px 14px;border-radius:999px;font-size:14px;font-weight:600;min-height:40px;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background-color .2s,color .2s,box-shadow .2s;}
+  .tab .dot{width:9px;height:9px;border-radius:50%;}
+  .tab.active{color:#fff;border-color:transparent;box-shadow:0 4px 14px var(--shadow);}
+  .tab.active .dot{background:rgba(255,255,255,.9)!important;}
+  #customPanel{display:none;border-top:1px solid var(--line);padding:10px 12px;background:var(--surface);gap:8px;flex-wrap:wrap;}
+  #customPanel.open{display:flex;}
+  .chk{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:7px 12px;cursor:pointer;user-select:none;color:var(--fg);}
+  .chk input{accent-color:var(--accent);width:16px;height:16px;} .chk .dot{width:10px;height:10px;border-radius:50%;}
+  #controls{position:fixed;left:0;right:0;bottom:0;z-index:1000;display:flex;justify-content:center;gap:10px;padding:12px 12px calc(12px + env(safe-area-inset-bottom));pointer-events:none;}
+  #controls button{pointer-events:auto;}
+  .fab{border:none;border-radius:999px;font-size:15px;font-weight:700;padding:13px 20px;min-height:50px;cursor:pointer;box-shadow:0 6px 20px var(--shadow);display:flex;align-items:center;gap:8px;transition:transform .12s;}
+  .fab:active{transform:scale(.96);} .fab.primary{background:var(--accent);color:#fff;} .fab.ghost{background:var(--surface);color:var(--fg);border:1px solid var(--line);}
+  #status{position:fixed;top:calc(env(safe-area-inset-top) + 100px);left:50%;transform:translateX(-50%);z-index:1100;background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:999px;font-size:13px;font-weight:600;display:none;align-items:center;gap:8px;box-shadow:0 6px 20px var(--shadow);max-width:90vw;text-align:center;opacity:.95;}
+  #status.show{display:flex;}
+  .spinner{width:14px;height:14px;border:2px solid rgba(127,127,127,.35);border-top-color:currentColor;border-radius:50%;animation:spin .7s linear infinite;flex:0 0 auto;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .poi-pin{width:30px;height:30px;border-radius:50% 50% 50% 4px;border:2.5px solid var(--panel);box-shadow:0 2px 6px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:15px;line-height:1;transform:rotate(-2deg);}
+  .ep-pin{padding:3px 9px;border-radius:999px;border:2px solid var(--panel);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;box-shadow:0 2px 7px rgba(0,0,0,.45);}
+  .og-pin{display:flex;align-items:center;gap:5px;}
+  .og-pin .b{width:26px;height:26px;border-radius:50%;background:var(--c-onsengo);border:2.5px solid var(--panel);box-shadow:0 2px 6px rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;font-size:14px;flex:0 0 auto;}
+  .og-pin .t{font-size:11px;font-weight:800;color:var(--fg);background:var(--panel-blur);padding:2px 6px;border-radius:6px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .gmaps-btn{width:100%;min-height:44px;border:none;border-radius:11px;background:#1a73e8;color:#fff;font-weight:700;font-size:13.5px;cursor:pointer;margin:0 0 12px;}
+  .pt-mv{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:7px;width:28px;height:28px;font-size:11px;cursor:pointer;flex:0 0 auto;}
+  .pt-mv:disabled{opacity:.3;cursor:default;}
+  .sp-pin{width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:22px;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45));}
+  #routeSheet.collapsed{max-height:78px;overflow:hidden;}
+  .rs-grab{cursor:pointer;position:relative;}
+  .rs-grab::after{content:'';}
+  .seg-sel{padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);font-size:12.5px;}
+  .buf-lbl{font-size:10px;font-weight:800;color:var(--accent);background:var(--panel-blur);padding:1px 5px;border-radius:5px;white-space:nowrap;transform:translate(-50%,-50%);box-shadow:0 1px 3px rgba(0,0,0,.25);}
+  .itin-pt{display:flex;align-items:center;gap:8px;font-size:13px;margin:3px 0;}
+  .itin-time{font-variant-numeric:tabular-nums;font-weight:800;color:var(--fg);min-width:42px;}
+  .itin-badge{min-width:34px;padding:1px 6px;border-radius:6px;color:#fff;font-size:11px;font-weight:800;text-align:center;flex:0 0 auto;}
+  .itin-label{flex:1;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .itin-leg{margin:2px 0 2px 50px;padding:5px 10px;border-left:2px dashed var(--line);font-size:12px;color:var(--muted);}
+  .leaflet-popup-content-wrapper{background:var(--surface);color:var(--fg);border-radius:14px;box-shadow:0 8px 30px var(--shadow);}
+  .leaflet-popup-tip{background:var(--surface);} .leaflet-popup-content{margin:13px 15px;min-width:210px;}
+  .leaflet-popup-close-button{color:var(--muted)!important;}
+  .popup h3{margin:0 0 5px;font-size:15px;} .popup .meta{font-size:12.5px;color:var(--muted);margin:3px 0;line-height:1.5;}
+  .popup .meta a{color:var(--accent);}
+  .oh{font-weight:800;} .oh.open{color:var(--open);} .oh.closed{color:var(--closed);}
+  .popup .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
+  .popup .links a,.popup .links button{text-decoration:none;font-size:12.5px;font-weight:700;cursor:pointer;padding:7px 11px;border-radius:9px;border:1px solid var(--line);color:var(--fg);background:var(--surface-2);}
+  .popup .links a.rakuten{background:#bf0000;color:#fff;border-color:#bf0000;}
+  .popup .links button.dest{background:var(--route);color:#fff;border-color:var(--route);}
+  .popup .links a.nav{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .rk-slot a{color:var(--accent);font-weight:700;}
+  .leaflet-bottom.leaflet-right{margin-bottom:64px;}
+  .leaflet-control-attribution{background:var(--panel-blur)!important;color:var(--muted)!important;}
+  .leaflet-control-attribution a{color:var(--accent)!important;}
+  #routeSheet{display:none;position:fixed;left:0;right:0;bottom:0;z-index:1050;background:var(--panel);border-top:1px solid var(--line);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);padding:14px 14px calc(12px + env(safe-area-inset-bottom));max-height:72dvh;overflow-y:auto;transition:background-color .3s;}
+  #routeSheet.open{display:block;}
+  .rs-grab{width:38px;height:4px;border-radius:99px;background:var(--line);margin:0 auto 10px;}
+  .rs-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+  .rs-head b{font-size:15.5px;} .rs-head .clear{font-size:12.5px;font-weight:700;color:var(--accent);background:none;border:none;cursor:pointer;}
+  .rs-search{display:flex;gap:8px;margin-bottom:8px;}
+  .rs-search input{flex:1;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--fg);font-size:14px;}
+  .rs-search button{flex:0 0 auto;padding:0 16px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-weight:700;font-size:14px;cursor:pointer;}
+  .geo-results{display:none;flex-direction:column;margin-bottom:8px;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--surface);}
+  .geo-results.show{display:flex;}
+  .geo-item{text-align:left;padding:11px 12px;border:none;background:var(--surface);color:var(--fg);font-size:13px;cursor:pointer;border-bottom:1px solid var(--line);}
+  .geo-item:last-child{border-bottom:none;} .geo-load{padding:11px 12px;color:var(--muted);font-size:13px;}
+  .pt-list{display:flex;flex-direction:column;gap:6px;margin-bottom:8px;}
+  .pt-empty{font-size:12.5px;color:var(--muted);padding:8px 2px;}
+  .pt-row{display:flex;align-items:center;gap:9px;border:1px solid var(--line);border-radius:11px;padding:9px 11px;background:var(--surface-2);}
+  .pt-badge{min-width:36px;height:24px;padding:0 6px;border-radius:7px;color:#fff;font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;flex:0 0 auto;}
+  .pt-label{flex:1;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .pt-del{border:none;background:none;color:var(--muted);font-size:15px;cursor:pointer;flex:0 0 auto;}
+  .rs-btns{display:flex;gap:8px;margin:2px 0 6px;flex-wrap:wrap;}
+  .rs-btns button{flex:1 1 auto;min-height:42px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:11px;font-size:13px;font-weight:700;cursor:pointer;padding:0 10px;}
+  .rs-hint{font-size:11.5px;color:var(--muted);margin:2px 0 10px;line-height:1.5;}
+  .rs-section{border-top:1px solid var(--line);padding-top:12px;margin-top:6px;}
+  .rs-label{font-size:11.5px;color:var(--muted);font-weight:800;letter-spacing:.04em;margin-bottom:8px;text-transform:uppercase;}
+  .opt-row{display:flex;gap:10px;flex-wrap:wrap;}
+  .opt{display:flex;align-items:center;gap:7px;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:9px 12px;cursor:pointer;color:var(--fg);}
+  .opt input{accent-color:var(--accent);width:16px;height:16px;}
+  .seg{display:flex;gap:5px;margin-bottom:11px;background:var(--surface-2);padding:4px;border-radius:12px;}
+  .seg button{flex:1;min-height:38px;border:none;background:transparent;color:var(--fg);border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;transition:.15s;}
+  .seg button.on{background:var(--accent);color:#fff;box-shadow:0 3px 10px var(--shadow);}
+  .rs-inputs{display:flex;gap:10px;margin-bottom:4px;}
+  .rs-inputs label{flex:1;font-size:11.5px;color:var(--muted);font-weight:700;}
+  .rs-inputs input{width:100%;margin-top:5px;padding:10px 11px;border:1px solid var(--line);border-radius:10px;font-size:15px;background:var(--surface);color:var(--fg);}
+  .rs-result{display:none;border-top:1px solid var(--line);padding-top:12px;margin-top:10px;}
+  .rs-result.show{display:block;}
+  .rs-grid{display:flex;gap:10px;} .rs-grid+.rs-grid{margin-top:10px;}
+  .rs-card{flex:1;background:var(--surface-2);border-radius:14px;padding:11px 12px;text-align:center;}
+  .rs-card .k{font-size:11px;color:var(--muted);font-weight:700;} .rs-card .val{font-size:20px;font-weight:800;margin-top:3px;}
+  .rs-card.cost{background:var(--accent-weak);} .rs-card.cost .val{color:var(--accent);}
+  .rs-note{font-size:11px;color:var(--muted);margin-top:9px;line-height:1.55;}
+  .overlay{display:none;position:fixed;inset:0;z-index:2000;background:rgba(0,0,0,.5);align-items:center;justify-content:center;padding:18px;backdrop-filter:blur(3px);}
+  .overlay.open{display:flex;}
+  .modal{width:100%;max-width:430px;max-height:86dvh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 20px 60px var(--shadow);padding:18px;}
+  .modal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+  .modal-h b{font-size:16px;} .modal-h button{border:none;background:none;font-size:18px;color:var(--muted);cursor:pointer;}
+  .set-sec{margin-bottom:18px;}
+  .set-label{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em;}
+  .set-sec input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;font-size:14px;background:var(--surface);color:var(--fg);}
+  .set-help{font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.55;} .set-help a{color:var(--accent);}
+  .set-save{margin-top:10px;width:100%;min-height:44px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;}
+  .set-msg{font-size:12px;color:var(--open);font-weight:700;margin-top:8px;min-height:16px;}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="topbar">
+  <div class="title">
+    <div class="brand"><b>♨ たびマップ</b><span>OSM · OSRM/ORS · Photon · 楽天</span></div>
+    <div class="hdr-actions">
+      <button class="icon-btn" id="themeBtn" title="テーマ切替">🌙</button>
+      <button class="icon-btn" id="setBtn" title="設定">⚙️</button>
+    </div>
+  </div>
+  <div class="tabs" id="tabs"></div>
+  <div id="customPanel"></div>
+</div>
+<div id="status"></div>
+<div id="controls">
+  <button class="fab ghost" id="locBtn" title="現在地へ">📍</button>
+  <button class="fab primary" id="researchBtn">🔍 このエリアを検索</button>
+</div>
+<button id="bufClear" style="display:none;position:fixed;left:12px;bottom:calc(76px + env(safe-area-inset-bottom));z-index:1100;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:999px;padding:9px 14px;font-size:12.5px;font-weight:700;box-shadow:0 4px 14px var(--shadow);cursor:pointer;">◎ 距離円を消去</button>
+
+<div id="routeSheet">
+  <div class="rs-grab" id="rsGrab"></div>
+  <div class="rs-head"><b>🚗 ルート・ドライブ費用</b><button class="clear" id="rsClear">クリア</button></div>
+  <div class="rs-search">
+    <input id="geoInput" placeholder="地名・施設名で検索して地点を追加" autocomplete="off">
+    <button id="geoBtn">検索</button>
+  </div>
+  <div id="geoResults" class="geo-results"></div>
+  <div id="ptList" class="pt-list"></div>
+  <div class="rs-btns"><button id="useLoc">📍 現在地を追加</button><button id="reverse">⇅ 反転</button></div>
+  <div class="rs-hint">検索 / 地図タップ / 現在地 / ピンの「🎯ここへ」で地点を追加。経由地もOK。マーカーはドラッグで微調整。</div>
+  <button id="gmapsBtn" class="gmaps-btn">🗺️ Googleマップでこのルートを開く（ナビ・渋滞）</button>
+  <div id="segExport" style="display:none;align-items:center;gap:6px;margin:-4px 0 12px;flex-wrap:wrap;">
+    <span style="font-size:12px;color:var(--muted);font-weight:700;">区間だけ出力:</span>
+    <select id="segFrom" class="seg-sel"></select><span style="color:var(--muted);">→</span><select id="segTo" class="seg-sel"></select>
+    <button id="segBtn" style="border:none;border-radius:9px;background:#1a73e8;color:#fff;font-weight:700;font-size:12.5px;padding:8px 12px;cursor:pointer;">区間をGマップ</button>
+  </div>
+
+  <div class="rs-section">
+    <div class="rs-label">ルート条件</div>
+    <div class="opt-row">
+      <label class="opt"><input type="checkbox" id="avoidHw"> 高速道路を回避</label>
+      <label class="opt"><input type="checkbox" id="avoidToll"> 有料道路を回避</label>
+    </div>
+    <div class="rs-hint" id="orsHint" style="margin-top:8px;"></div>
+  </div>
+
+  <div class="rs-section">
+    <div class="rs-label">ガソリン</div>
+    <div class="seg" id="fuelSeg">
+      <button data-f="regular" class="on">レギュラー</button>
+      <button data-f="premium">ハイオク</button>
+      <button data-f="diesel">軽油</button>
+    </div>
+    <div class="rs-inputs">
+      <label>単価 (円/L)<input id="price" type="number" inputmode="decimal" value="175"></label>
+      <label>燃費 (km/L)<input id="eff" type="number" inputmode="decimal" value="15"></label>
+    </div>
+    <div class="rs-note" id="gasNote" style="margin-top:6px;"></div>
+  </div>
+
+  <div class="rs-section">
+    <div class="rs-label">高速料金（概算）</div>
+    <div class="seg" id="vehSeg">
+      <button data-v="kei">軽</button>
+      <button data-v="normal" class="on">普通</button>
+      <button data-v="mid">中型</button>
+      <button data-v="large">大型</button>
+      <button data-v="xl">特大</button>
+    </div>
+    <div class="rs-inputs">
+      <label>高速(NEXCO)距離 (km)<input id="tollKm" type="number" inputmode="decimal" placeholder="自動判定"></label>
+      <label>出発日時<input id="depTime" type="datetime-local"></label>
+    </div>
+    <label class="opt" style="margin-top:8px;"><input type="checkbox" id="applyDisc" checked> 割引を自動適用（深夜/休日）</label>
+    <div class="rs-hint" id="tollHint" style="margin-top:8px;"></div>
+  </div>
+
+  <div class="rs-section">
+    <div class="rs-label">その他費用</div>
+    <div class="rs-inputs"><label>車両保険・その他 (円)<input id="otherCost" type="number" inputmode="decimal" placeholder="例: 1日保険 800"></label></div>
+  </div>
+
+  <div class="rs-result" id="rsResult">
+    <div class="rs-grid">
+      <div class="rs-card"><div class="k">実走行距離</div><div class="val" id="rDist">–</div></div>
+      <div class="rs-card"><div class="k">所要時間(目安)</div><div class="val" id="rTime">–</div></div>
+    </div>
+    <div class="rs-grid">
+      <div class="rs-card"><div class="k">ガソリン代</div><div class="val" id="rGas">–</div></div>
+      <div class="rs-card"><div class="k">高速(概算)</div><div class="val" id="rToll">–</div></div>
+      <div class="rs-card cost"><div class="k">総費用</div><div class="val" id="rTotal">–</div></div>
+    </div>
+    <div class="rs-note" id="rNote"></div>
+  </div>
+  <div class="rs-section" id="itinSec" style="display:none;"><div id="itinerary"></div></div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <div class="modal-h"><b>⚙️ 設定</b><button id="setClose">✕</button></div>
+    <div class="set-sec">
+      <div class="set-label">楽天トラベル連携</div>
+      <input id="rakInput" placeholder="楽天ウェブサービスの applicationId" autocomplete="off" />
+      <div class="set-help">宿泊施設に楽天の<b>最安料金・レビュー・正規リンク</b>を表示。IDは <a href="https://webservice.rakuten.co.jp/" target="_blank" rel="noopener">webservice.rakuten.co.jp</a> で無料取得（端末内のみ保存）。</div>
+      <button class="set-save" id="rakSave">保存</button>
+      <div class="set-msg" id="rakMsg"></div>
+    </div>
+    <div class="set-sec">
+      <div class="set-label">ルート詳細（高速・有料の回避）</div>
+      <input id="orsInput" placeholder="OpenRouteService の APIキー" autocomplete="off" />
+      <div class="set-help">高速・有料を<b>回避するルート</b>に使用。<a href="https://openrouteservice.org/dev/#/signup" target="_blank" rel="noopener">openrouteservice.org</a> で無料取得（端末内のみ保存）。未設定でも通常ルートは使えます。</div>
+      <button class="set-save" id="orsSave">保存</button>
+      <div class="set-msg" id="orsMsg"></div>
+    </div>
+    <div class="set-sec">
+      <div class="set-label">Google Maps 連携（渋滞ETA）</div>
+      <input id="gmapInput" placeholder="Google Maps APIキー" autocomplete="off" />
+      <div class="set-help"><b>渋滞を反映した所要時間</b>を表示。Google Cloudで「Maps JavaScript API」＋「Directions API」を有効化し、<b>HTTPリファラー制限</b>を設定してください（課金あり）。キーは端末内のみ保存。</div>
+      <button class="set-save" id="gmapSave">保存</button>
+      <div class="set-msg" id="gmapMsg"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* たびマップ プロトタイプ
+   P1 地図+タブ / P2 ルート+距離+ガソリン代 / P3 営業時間+楽天 / ルート実用化(検索·経由地·回避)
+   今回: P4 高速料金(概算) + SA/PA表示 / ダークモード·CARTO */
+
+const CATS = {
+  onsen:{label:'温泉・銭湯',emoji:'♨',cv:'--c-onsen',query:`nwr["amenity"="public_bath"](B);nwr["natural"="hot_spring"](B);nwr["leisure"="spa"](B);`},
+  parking:{label:'駐車場',emoji:'🅿',cv:'--c-parking',query:`nwr["amenity"="parking"](B);`},
+  hotel:{label:'宿泊施設',emoji:'🏨',cv:'--c-hotel',query:`nwr["tourism"~"^(hotel|hostel|guest_house|motel|apartment|chalet)$"](B);`},
+  sapa:{label:'SA/PA',emoji:'🛣️',cv:'--c-sapa',query:`nwr["highway"="services"](B);nwr["highway"="rest_area"](B);`},
+  conveni:{label:'コンビニ',emoji:'🏪',cv:'--c-conveni',query:`nwr["shop"="convenience"](B);`},
+  food:{label:'飲食店',emoji:'🍴',cv:'--c-food',query:`nwr["amenity"~"^(restaurant|fast_food|cafe)$"](B);`},
+  fuel:{label:'ガソリンスタンド',emoji:'⛽',cv:'--c-fuel',query:`nwr["amenity"="fuel"](B);`},
+};
+const cssvar=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const catColor=k=>cssvar(CATS[k]?CATS[k].cv:'--muted')||'#888';
+const TAB_ORDER=['onsengo','onsen','parking','hotel','sapa','custom','route'];
+const TAB_META={onsengo:{label:'温泉郷',emoji:'♨',cv:'--c-onsengo'},onsen:CATS.onsen,parking:CATS.parking,hotel:CATS.hotel,sapa:CATS.sapa,
+  custom:{label:'カスタム',emoji:'🧩',cv:'--muted'}, route:{label:'ルート・費用',emoji:'🚗',cv:'--route'}};
+const CUSTOM_OPTIONS=['onsen','parking','hotel','sapa','conveni','food','fuel'];
+
+// 主要温泉郷（キュレーション静的データ：名称・緯度・経度・エリア・特徴）
+const ONSEN_GO=[
+  {name:'登別温泉',lat:42.490,lng:141.150,area:'北海道',note:'温泉のデパート'},
+  {name:'定山渓温泉',lat:42.967,lng:141.162,area:'北海道',note:'札幌の奥座敷'},
+  {name:'洞爺湖温泉',lat:42.561,lng:140.812,area:'北海道',note:'湖畔の温泉地'},
+  {name:'層雲峡温泉',lat:43.717,lng:142.955,area:'北海道',note:'大雪山の峡谷'},
+  {name:'銀山温泉',lat:38.572,lng:140.533,area:'山形',note:'大正ロマンの街並み'},
+  {name:'蔵王温泉',lat:38.160,lng:140.398,area:'山形',note:'強酸性の白濁湯'},
+  {name:'乳頭温泉郷',lat:39.794,lng:140.804,area:'秋田',note:'秘湯の宿が点在'},
+  {name:'鳴子温泉',lat:38.740,lng:140.728,area:'宮城',note:'多彩な泉質と湯けむり'},
+  {name:'花巻温泉郷',lat:39.420,lng:141.073,area:'岩手',note:'12の温泉が連なる'},
+  {name:'酸ヶ湯温泉',lat:40.650,lng:140.862,area:'青森',note:'ヒバ千人風呂'},
+  {name:'飯坂温泉',lat:37.834,lng:140.452,area:'福島',note:'奥州三名湯'},
+  {name:'草津温泉',lat:36.623,lng:138.596,area:'群馬',note:'日本三名泉・湯畑'},
+  {name:'伊香保温泉',lat:36.488,lng:138.910,area:'群馬',note:'石段街'},
+  {name:'四万温泉',lat:36.631,lng:138.740,area:'群馬',note:'四万の病に効く'},
+  {name:'万座温泉',lat:36.630,lng:138.503,area:'群馬',note:'標高1800mの硫黄泉'},
+  {name:'鬼怒川温泉',lat:36.820,lng:139.710,area:'栃木',note:'渓谷沿いの大温泉地'},
+  {name:'那須温泉郷',lat:37.122,lng:139.965,area:'栃木',note:'那須高原の名湯'},
+  {name:'箱根湯本温泉',lat:35.232,lng:139.103,area:'神奈川',note:'箱根の玄関口'},
+  {name:'熱海温泉',lat:35.096,lng:139.071,area:'静岡',note:'海辺の温泉街'},
+  {name:'伊東温泉',lat:34.966,lng:139.102,area:'静岡',note:'豊富な湯量'},
+  {name:'修善寺温泉',lat:34.971,lng:138.929,area:'静岡',note:'伊豆最古の温泉'},
+  {name:'別所温泉',lat:36.342,lng:138.158,area:'長野',note:'信州の鎌倉'},
+  {name:'野沢温泉',lat:36.921,lng:138.443,area:'長野',note:'13の外湯めぐり'},
+  {name:'渋温泉',lat:36.739,lng:138.422,area:'長野',note:'九湯めぐりの温泉街'},
+  {name:'白骨温泉',lat:36.149,lng:137.687,area:'長野',note:'乳白色の湯'},
+  {name:'下呂温泉',lat:35.807,lng:137.244,area:'岐阜',note:'日本三名泉'},
+  {name:'奥飛騨温泉郷',lat:36.225,lng:137.567,area:'岐阜',note:'露天風呂の宝庫'},
+  {name:'和倉温泉',lat:37.093,lng:136.863,area:'石川',note:'能登の海辺'},
+  {name:'山中温泉',lat:36.242,lng:136.371,area:'石川',note:'加賀温泉郷'},
+  {name:'山代温泉',lat:36.300,lng:136.391,area:'石川',note:'加賀温泉郷'},
+  {name:'宇奈月温泉',lat:36.812,lng:137.585,area:'富山',note:'黒部峡谷の玄関'},
+  {name:'越後湯沢温泉',lat:36.936,lng:138.808,area:'新潟',note:'雪国の温泉'},
+  {name:'有馬温泉',lat:34.798,lng:135.248,area:'兵庫',note:'日本三古湯・金泉銀泉'},
+  {name:'城崎温泉',lat:35.625,lng:134.809,area:'兵庫',note:'七つの外湯めぐり'},
+  {name:'白浜温泉',lat:33.685,lng:135.342,area:'和歌山',note:'海辺のリゾート温泉'},
+  {name:'龍神温泉',lat:33.861,lng:135.504,area:'和歌山',note:'日本三美人の湯'},
+  {name:'湯の峰温泉',lat:33.831,lng:135.772,area:'和歌山',note:'世界遺産・つぼ湯'},
+  {name:'三朝温泉',lat:35.402,lng:133.935,area:'鳥取',note:'ラジウム泉'},
+  {name:'皆生温泉',lat:35.452,lng:133.273,area:'鳥取',note:'海辺の温泉'},
+  {name:'玉造温泉',lat:35.418,lng:133.012,area:'島根',note:'美肌の湯'},
+  {name:'湯原温泉',lat:35.131,lng:133.690,area:'岡山',note:'砂湯の露天'},
+  {name:'道後温泉',lat:33.852,lng:132.786,area:'愛媛',note:'日本最古級の名湯'},
+  {name:'湯田温泉',lat:34.158,lng:131.461,area:'山口',note:'白狐伝説'},
+  {name:'別府温泉',lat:33.279,lng:131.501,area:'大分',note:'源泉数日本一・地獄めぐり'},
+  {name:'由布院温泉',lat:33.264,lng:131.357,area:'大分',note:'湯布院の人気温泉'},
+  {name:'黒川温泉',lat:33.084,lng:131.182,area:'熊本',note:'露天風呂めぐり手形'},
+  {name:'嬉野温泉',lat:33.103,lng:129.987,area:'佐賀',note:'日本三大美肌の湯'},
+  {name:'武雄温泉',lat:33.193,lng:130.018,area:'佐賀',note:'楼門と歴史の湯'},
+  {name:'雲仙温泉',lat:32.732,lng:130.262,area:'長崎',note:'雲仙地獄'},
+  {name:'指宿温泉',lat:31.222,lng:130.633,area:'鹿児島',note:'天然砂むし温泉'},
+  {name:'霧島温泉郷',lat:31.862,lng:130.842,area:'鹿児島',note:'霧島連山の湯'},
+  {name:'湯の川温泉',lat:41.781,lng:140.789,area:'北海道',note:'函館の湯'},
+  {name:'阿寒湖温泉',lat:43.448,lng:144.103,area:'北海道',note:'阿寒湖畔'},
+  {name:'川湯温泉(北海道)',lat:43.625,lng:144.452,area:'北海道',note:'強酸性の硫黄泉'},
+  {name:'十勝川温泉',lat:42.924,lng:143.305,area:'北海道',note:'モール温泉'},
+  {name:'ニセコ温泉郷',lat:42.862,lng:140.687,area:'北海道',note:'羊蹄山麓の湯'},
+  {name:'浅虫温泉',lat:40.893,lng:140.862,area:'青森',note:'陸奥湾の海辺'},
+  {name:'大鰐温泉',lat:40.519,lng:140.566,area:'青森',note:'津軽の古湯'},
+  {name:'玉川温泉',lat:39.962,lng:140.742,area:'秋田',note:'強酸性・岩盤浴'},
+  {name:'秋保温泉',lat:38.248,lng:140.660,area:'宮城',note:'仙台の奥座敷'},
+  {name:'作並温泉',lat:38.323,lng:140.621,area:'宮城',note:'広瀬川上流'},
+  {name:'遠刈田温泉',lat:38.128,lng:140.547,area:'宮城',note:'蔵王連峰の麓'},
+  {name:'東山温泉',lat:37.481,lng:139.950,area:'福島',note:'会津の奥座敷'},
+  {name:'土湯温泉',lat:37.687,lng:140.326,area:'福島',note:'こけしと渓谷'},
+  {name:'高湯温泉',lat:37.731,lng:140.301,area:'福島',note:'吾妻の濁り湯'},
+  {name:'磐梯熱海温泉',lat:37.432,lng:140.301,area:'福島',note:'郡山の奥座敷'},
+  {name:'湯野浜温泉',lat:38.787,lng:139.756,area:'山形',note:'日本海の夕日'},
+  {name:'天童温泉',lat:38.362,lng:140.378,area:'山形',note:'将棋の里'},
+  {name:'かみのやま温泉',lat:38.150,lng:140.273,area:'山形',note:'城下町の湯'},
+  {name:'水上温泉',lat:36.789,lng:138.990,area:'群馬',note:'利根川渓谷'},
+  {name:'塩原温泉郷',lat:36.981,lng:139.762,area:'栃木',note:'渓谷の11湯'},
+  {name:'湯西川温泉',lat:36.969,lng:139.583,area:'栃木',note:'平家落人の里'},
+  {name:'奥日光湯元温泉',lat:36.811,lng:139.424,area:'栃木',note:'日光の最奥'},
+  {name:'湯河原温泉',lat:35.151,lng:139.103,area:'神奈川',note:'万葉の古湯'},
+  {name:'下田温泉',lat:34.679,lng:138.945,area:'静岡',note:'伊豆南端の港町'},
+  {name:'熱川温泉',lat:34.832,lng:139.102,area:'静岡',note:'湯けむりの海辺'},
+  {name:'堂ヶ島温泉',lat:34.770,lng:138.773,area:'静岡',note:'西伊豆の景勝'},
+  {name:'土肥温泉',lat:34.908,lng:138.789,area:'静岡',note:'西伊豆の古湯'},
+  {name:'稲取温泉',lat:34.779,lng:139.046,area:'静岡',note:'雛のつるし飾り'},
+  {name:'上諏訪温泉',lat:36.039,lng:138.115,area:'長野',note:'諏訪湖畔'},
+  {name:'昼神温泉',lat:35.424,lng:137.690,area:'長野',note:'南信州の美肌湯'},
+  {name:'浅間温泉',lat:36.261,lng:137.992,area:'長野',note:'松本の奥座敷'},
+  {name:'湯田中温泉',lat:36.744,lng:138.411,area:'長野',note:'湯田中渋温泉郷'},
+  {name:'赤倉温泉',lat:36.892,lng:138.165,area:'新潟',note:'妙高高原'},
+  {name:'月岡温泉',lat:37.838,lng:139.296,area:'新潟',note:'美人の湯'},
+  {name:'瀬波温泉',lat:38.233,lng:139.464,area:'新潟',note:'日本海の夕日'},
+  {name:'片山津温泉',lat:36.308,lng:136.363,area:'石川',note:'加賀温泉郷・柴山潟'},
+  {name:'粟津温泉',lat:36.307,lng:136.411,area:'石川',note:'加賀温泉郷・古湯'},
+  {name:'あわら温泉',lat:36.213,lng:136.224,area:'福井',note:'関西の奥座敷'},
+  {name:'長島温泉',lat:35.028,lng:136.732,area:'三重',note:'ナガシマリゾート'},
+  {name:'榊原温泉',lat:34.662,lng:136.344,area:'三重',note:'七栗の湯'},
+  {name:'湯の山温泉',lat:35.013,lng:136.418,area:'三重',note:'御在所岳の麓'},
+  {name:'南紀勝浦温泉',lat:33.626,lng:135.943,area:'和歌山',note:'洞窟風呂と海'},
+  {name:'川湯温泉(和歌山)',lat:33.789,lng:135.776,area:'和歌山',note:'川底の仙人風呂'},
+  {name:'洞川温泉',lat:34.248,lng:135.861,area:'奈良',note:'大峰山の門前'},
+  {name:'湯村温泉(兵庫)',lat:35.500,lng:134.500,area:'兵庫',note:'荒湯と但馬'},
+  {name:'湯郷温泉',lat:34.953,lng:134.180,area:'岡山',note:'美作三湯'},
+  {name:'奥津温泉',lat:35.131,lng:133.951,area:'岡山',note:'美作三湯・渓谷'},
+  {name:'温泉津温泉',lat:35.100,lng:132.348,area:'島根',note:'世界遺産の湯町'},
+  {name:'長門湯本温泉',lat:34.364,lng:131.182,area:'山口',note:'音信川の温泉街'},
+  {name:'祖谷温泉',lat:33.882,lng:133.801,area:'徳島',note:'秘境・かずら橋'},
+  {name:'あしずり温泉郷',lat:32.722,lng:133.018,area:'高知',note:'足摺岬'},
+  {name:'鉄輪温泉',lat:33.299,lng:131.491,area:'大分',note:'別府・湯けむりと地獄'},
+  {name:'明礬温泉',lat:33.308,lng:131.452,area:'大分',note:'湯の花小屋'},
+  {name:'長湯温泉',lat:33.180,lng:131.342,area:'大分',note:'炭酸泉の名湯'},
+  {name:'杖立温泉',lat:33.151,lng:131.099,area:'熊本',note:'筑後川源流の湯町'},
+  {name:'山鹿温泉',lat:33.018,lng:130.688,area:'熊本',note:'灯籠と古湯'},
+  {name:'人吉温泉',lat:32.210,lng:130.762,area:'熊本',note:'球磨川と球磨焼酎'},
+  {name:'日奈久温泉',lat:32.502,lng:130.620,area:'熊本',note:'八代海の古湯'},
+  {name:'原鶴温泉',lat:33.382,lng:130.741,area:'福岡',note:'筑後川沿いの湯'},
+  {name:'二日市温泉',lat:33.500,lng:130.522,area:'福岡',note:'万葉の古湯'},
+  {name:'小浜温泉',lat:32.730,lng:130.181,area:'長崎',note:'日本一長い足湯'},
+  {name:'妙見温泉',lat:31.862,lng:130.740,area:'鹿児島',note:'妙見・安楽の渓谷'},
+];
+
+const map=L.map('map',{zoomControl:true}).setView([35.2328,139.1069],14);
+const markerLayer=L.layerGroup().addTo(map);
+const routePtsLayer=L.layerGroup().addTo(map);
+const onsengoLayer=L.layerGroup().addTo(map);
+let tileLayer=null;
+function setTiles(theme){
+  if(tileLayer)map.removeLayer(tileLayer);
+  if(theme==='dark'){
+    tileLayer=L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png',
+      {subdomains:'abcd',maxZoom:20,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; CARTO | route OSRM/ORS · 地名 Photon'}).addTo(map);
+  }else{
+    tileLayer=L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png',
+      {maxZoom:18,attribution:'&copy; <a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a> | route OSRM/ORS · 地名 Photon'}).addTo(map);
+  }
+  tileLayer.setZIndex(0);
+}
+let currentTheme='light';
+function applyTheme(t){currentTheme=t;document.documentElement.dataset.theme=t;document.getElementById('themeBtn').textContent=(t==='dark'?'☀️':'🌙');setTiles(t);if(routeLine)routeLine.setStyle({color:cssvar('--route')});localStorage.setItem('tabi_theme',t);}
+document.getElementById('themeBtn').onclick=()=>applyTheme(currentTheme==='dark'?'light':'dark');
+
+let activeTab='onsengo';
+const customSelected=new Set(['onsen','hotel','parking']);
+let points=[]; let routeLine=null, routeCasing=null, lastDistanceKm=null, lastDurationSec=null, lastEngine='', lastNexcoKm=0, lastShutokoKm=0, lastLegs=[];
+let gmReady=false, gmLoading=false, lastTrafficSec=null, lastLegsTrafficSec=null, lastGBaseSec=null;
+let customSearchPins=[]; const searchPinLayer=L.layerGroup().addTo(map);
+const bufferLayer=L.layerGroup().addTo(map);
+const fuelPrices={regular:175,premium:186,diesel:155}; let fuelType='regular';
+const VEH={kei:0.8,normal:1.0,mid:1.2,large:1.65,xl:2.75};
+const VEHLBL={kei:'軽',normal:'普通車',mid:'中型',large:'大型',xl:'特大'};
+let vehType='normal', tollKmAuto=true;
+
+const tabsEl=document.getElementById('tabs');
+function buildTabs(){
+  tabsEl.innerHTML='';
+  TAB_ORDER.forEach(key=>{
+    const m=TAB_META[key],color=cssvar(m.cv);
+    const b=document.createElement('button');b.className='tab'+(key===activeTab?' active':'');
+    b.innerHTML=`<span class="dot" style="background:${color}"></span>${m.emoji} ${m.label}`;
+    if(key===activeTab)b.style.background=color;
+    b.onclick=()=>selectTab(key);tabsEl.appendChild(b);
+  });
+}
+function selectTab(key){
+  activeTab=key;buildTabs();
+  const routeMode=(key==='route');
+  customPanel.classList.toggle('open',key==='custom');
+  routeSheet.classList.toggle('open',routeMode);
+  document.getElementById('controls').style.display=(routeMode||key==='onsengo')?'none':'flex';
+  onsengoLayer.clearLayers();
+  if(key==='onsengo'){markerLayer.clearLayers();renderOnsenGo();const g=L.featureGroup(onsengoLayer.getLayers());if(g.getLayers().length)map.fitBounds(g.getBounds(),{padding:[40,40]});showStatus('♨ 温泉郷 '+ONSEN_GO.length+'件（タップで宿・周辺の温泉）',false);hideStatusLater();}
+  else if(key==='custom'){buildCustomPanel();runSearch();}
+  else if(routeMode){renderPoints();updateOrsHint();}
+  else{runSearch();}
+}
+const customPanel=document.getElementById('customPanel');
+function buildCustomPanel(){
+  customPanel.innerHTML='';
+  const sr=document.createElement('div');sr.className='rs-search';sr.style.cssText='width:100%;margin-bottom:2px;';
+  sr.innerHTML=`<input id="cSearch" placeholder="施設名・地名を検索してMAPにピン" autocomplete="off"><button id="cSearchBtn">検索</button>`;
+  customPanel.appendChild(sr);
+  CUSTOM_OPTIONS.forEach(key=>{
+    const c=CATS[key];const lab=document.createElement('label');lab.className='chk';
+    lab.innerHTML=`<input type="checkbox" ${customSelected.has(key)?'checked':''}><span class="dot" style="background:${cssvar(c.cv)}"></span>${c.emoji} ${c.label}`;
+    lab.querySelector('input').onchange=(e)=>{e.target.checked?customSelected.add(key):customSelected.delete(key);runSearch();};
+    customPanel.appendChild(lab);
+  });
+  const clr=document.createElement('button');clr.textContent='📌 検索ピンを消去';clr.style.cssText='width:100%;min-height:38px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;font-weight:700;font-size:12.5px;cursor:pointer;';
+  clr.onclick=()=>{searchPinLayer.clearLayers();customSearchPins=[];};
+  customPanel.appendChild(clr);
+  document.getElementById('cSearchBtn').onclick=doCustomSearch;
+  document.getElementById('cSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doCustomSearch();}});
+}
+const statusEl=document.getElementById('status');
+function showStatus(h,l){statusEl.innerHTML=(l?'<div class="spinner"></div>':'')+h;statusEl.classList.add('show');}
+function hideStatusLater(){setTimeout(()=>statusEl.classList.remove('show'),2600);}
+
+function categoryOf(t){
+  if(t.amenity==='public_bath'||t.natural==='hot_spring'||t.leisure==='spa')return'onsen';
+  if(t.highway==='services'||t.highway==='rest_area')return'sapa';
+  if(t.amenity==='parking')return'parking';
+  if(['hotel','hostel','guest_house','motel','apartment','chalet'].includes(t.tourism))return'hotel';
+  if(t.shop==='convenience')return'conveni';
+  if(['restaurant','fast_food','cafe'].includes(t.amenity))return'food';
+  if(t.amenity==='fuel')return'fuel';return'other';
+}
+async function runSearch(){
+  if(activeTab==='onsengo'||activeTab==='route')return;
+  if(map.getZoom()<11){showStatus('🔎 もう少しズームしてから検索してください',false);hideStatusLater();return;}
+  let cats=(activeTab==='custom')?[...customSelected]:[activeTab];
+  if(cats.length===0){markerLayer.clearLayers();showStatus('表示する種類を選んでください',false);hideStatusLater();return;}
+  const b=map.getBounds(),bbox=`${b.getSouth()},${b.getWest()},${b.getNorth()},${b.getEast()}`;
+  const body=cats.map(k=>CATS[k].query.replaceAll('B',bbox)).join('');
+  const query=`[out:json][timeout:25];(${body});out center 400;`;
+  showStatus('検索中…',true);
+  try{
+    const res=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(query)});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    renderMarkers((await res.json()).elements||[],cats);
+  }catch(err){console.error(err);showStatus('⚠️ 取得に失敗（Overpass混雑かも）。少し待って再検索を',false);hideStatusLater();}
+}
+function renderMarkers(elements,cats){
+  markerLayer.clearLayers();let count=0;
+  elements.forEach(el=>{
+    const lat=el.lat!=null?el.lat:(el.center?el.center.lat:null);
+    const lon=el.lon!=null?el.lon:(el.center?el.center.lon:null);
+    if(lat==null||lon==null)return;
+    const tags=el.tags||{},cat=categoryOf(tags),c=CATS[cat]||{emoji:'📍'},color=catColor(cat);
+    const icon=L.divIcon({className:'',html:`<div class="poi-pin" style="background:${color}">${c.emoji}</div>`,iconSize:[30,30],iconAnchor:[15,28],popupAnchor:[0,-26]});
+    const m=L.marker([lat,lon],{icon});m.bindPopup(()=>popupHtml(tags,lat,lon,cat),{maxWidth:290});
+    markerLayer.addLayer(m);count++;
+  });
+  showStatus(`${cats.map(k=>CATS[k].emoji).join('')} ${count}件を表示${count>=400?'（上限400件）':''}`,false);hideStatusLater();
+}
+function evalOpeningHours(value,now){
+  try{
+    if(!value)return null;const v=value.trim();
+    if(/^24\s*\/\s*7$/.test(v)||/24 hours/i.test(v))return{open:true,label:'24時間営業'};
+    const D={Su:0,Mo:1,Tu:2,We:3,Th:4,Fr:5,Sa:6};
+    const today=now.getDay(),nowMin=now.getHours()*60+now.getMinutes();let matched=false,intervals=[];
+    for(let rule of v.split(';')){
+      rule=rule.trim();if(!rule)continue;
+      const m=rule.match(/^((?:[A-Za-z]{2}(?:-[A-Za-z]{2})?)(?:,[A-Za-z]{2}(?:-[A-Za-z]{2})?)*)?\s*(.*)$/);if(!m)return null;
+      let days=[];
+      if(!m[1])days=[0,1,2,3,4,5,6];
+      else for(const seg of m[1].split(',')){const r=seg.split('-');if(r.length===1){if(D[r[0]]===undefined)return null;days.push(D[r[0]]);}else{let a=D[r[0]],b=D[r[1]];if(a===undefined||b===undefined)return null;let i=a;while(true){days.push(i);if(i===b)break;i=(i+1)%7;}}}
+      if(!days.includes(today))continue;matched=true;
+      const tp=m[2].trim();if(/^(off|closed)$/i.test(tp)){intervals=[];continue;}
+      for(const t of tp.split(',')){const tm=t.trim().match(/^(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})$/);if(!tm)return null;intervals.push([(+tm[1])*60+(+tm[2]),(+tm[3])*60+(+tm[4])]);}
+    }
+    if(!matched)return{open:false,label:'本日休業'};
+    let open=false,until=null;
+    for(const [s,e] of intervals){if(e>s){if(nowMin>=s&&nowMin<e){open=true;until=e;}}else{if(nowMin>=s||nowMin<e)open=true;}}
+    const lbl=until!=null?('〜'+String(Math.floor(until/60)).padStart(2,'0')+':'+String(until%60).padStart(2,'0')):null;
+    return{open,label:lbl};
+  }catch(e){return null;}
+}
+function popupHtml(tags,lat,lon,cat){
+  const name=tags.name||tags['name:ja']||'(名称なし)',c=CATS[cat]||{emoji:'📍'};
+  let html=`<div class="popup"><h3>${c.emoji} ${escapeHtml(name)}</h3>`;
+  if(cat==='sapa'){const t=tags.highway==='services'?'サービスエリア(SA)':'パーキングエリア(PA)';html+=`<div class="meta">🛣️ ${t}</div>`;}
+  if(tags.opening_hours){
+    const oh=evalOpeningHours(tags.opening_hours,new Date());let badge='';
+    if(oh&&oh.open===true)badge=`<span class="oh open">● 営業中</span>${oh.label?(' '+oh.label):''} · `;
+    else if(oh&&oh.open===false)badge=`<span class="oh closed">● 時間外</span>${(oh.label&&oh.label!=='本日休業')?(' '+oh.label):(oh.label==='本日休業'?' 本日休業':'')} · `;
+    html+=`<div class="meta">🕒 ${badge}${escapeHtml(tags.opening_hours)}</div>`;
+  }
+  const addr=composeAddress(tags);if(addr)html+=`<div class="meta">📮 ${escapeHtml(addr)}</div>`;
+  const phone=tags.phone||tags['contact:phone'];if(phone)html+=`<div class="meta">☎ <a href="tel:${phone}">${escapeHtml(phone)}</a></div>`;
+  if(cat==='parking'&&(tags.fee||tags.capacity)){const bits=[];if(tags.fee)bits.push(tags.fee==='yes'?'有料':tags.fee==='no'?'無料':tags.fee);if(tags.capacity)bits.push('収容'+tags.capacity+'台');html+=`<div class="meta">🅿 ${escapeHtml(bits.join(' / '))}</div>`;}
+  const appId=(cat==='hotel')?localStorage.getItem('tabi_rakuten_id'):null;
+  if(appId)html+=`<div class="meta rk-slot" data-name="${escAttr(name)}">🏨 楽天料金を取得中…</div>`;
+  const website=tags.website||tags['contact:website']||tags.url,q=encodeURIComponent(name);
+  html+='<div class="links">';
+  html+=`<button class="dest" onclick="window.setDest(${lat},${lon},'${encodeURIComponent(name)}')">🎯 ここへ</button>`;
+  html+=`<a class="nav" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}">🚗 ナビ</a>`;
+  html+=`<button onclick="window.buffer(${lat},${lon})">◎ 距離円</button>`;
+  if(cat==='hotel'){
+    html+=`<a class="official" target="_blank" rel="noopener" href="${website||('https://www.google.com/search?q='+q+'+公式サイト')}">🌐 公式</a>`;
+    if(!appId)html+=`<a class="rakuten" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+楽天トラベル">🏨 楽天</a>`;
+  }else if(website){html+=`<a class="official" target="_blank" rel="noopener" href="${website}">🌐 サイト</a>`;}
+  html+='</div></div>';return html;
+}
+function composeAddress(t){if(t['addr:full'])return t['addr:full'];const p=[t['addr:province'],t['addr:city'],t['addr:suburb'],t['addr:neighbourhood'],t['addr:quarter'],t['addr:block_number'],t['addr:housenumber']].filter(Boolean);return p.length?p.join(''):'';}
+function escapeHtml(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
+function escAttr(s){return String(s).replace(/"/g,'&quot;');}
+async function fillRakuten(popup){
+  const root=popup.getElement();if(!root)return;const node=root.querySelector('.rk-slot:not(.done)');if(!node)return;
+  node.classList.add('done');const appId=localStorage.getItem('tabi_rakuten_id');if(!appId)return;
+  try{
+    const url=`https://app.rakuten.co.jp/services/api/Travel/SimpleHotelSearch/20170426?applicationId=${encodeURIComponent(appId)}&format=json&responseType=middle&hits=1&keyword=${encodeURIComponent(node.dataset.name)}`;
+    const data=await (await fetch(url)).json();
+    if(data.error){node.innerHTML='🏨 楽天: '+(data.error==='wrong_parameter'?'IDをご確認ください':'該当なし');return;}
+    const h=data.hotels&&data.hotels[0]&&data.hotels[0].hotel&&data.hotels[0].hotel[0]&&data.hotels[0].hotel[0].hotelBasicInfo;
+    if(!h){node.innerHTML='🏨 楽天: 該当なし';return;}
+    const price=h.hotelMinCharge?('¥'+(+h.hotelMinCharge).toLocaleString()+'〜'):'料金情報なし',rev=h.reviewAverage?(' ★'+h.reviewAverage):'';
+    node.innerHTML=`🏨 <a href="${h.hotelInformationUrl}" target="_blank" rel="noopener"><b>楽天トラベル</b> ${price}${rev}</a>`;
+  }catch(e){console.error(e);node.innerHTML='🏨 楽天: 取得失敗';}
+}
+map.on('popupopen',e=>fillRakuten(e.popup));
+
+// ===== ルート =====
+const routeSheet=document.getElementById('routeSheet');
+function epIcon(text,color){return L.divIcon({className:'',html:`<div class="ep-pin" style="background:${color}">${text}</div>`,iconSize:[1,1],iconAnchor:[0,28]});}
+map.on('click',(e)=>{if(activeTab!=='route')return;addPoint(e.latlng.lat,e.latlng.lng,null);});
+function addPoint(lat,lng,label){points.push({lat:+lat.toFixed(6),lng:+lng.toFixed(6),label:label||null});renderPoints();if(points.length>=2)computeRoute();else map.panTo([lat,lng]);}
+function renderPoints(){
+  routePtsLayer.clearLayers();
+  updateSegExport();
+  const list=document.getElementById('ptList');
+  if(points.length===0){list.innerHTML='<div class="pt-empty">地点未設定 — 検索・地図タップ・現在地で追加</div>';return;}
+  list.innerHTML='';
+  points.forEach((p,i)=>{
+    const isLast=(i===points.length-1&&points.length>1);
+    const role=i===0?'出発':(isLast?'目的':String(i));
+    const color=i===0?'#2f9e44':(isLast?'#e03131':cssvar('--accent'));
+    const mk=L.marker([p.lat,p.lng],{icon:epIcon(role,color),draggable:true});
+    mk.on('dragend',ev=>{const q=ev.target.getLatLng();points[i]={lat:+q.lat.toFixed(6),lng:+q.lng.toFixed(6),label:p.label};renderPoints();computeRoute();});
+    routePtsLayer.addLayer(mk);
+    const row=document.createElement('div');row.className='pt-row';
+    row.innerHTML=`<span class="pt-badge" style="background:${color}">${role}</span><span class="pt-label">${escapeHtml(p.label||(p.lat+', '+p.lng))}</span><button class="pt-mv" data-i="${i}" data-d="-1" ${i===0?'disabled':''}>▲</button><button class="pt-mv" data-i="${i}" data-d="1" ${i===points.length-1?'disabled':''}>▼</button><button class="pt-del" data-i="${i}">✕</button>`;
+    list.appendChild(row);
+  });
+  list.querySelectorAll('.pt-del').forEach(b=>b.onclick=()=>{points.splice(+b.dataset.i,1);renderPoints();computeRoute();});
+  list.querySelectorAll('.pt-mv').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,dr=+b.dataset.d,j=i+dr;if(j<0||j>=points.length)return;const t=points[i];points[i]=points[j];points[j]=t;renderPoints();computeRoute();});
+}
+function clearRouteLine(){if(routeLine){map.removeLayer(routeLine);routeLine=null;}if(routeCasing){map.removeLayer(routeCasing);routeCasing=null;}}
+function stepClass(s){const n=s.name||'',r=s.ref||'';if(/首都高/.test(n)||/\bC[12]\b/.test(r))return 'shutoko';if(/(高速道路|自動車道|有料道路|スカイライン)/.test(n)||/\bE\d/.test(r)||/\bC\d/.test(r))return 'nexco';return null;}
+async function routeOSRM(pts){
+  const path=pts.map(p=>`${p.lng},${p.lat}`).join(';');
+  const d=await (await fetch(`https://router.project-osrm.org/route/v1/driving/${path}?overview=full&geometries=geojson&steps=true`)).json();
+  if(d.code!=='Ok')throw new Error(d.message||'OSRM');
+  const r=d.routes[0];
+  let nexco=0,shu=0;const legs=[];
+  (r.legs||[]).forEach(lg=>{let ln=0,ls=0;(lg.steps||[]).forEach(s=>{const c=stepClass(s);if(c==='nexco')ln+=s.distance;else if(c==='shutoko')ls+=s.distance;});nexco+=ln;shu+=ls;legs.push({km:lg.distance/1000,sec:lg.duration,nexcoKm:ln/1000,shutokoKm:ls/1000});});
+  return{km:r.distance/1000,sec:r.duration,line:r.geometry.coordinates.map(c=>[c[1],c[0]]),nexcoKm:nexco/1000,shutokoKm:shu/1000,legs};
+}
+async function routeORS(pts,avoid,key){
+  const body={coordinates:pts.map(p=>[p.lng,p.lat]),extra_info:['waycategory']};if(avoid.length)body.options={avoid_features:avoid};
+  const res=await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson',{method:'POST',headers:{'Authorization':key,'Content-Type':'application/json'},body:JSON.stringify(body)});
+  const d=await res.json();
+  if(!d.features||!d.features.length)throw new Error((d.error&&(d.error.message||d.error))||('ORS HTTP '+res.status));
+  const f=d.features[0];
+  let hwKm=0;const ex=f.properties.extras&&f.properties.extras.waycategory;
+  if(ex&&ex.summary){let m=0;ex.summary.forEach(s=>{if((s.value&3)!==0)m+=s.distance;});hwKm=m/1000;}
+  const legs=(f.properties.segments||[]).map(sg=>({km:sg.distance/1000,sec:sg.duration,nexcoKm:0,shutokoKm:0}));
+  return{km:f.properties.summary.distance/1000,sec:f.properties.summary.duration,line:f.geometry.coordinates.map(c=>[c[1],c[0]]),nexcoKm:hwKm,shutokoKm:0,legs};
+}
+async function computeRoute(){
+  if(points.length<2){clearRouteLine();lastDistanceKm=lastDurationSec=null;document.getElementById('rsResult').classList.remove('show');updateOrsHint();return;}
+  const avoid=[];if(document.getElementById('avoidHw').checked)avoid.push('highways');if(document.getElementById('avoidToll').checked)avoid.push('tollways');
+  const key=localStorage.getItem('tabi_ors_id');updateOrsHint();
+  showStatus('ルート計算中…',true);
+  try{
+    let out,engine;
+    if(avoid.length&&key){
+      try{out=await routeORS(points,avoid,key);engine='ORS（回避）';}
+      catch(e){console.error('ORS失敗→OSRM',e);out=await routeOSRM(points);engine='OSRM（ORS失敗）';}
+    }else{out=await routeOSRM(points);engine=avoid.length?'OSRM（回避は要ORSキー）':'OSRM';}
+    lastDistanceKm=out.km;lastDurationSec=out.sec;lastEngine=engine;lastNexcoKm=out.nexcoKm||0;lastShutokoKm=out.shutokoKm||0;lastLegs=out.legs||[];
+    clearRouteLine();
+    routeCasing=L.polyline(out.line,{color:(currentTheme==='dark'?'#000':'#fff'),weight:11,opacity:.7}).addTo(map);
+    routeLine=L.polyline(out.line,{color:cssvar('--route'),weight:6,opacity:.95}).addTo(map);
+    map.fitBounds(routeLine.getBounds(),{padding:[50,50],maxZoom:15});
+    statusEl.classList.remove('show');
+    if(tollKmAuto)document.getElementById('tollKm').value=(out.nexcoKm!=null?out.nexcoKm.toFixed(1):'0');
+    lastTrafficSec=null;lastLegsTrafficSec=null;lastGBaseSec=null;updateCost();
+    if(gmReady)computeGoogleTraffic();
+  }catch(err){console.error(err);showStatus('⚠️ ルート計算に失敗：'+(err.message||''),false);hideStatusLater();}
+}
+function updateOrsHint(){
+  const avoid=document.getElementById('avoidHw').checked||document.getElementById('avoidToll').checked;
+  const key=localStorage.getItem('tabi_ors_id'),el=document.getElementById('orsHint');
+  if(avoid&&!key)el.textContent='⚠️ 高速/有料の回避には無料のORSキーが必要です（⚙️設定）。現在は通常ルートを表示中。';
+  else if(avoid&&key)el.textContent='✅ ORSで回避ルートを計算します。';
+  else el.textContent='';
+}
+// 首都高は対距離料金(H30.3早見表)を線形近似: 普通車 ~4.3km=300円 → 35.7km以上=1300円(上限)。車種比は首都高基準。
+const SHU={kei:0.83,normal:1.0,mid:1.06,large:1.57,xl:2.0};
+function nexcoTollCalc(km,factor,disc){if(!(km>0))return 0;return Math.round((km*24.6*factor+150)*1.1*(1-disc)/10)*10;}
+function shutokoTollCalc(km,factor){if(!(km>0))return 0;let t=300+(Math.max(km,4.3)-4.3)*31.85;t=Math.min(Math.max(t,300),1300)*factor;return Math.round(t/10)*10;}
+function discInfo(){const dv=document.getElementById('depTime').value;const dt=dv?new Date(dv):new Date();const h=dt.getHours(),day=dt.getDay();const night=(h>=0&&h<4),holiday=(day===0||day===6);let rate=0,name='';if(night){rate=.30;name='深夜割引';}else if(holiday&&(vehType==='kei'||vehType==='normal')){rate=.30;name='休日割引';}if(!document.getElementById('applyDisc').checked){rate=0;name='';}return{rate,name};}
+function calcToll(){
+  const nk=parseFloat(document.getElementById('tollKm').value)||0;
+  const di=discInfo();
+  const nexco=nexcoTollCalc(nk,VEH[vehType],di.rate);
+  const shu=shutokoTollCalc(lastShutokoKm||0,SHU[vehType]);
+  return{toll:nexco+shu,nexco,shu,discName:di.name,rate:di.rate};
+}
+function fmtClock(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function renderItinerary(){
+  const sec=document.getElementById('itinSec'),box=document.getElementById('itinerary');
+  if(!lastLegs||!lastLegs.length||points.length<2){sec.style.display='none';box.innerHTML='';return;}
+  const dv=document.getElementById('depTime').value;let t=dv?new Date(dv):new Date();
+  const di=discInfo();
+  let html='<div class="rs-label">🧭 行程（区間ごと・通過予想）</div>';
+  for(let i=0;i<points.length;i++){
+    const isLast=i===points.length-1;
+    const role=i===0?'出発':(isLast?'目的':('経由'+i));
+    const color=i===0?'#2f9e44':(isLast?'#e03131':cssvar('--accent'));
+    html+=`<div class="itin-pt"><span class="itin-time">${fmtClock(t)}</span><span class="itin-badge" style="background:${color}">${role}</span><span class="itin-label">${escapeHtml(points[i].label||(points[i].lat+','+points[i].lng))}</span></div>`;
+    if(i<lastLegs.length){
+      const lg=lastLegs[i],hwk=(lg.nexcoKm||0)+(lg.shutokoKm||0);
+      const lt=nexcoTollCalc(lg.nexcoKm||0,VEH[vehType],di.rate)+shutokoTollCalc(lg.shutokoKm||0,SHU[vehType]);
+      const legSec=(lastLegsTrafficSec&&lastLegsTrafficSec[i]!=null)?lastLegsTrafficSec[i]:lg.sec;
+      html+=`<div class="itin-leg">${lg.km.toFixed(1)}km・${fmtDuration(legSec)}${lastLegsTrafficSec?'(渋滞)':''}${hwk>0.3?('・高速'+hwk.toFixed(1)+'km'):'・一般道'}${lt>0?('・¥'+lt.toLocaleString()):''}</div>`;
+      t=new Date(t.getTime()+legSec*1000);
+    }
+  }
+  box.innerHTML=html;sec.style.display='block';
+}
+function updateCost(){
+  const result=document.getElementById('rsResult');
+  if(lastDistanceKm==null){result.classList.remove('show');return;}
+  const price=parseFloat(document.getElementById('price').value)||0,eff=parseFloat(document.getElementById('eff').value)||0;
+  document.getElementById('rDist').textContent=lastDistanceKm.toFixed(1)+' km';
+  if(lastTrafficSec!=null){
+    const dmin=Math.round((lastTrafficSec-(lastGBaseSec!=null?lastGBaseSec:lastTrafficSec))/60);
+    const tag=dmin>0?('🚦渋滞 +'+dmin+'分'):'🚦渋滞なし';
+    document.getElementById('rTime').innerHTML=fmtDuration(lastTrafficSec)+'<div style="font-size:10.5px;font-weight:800;margin-top:1px;color:'+(dmin>0?'var(--closed)':'var(--open)')+'">'+tag+'</div>';
+  } else document.getElementById('rTime').textContent=fmtDuration(lastDurationSec);
+  let gas=0,liters=0;
+  if(eff>0&&price>0){liters=lastDistanceKm/eff;gas=Math.round(liters*price);document.getElementById('rGas').textContent='¥'+gas.toLocaleString();}
+  else document.getElementById('rGas').textContent='–';
+  const other=parseFloat(document.getElementById('otherCost').value)||0;
+  const t=calcToll();
+  const nk=parseFloat(document.getElementById('tollKm').value)||0;
+  document.getElementById('rToll').textContent='¥'+t.toll.toLocaleString();
+  document.getElementById('rTotal').textContent='¥'+(gas+t.toll+other).toLocaleString();
+  const discTxt=t.discName?`${t.discName} -${Math.round(t.rate*100)}% 適用。`:'';
+  document.getElementById('tollHint').textContent=`高速距離は自動判定（手動可）。NEXCO ${nk.toFixed(1)}km=¥${t.nexco.toLocaleString()}${lastShutokoKm>0.1?` ＋ 首都高 自動${lastShutokoKm.toFixed(1)}km=¥${t.shu.toLocaleString()}`:''}。${discTxt}普通車24.6円/km＋150円×税／首都高=距離別表(特殊割引除く)。祝日未反映。`;
+  document.getElementById('rNote').textContent=`ガソリン ${liters.toFixed(1)}L（${fuelLabel(fuelType)} ${price}円/L・燃費${eff}km/L）＋高速概算${other>0?('＋その他¥'+other.toLocaleString()):''}。距離・時間は ${lastEngine}（渋滞未考慮）。`;
+  renderItinerary();
+  result.classList.add('show');
+}
+function fmtDuration(sec){const m=Math.round(sec/60);return m<60?(m+'分'):(Math.floor(m/60)+'時間'+(m%60)+'分');}
+function fuelLabel(f){return{regular:'レギュラー',premium:'ハイオク',diesel:'軽油'}[f];}
+window.setDest=function(lat,lng,encName){if(activeTab!=='route')selectTab('route');addPoint(lat,lng,encName?decodeURIComponent(encName):null);map.closePopup();};
+
+// ===== 温泉郷（キュレーション） =====
+function renderOnsenGo(){
+  onsengoLayer.clearLayers();
+  ONSEN_GO.forEach(o=>{
+    const icon=L.divIcon({className:'',html:`<div class="og-pin"><span class="b">♨</span><span class="t">${escapeHtml(o.name)}</span></div>`,iconSize:[26,26],iconAnchor:[13,13],popupAnchor:[0,-12]});
+    L.marker([o.lat,o.lng],{icon}).bindPopup(()=>onsengoPopup(o),{maxWidth:300}).addTo(onsengoLayer);
+  });
+}
+function onsengoPopup(o){
+  const q=encodeURIComponent(o.name);
+  return `<div class="popup"><h3>♨ ${escapeHtml(o.name)}</h3>
+    <div class="meta">📍 ${escapeHtml(o.area)}${o.note?(' ・ '+escapeHtml(o.note)):''}</div>
+    <div class="links">
+      <button class="dest" onclick="window.setDest(${o.lat},${o.lng},'${encodeURIComponent(o.name)}')">🎯 ここへ</button>
+      <button onclick="window.ogNearby(${o.lat},${o.lng})">🔎 周辺の温泉</button>
+      <button onclick="window.buffer(${o.lat},${o.lng})">◎ 距離円</button>
+      <a class="rakuten" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+楽天トラベル">🏨 宿(楽天)</a>
+      <a class="official" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+ゆこゆこ">♨ ゆこゆこ</a>
+      <a class="official" target="_blank" rel="noopener" href="https://ja.wikipedia.org/wiki/${q}">📖 詳細</a>
+    </div></div>`;
+}
+window.ogNearby=function(lat,lng){map.closePopup();map.setView([lat,lng],14);selectTab('onsen');};
+
+// ===== Googleマップへルート出力（複数経由地対応） =====
+function openInGoogleMaps(pts){
+  pts=pts||points;
+  if(pts.length<2){showStatus('2地点以上を設定してください',false);hideStatusLater();return;}
+  const o=pts[0],d=pts[pts.length-1];
+  const mid=pts.slice(1,-1).map(p=>`${p.lat},${p.lng}`).join('|');
+  let url=`https://www.google.com/maps/dir/?api=1&travelmode=driving&origin=${o.lat},${o.lng}&destination=${d.lat},${d.lng}`;
+  if(mid)url+=`&waypoints=${encodeURIComponent(mid)}`;
+  window.open(url,'_blank','noopener');
+}
+document.getElementById('gmapsBtn').onclick=()=>openInGoogleMaps(points);
+document.getElementById('segBtn').onclick=()=>{const a=+document.getElementById('segFrom').value,b=+document.getElementById('segTo').value;if(!(a<b)){showStatus('起点は終点より前にしてください',false);hideStatusLater();return;}openInGoogleMaps(points.slice(a,b+1));};
+function updateSegExport(){const box=document.getElementById('segExport');if(!box)return;if(points.length>2){box.style.display='flex';const opts=points.map((p,i)=>`<option value="${i}">${i===0?'出発':(i===points.length-1?'目的':('経由'+i))}</option>`).join('');const sf=document.getElementById('segFrom'),st=document.getElementById('segTo');sf.innerHTML=opts;st.innerHTML=opts;sf.value='0';st.value=String(points.length-1);}else box.style.display='none';}
+async function doGeocode(){
+  const q=document.getElementById('geoInput').value.trim();if(!q)return;
+  const box=document.getElementById('geoResults');box.classList.add('show');box.innerHTML='<div class="geo-load">検索中…</div>';
+  try{
+    const c=map.getCenter();
+    const url=`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=6&lang=default&lat=${c.lat}&lon=${c.lng}`;
+    const d=await (await fetch(url)).json();
+    const items=(d.features||[]).map(f=>({lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],label:[f.properties.name,f.properties.city||f.properties.county,f.properties.state].filter(Boolean).join(', ')}));
+    if(!items.length){box.innerHTML='<div class="geo-load">該当なし</div>';return;}
+    box.innerHTML='';
+    items.forEach(it=>{const b=document.createElement('button');b.className='geo-item';b.textContent=it.label||`${it.lat}, ${it.lng}`;b.onclick=()=>{addPoint(it.lat,it.lng,it.label);box.classList.remove('show');box.innerHTML='';document.getElementById('geoInput').value='';};box.appendChild(b);});
+  }catch(e){console.error(e);box.innerHTML='<div class="geo-load">検索に失敗しました</div>';}
+}
+document.getElementById('geoBtn').onclick=doGeocode;
+document.getElementById('geoInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();doGeocode();}});
+document.getElementById('rsClear').onclick=()=>{points=[];lastDistanceKm=lastDurationSec=null;tollKmAuto=true;document.getElementById('tollKm').value='';routePtsLayer.clearLayers();clearRouteLine();document.getElementById('rsResult').classList.remove('show');renderPoints();};
+document.getElementById('reverse').onclick=()=>{if(points.length<2)return;points.reverse();renderPoints();computeRoute();};
+document.getElementById('useLoc').onclick=()=>{
+  if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}
+  showStatus('現在地を取得中…',true);
+  navigator.geolocation.getCurrentPosition(pos=>{statusEl.classList.remove('show');addPoint(pos.coords.latitude,pos.coords.longitude,'現在地');},err=>{showStatus('現在地を取得できませんでした',false);hideStatusLater();},{enableHighAccuracy:true,timeout:8000});
+};
+document.getElementById('avoidHw').addEventListener('change',()=>{points.length>=2?computeRoute():updateOrsHint();});
+document.getElementById('avoidToll').addEventListener('change',()=>{points.length>=2?computeRoute():updateOrsHint();});
+document.getElementById('fuelSeg').addEventListener('click',(e)=>{const btn=e.target.closest('button');if(!btn)return;fuelType=btn.dataset.f;[...e.currentTarget.children].forEach(b=>b.classList.toggle('on',b===btn));document.getElementById('price').value=fuelPrices[fuelType];updateCost();});
+document.getElementById('vehSeg').addEventListener('click',(e)=>{const btn=e.target.closest('button');if(!btn)return;vehType=btn.dataset.v;[...e.currentTarget.children].forEach(b=>b.classList.toggle('on',b===btn));updateCost();});
+document.getElementById('price').addEventListener('input',()=>{fuelPrices[fuelType]=parseFloat(document.getElementById('price').value)||0;updateGasNote();updateCost();});
+document.getElementById('eff').addEventListener('input',updateCost);
+document.getElementById('otherCost').addEventListener('input',updateCost);
+document.getElementById('rsGrab').onclick=()=>routeSheet.classList.toggle('collapsed');
+function updateGasNote(){const d=new Date();const hh=String(d.getHours()).padStart(2,'0'),mm=String(d.getMinutes()).padStart(2,'0');document.getElementById('gasNote').textContent=`基準価格は手動入力（全国平均の目安・自動取得は未実装）。設定時刻 ${hh}:${mm}`;}
+// カスタムタブ：施設名検索→MAPにピン
+async function doCustomSearch(){
+  const q=document.getElementById('cSearch').value.trim();if(!q)return;
+  showStatus('検索中…',true);
+  try{
+    const c=map.getCenter();
+    const url=`https://photon.komoot.io/api/?q=${encodeURIComponent(q)}&limit=1&lang=default&lat=${c.lat}&lon=${c.lng}`;
+    const d=await (await fetch(url)).json();
+    if(!d.features||!d.features.length){showStatus('該当なし',false);hideStatusLater();return;}
+    const f=d.features[0],lat=f.geometry.coordinates[1],lng=f.geometry.coordinates[0];
+    const label=[f.properties.name,f.properties.city||f.properties.county,f.properties.state].filter(Boolean).join(', ');
+    addSearchPin(lat,lng,label);map.setView([lat,lng],14);statusEl.classList.remove('show');document.getElementById('cSearch').value='';
+  }catch(e){console.error(e);showStatus('検索に失敗',false);hideStatusLater();}
+}
+function addSearchPin(lat,lng,label){
+  customSearchPins.push({lat,lng,label});
+  const icon=L.divIcon({className:'',html:'<div class="sp-pin">📌</div>',iconSize:[28,28],iconAnchor:[14,26],popupAnchor:[0,-24]});
+  L.marker([lat,lng],{icon}).bindPopup(`<div class="popup"><h3>📌 ${escapeHtml(label)}</h3><div class="links"><button class="dest" onclick="window.setDest(${lat},${lng},'${encodeURIComponent(label)}')">🎯 ここへ</button><button onclick="window.buffer(${lat},${lng})">◎ 距離円</button></div></div>`).addTo(searchPinLayer);
+}
+function drawBuffer(lat,lng){
+  bufferLayer.clearLayers();
+  [5,10,15,20,25].forEach(km=>{
+    L.circle([lat,lng],{radius:km*1000,color:cssvar('--accent'),weight:1.5,fill:false,opacity:.7,dashArray:'5 5'}).addTo(bufferLayer);
+    L.marker([lat+km/111,lng],{icon:L.divIcon({className:'',html:`<div class="buf-lbl">${km}km</div>`,iconSize:[1,1]}),interactive:false}).addTo(bufferLayer);
+  });
+  L.circleMarker([lat,lng],{radius:4,color:cssvar('--accent'),fillColor:cssvar('--accent'),fillOpacity:1}).addTo(bufferLayer);
+  document.getElementById('bufClear').style.display='block';
+}
+window.buffer=function(lat,lng){drawBuffer(lat,lng);map.closePopup();};
+document.getElementById('bufClear').onclick=function(){bufferLayer.clearLayers();this.style.display='none';};
+// ===== Google Maps 連携（渋滞ETA・DirectionsService） =====
+window.__gmapReady=function(){gmReady=true;if(points.length>=2)computeGoogleTraffic();};
+function loadGoogle(){
+  const key=localStorage.getItem('tabi_gmap_key');if(!key||gmLoading||gmReady)return;
+  gmLoading=true;
+  const s=document.createElement('script');
+  s.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&loading=async&callback=__gmapReady';
+  s.async=true;s.onerror=()=>{gmLoading=false;showStatus('Google Maps の読み込みに失敗（キー/ネットワーク/リファラー確認）',false);hideStatusLater();};
+  document.head.appendChild(s);
+}
+function gDeparture(){const dv=document.getElementById('depTime').value;let d=dv?new Date(dv):new Date();const now=new Date();return d.getTime()<now.getTime()?now:d;}
+function computeGoogleTraffic(){
+  if(!gmReady||points.length<2||!window.google||!google.maps)return;
+  const svc=new google.maps.DirectionsService();
+  const wp=points.slice(1,-1).map(p=>({location:{lat:p.lat,lng:p.lng},stopover:true}));
+  svc.route({origin:{lat:points[0].lat,lng:points[0].lng},destination:{lat:points[points.length-1].lat,lng:points[points.length-1].lng},waypoints:wp,travelMode:google.maps.TravelMode.DRIVING,drivingOptions:{departureTime:gDeparture(),trafficModel:google.maps.TrafficModel.BEST_GUESS}},(res,status)=>{
+    if(status!=='OK'||!res.routes||!res.routes[0]){showStatus('Google渋滞ETA取得失敗: '+status+'（API有効化/リファラー確認）',false);hideStatusLater();return;}
+    const legs=res.routes[0].legs;let total=0,base=0;const arr=[];
+    legs.forEach(l=>{const s=(l.duration_in_traffic||l.duration).value;total+=s;base+=(l.duration?l.duration.value:s);arr.push(s);});
+    lastTrafficSec=total;lastGBaseSec=base;lastLegsTrafficSec=arr;updateCost();
+  });
+}
+document.getElementById('tollKm').addEventListener('input',()=>{tollKmAuto=false;updateCost();});
+document.getElementById('depTime').addEventListener('change',updateCost);
+document.getElementById('applyDisc').addEventListener('change',updateCost);
+
+document.getElementById('researchBtn').onclick=runSearch;
+document.getElementById('locBtn').onclick=()=>{
+  if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}
+  showStatus('現在地を取得中…',true);
+  navigator.geolocation.getCurrentPosition(pos=>{map.setView([pos.coords.latitude,pos.coords.longitude],15);statusEl.classList.remove('show');runSearch();},err=>{showStatus('現在地を取得できませんでした（https配信が必要な場合あり）',false);hideStatusLater();},{enableHighAccuracy:true,timeout:8000});
+};
+const overlay=document.getElementById('overlay');
+document.getElementById('setBtn').onclick=()=>{document.getElementById('rakInput').value=localStorage.getItem('tabi_rakuten_id')||'';document.getElementById('orsInput').value=localStorage.getItem('tabi_ors_id')||'';document.getElementById('gmapInput').value=localStorage.getItem('tabi_gmap_key')||'';document.getElementById('rakMsg').textContent='';document.getElementById('orsMsg').textContent='';document.getElementById('gmapMsg').textContent='';overlay.classList.add('open');};
+document.getElementById('setClose').onclick=()=>overlay.classList.remove('open');
+overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.classList.remove('open');});
+document.getElementById('rakSave').onclick=()=>{const v=document.getElementById('rakInput').value.trim();v?localStorage.setItem('tabi_rakuten_id',v):localStorage.removeItem('tabi_rakuten_id');document.getElementById('rakMsg').textContent=v?'保存しました（宿泊施設に反映）':'連携を解除しました';};
+document.getElementById('orsSave').onclick=()=>{const v=document.getElementById('orsInput').value.trim();v?localStorage.setItem('tabi_ors_id',v):localStorage.removeItem('tabi_ors_id');document.getElementById('orsMsg').textContent=v?'保存しました（高速/有料回避が有効）':'解除しました';updateOrsHint();if(points.length>=2)computeRoute();};
+document.getElementById('gmapSave').onclick=()=>{const v=document.getElementById('gmapInput').value.trim();v?localStorage.setItem('tabi_gmap_key',v):localStorage.removeItem('tabi_gmap_key');document.getElementById('gmapMsg').textContent=v?'保存しました（渋滞ETA有効化中…）':'解除しました';if(v)loadGoogle();};
+
+// 起動
+function nowLocal(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16);}
+document.getElementById('depTime').value=nowLocal();
+applyTheme(localStorage.getItem('tabi_theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
+updateGasNote();
+loadGoogle();
+buildTabs();
+map.whenReady(()=>selectTab('onsengo'));
+</script>
+</body>
+</html>

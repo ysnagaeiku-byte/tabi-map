@@ -1,0 +1,17 @@
+{
+  "name": "たびマップ（ドライブ・旅行）",
+  "short_name": "たびマップ",
+  "description": "ドライブ・旅行プランを一画面で。温泉郷・到達圏・ルート費用・割り勘・複数車両決算。",
+  "start_url": "./index-google.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0e13",
+  "theme_color": "#3b6fff",
+  "lang": "ja",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

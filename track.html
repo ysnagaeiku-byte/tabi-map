@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=3.0" />
+<title>人流軌跡レコーダー（研究用）</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  :root{--bg:#0f1218;--panel:#171b24;--fg:#e7eaf0;--muted:#9aa3af;--line:#2a313d;--accent:#3b82f6;--rec:#e03131;--ok:#2f9e44;--shadow:rgba(0,0,0,.5);}
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;color:var(--fg);background:var(--bg);}
+  #map{position:absolute;inset:0;height:100dvh;width:100vw;z-index:0;background:var(--bg);}
+  #top{position:fixed;top:0;left:0;right:0;z-index:1000;background:rgba(15,18,24,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:calc(8px + env(safe-area-inset-top)) 14px 8px;display:flex;align-items:center;justify-content:space-between;}
+  #top b{font-size:15px;} #top .sub{font-size:10.5px;color:var(--muted);}
+  #top .hb{display:flex;gap:8px;align-items:center;}
+  #top a{font-size:11px;color:var(--accent);text-decoration:none;}
+  .ibtn{width:36px;height:36px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:16px;cursor:pointer;}
+  #stat{position:fixed;top:calc(env(safe-area-inset-top) + 58px);left:12px;right:12px;z-index:900;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;box-shadow:0 4px 16px var(--shadow);font-size:13px;display:none;}
+  #stat.show{display:block;}
+  #stat .row{display:flex;justify-content:space-between;gap:10px;margin:2px 0;}
+  #stat .row span:first-child{color:var(--muted);}
+  .dotrec{display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--rec);margin-right:6px;animation:blink 1s infinite;}
+  @keyframes blink{50%{opacity:.3;}}
+  #ctrl{position:fixed;left:0;right:0;bottom:0;z-index:1000;padding:12px 12px calc(12px + env(safe-area-inset-bottom));display:flex;flex-direction:column;gap:10px;align-items:center;pointer-events:none;}
+  #ctrl>*{pointer-events:auto;}
+  #recBtn{width:100%;max-width:480px;min-height:58px;border:none;border-radius:16px;font-size:17px;font-weight:800;cursor:pointer;color:#fff;background:var(--ok);box-shadow:0 6px 20px var(--shadow);}
+  #recBtn.rec{background:var(--rec);}
+  #recBtn:disabled{opacity:.5;}
+  .row2{display:flex;gap:8px;width:100%;max-width:480px;}
+  .row2 button{flex:1;min-height:44px;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:12px;font-size:12.5px;font-weight:700;cursor:pointer;}
+  #toast{position:fixed;top:calc(env(safe-area-inset-top) + 58px);left:50%;transform:translateX(-50%);z-index:1200;background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:999px;font-size:12.5px;font-weight:700;display:none;max-width:90vw;text-align:center;box-shadow:0 4px 14px var(--shadow);}
+  #toast.show{display:block;}
+  .overlay{position:fixed;inset:0;z-index:3000;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:18px;}
+  .overlay.show{display:flex;}
+  .card{width:100%;max-width:460px;max-height:90dvh;overflow-y:auto;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 20px 60px var(--shadow);}
+  .card h2{font-size:18px;margin:0 0 10px;} .card p{font-size:13px;color:var(--muted);line-height:1.7;}
+  .card .save{width:100%;min-height:48px;border:none;border-radius:12px;background:var(--accent);color:#fff;font-size:15px;font-weight:800;cursor:pointer;margin-top:14px;}
+  .card label{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:12px 0;color:var(--fg);}
+  .card input,.card textarea{width:100%;background:var(--bg);border:1px solid var(--line);border-radius:10px;color:var(--fg);padding:10px;font-size:13px;}
+  .card textarea{min-height:120px;font-family:monospace;font-size:11px;}
+  .card .sec{border-top:1px solid var(--line);margin-top:16px;padding-top:16px;}
+  .card .lbl{font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px;}
+  .card a{color:var(--accent);}
+  .badge{font-size:10px;background:var(--accent);color:#fff;border-radius:5px;padding:1px 6px;font-weight:800;}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div id="top">
+  <div><b>🛰 人流軌跡レコーダー</b> <span class="badge">研究用</span><div class="sub" id="uidLabel"></div></div>
+  <div class="hb"><a href="index.html">たびマップ</a><button class="ibtn" id="setBtn" title="設定">⚙️</button></div>
+</div>
+<div id="stat">
+  <div class="row"><span id="recState">待機中</span><span id="acc">精度 –</span></div>
+  <div class="row"><span>点数</span><span id="nPts">0</span></div>
+  <div class="row"><span>距離</span><span id="dist">0 m</span></div>
+  <div class="row"><span>経過</span><span id="elapsed">0:00</span></div>
+</div>
+<div id="toast"></div>
+<div id="ctrl">
+  <div class="row2">
+    <button id="aggBtn">📊 蓄積を表示</button>
+    <button id="expBtn">💾 GeoJSON書出し</button>
+    <button id="csvBtn">📄 CSV</button>
+  </div>
+  <button id="recBtn" disabled>▶️ 記録開始</button>
+</div>
+
+<!-- 同意ゲート -->
+<div class="overlay show" id="consent">
+  <div class="card">
+    <h2>📋 ご利用前の同意</h2>
+    <p>本ツールは<b>研究目的の人流（移動軌跡）解析</b>のため、あなたの<b>GPS位置情報（緯度・経度・時刻・精度）</b>を取得し、端末内およびクラウド（研究用データベース）に保存します。</p>
+    <p>・記録は「記録開始」を押している間のみ。いつでも停止できます。<br>・データは研究目的以外に使用しません。匿名ID（個人を特定しない）で扱います。<br>・取得した自分のデータは端末から消去できます。</p>
+    <label><input type="checkbox" id="consentChk"> 上記に同意し、位置情報の取得・保存に同意します。</label>
+    <button class="save" id="consentBtn" disabled>同意して開始する</button>
+    <p style="margin-top:12px;font-size:11px;">※スマホで歩行記録する場合、ブラウザの仕様上<b>画面をONのまま前面表示</b>にしてください（バックグラウンドでは記録が止まります）。また<b>HTTPS配信</b>が必要です。</p>
+  </div>
+</div>
+
+<!-- 設定 -->
+<div class="overlay" id="settings">
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;"><h2 style="margin:0;">⚙️ 設定</h2><button class="ibtn" id="setClose">✕</button></div>
+    <div class="sec">
+      <div class="lbl">クラウド蓄積（Firebase Firestore）</div>
+      <p style="margin:0 0 8px;">複数端末の軌跡を1か所に集約します。<a href="https://console.firebase.google.com/" target="_blank" rel="noopener">Firebaseコンソール</a>でプロジェクト作成→Firestore有効化→「設定>全般>マイアプリ(ウェブ)」の <b>firebaseConfig（{ }のオブジェクト）</b>を貼り付け。</p>
+      <textarea id="fbInput" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...", ...}'></textarea>
+      <button class="save" id="fbSave">保存</button>
+      <div id="fbMsg" style="font-size:12px;color:var(--ok);margin-top:8px;min-height:14px;"></div>
+      <p style="font-size:11px;margin-top:8px;">Firestoreの<b>セキュリティルール</b>で `trajectories` コレクションへのcreateを許可してください（研究運用に合わせ要設定）。</p>
+    </div>
+    <div class="sec">
+      <div class="lbl">データ管理</div>
+      <button class="save" style="background:var(--rec);" id="clearBtn">🗑 端末内の記録を全消去</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let map, baseLine=null, aggLayer=null;
+let recording=false, watchId=null, cur=null, consented=false, startTs=0, timer=null;
+let fb=null;
+const uid=(localStorage.getItem('flow_uid')||(()=>{const u='u'+Math.random().toString(36).slice(2,10);localStorage.setItem('flow_uid',u);return u;})());
+document.getElementById('uidLabel').textContent='ID: '+uid;
+
+// 地図（GSI 淡色・日本語）
+map=L.map('map',{zoomControl:true}).setView([35.62,139.74],14);
+L.tileLayer('https://cyberjapandata.gsi.go.jp/xyz/pale/{z}/{x}/{y}.png',{maxZoom:18,attribution:'&copy; <a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>'}).addTo(map);
+
+function toast(t){const e=document.getElementById('toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),2600);}
+function haversine(a,b){const R=6371000,toR=x=>x*Math.PI/180;const dLat=toR(b.lat-a.lat),dLng=toR(b.lng-a.lng);const s=Math.sin(dLat/2)**2+Math.cos(toR(a.lat))*Math.cos(toR(b.lat))*Math.sin(dLng/2)**2;return 2*R*Math.asin(Math.sqrt(s));}
+function fmtT(ms){const s=Math.floor(ms/1000);return Math.floor(s/60)+':'+String(s%60).padStart(2,'0');}
+
+// ===== IndexedDB =====
+function idbOpen(){return new Promise((res,rej)=>{const r=indexedDB.open('flowdb',1);r.onupgradeneeded=()=>{if(!r.result.objectStoreNames.contains('sessions'))r.result.createObjectStore('sessions',{keyPath:'id'});};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});}
+async function idbPut(s){const d=await idbOpen();return new Promise((res,rej)=>{const t=d.transaction('sessions','readwrite');t.objectStore('sessions').put(s);t.oncomplete=()=>res();t.onerror=()=>rej(t.error);});}
+async function idbAll(){const d=await idbOpen();return new Promise((res,rej)=>{const t=d.transaction('sessions','readonly');const q=t.objectStore('sessions').getAll();q.onsuccess=()=>res(q.result||[]);q.onerror=()=>rej(q.error);});}
+async function idbClear(){const d=await idbOpen();return new Promise((res)=>{const t=d.transaction('sessions','readwrite');t.objectStore('sessions').clear();t.oncomplete=()=>res();});}
+
+// ===== Firebase（設定時のみ・動的import） =====
+async function fbInit(){
+  if(fb)return fb; const raw=localStorage.getItem('flow_fb'); if(!raw)return null;
+  try{
+    const cfg=JSON.parse(raw);
+    const a=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js');
+    const f=await import('https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js');
+    const app=a.initializeApp(cfg); fb={f,db:f.getFirestore(app)}; return fb;
+  }catch(e){console.error(e);toast('Firebase初期化失敗');return null;}
+}
+function downsample(arr,max){if(arr.length<=max)return arr;const step=Math.ceil(arr.length/max);return arr.filter((_,i)=>i%step===0);}
+async function uploadFB(s){
+  const x=await fbInit(); if(!x)return;
+  try{await x.f.addDoc(x.f.collection(x.db,'trajectories'),{uid:s.uid,startedAt:s.startedAt,endedAt:s.endedAt||Date.now(),count:s.points.length,distance:Math.round(sessionDist(s)),points:downsample(s.points,3000)});toast('☁️ クラウドに保存しました');}
+  catch(e){console.error(e);toast('クラウド保存失敗: '+(e.code||e.message||''));}
+}
+function sessionDist(s){let d=0;for(let i=1;i<s.points.length;i++)d+=haversine(s.points[i-1],s.points[i]);return d;}
+
+// ===== 記録 =====
+function setRecUI(){
+  document.getElementById('recBtn').textContent=recording?'⏹ 記録停止':'▶️ 記録開始';
+  document.getElementById('recBtn').classList.toggle('rec',recording);
+  document.getElementById('stat').classList.toggle('show',recording||!!cur);
+  document.getElementById('recState').innerHTML=recording?'<span class="dotrec"></span>記録中':'停止';
+}
+function updateStats(){
+  if(!cur)return;
+  document.getElementById('nPts').textContent=cur.points.length;
+  document.getElementById('dist').textContent=Math.round(sessionDist(cur)).toLocaleString()+' m';
+  const last=cur.points[cur.points.length-1];
+  document.getElementById('acc').textContent='精度 '+(last?('±'+last.acc+'m'):'–');
+  document.getElementById('elapsed').textContent=fmtT(Date.now()-startTs);
+}
+function onPos(p){
+  const c=p.coords;
+  const pt={lat:+c.latitude.toFixed(6),lng:+c.longitude.toFixed(6),t:Date.now(),acc:Math.round(c.accuracy),spd:(c.speed!=null?+c.speed.toFixed(2):null),alt:(c.altitude!=null?Math.round(c.altitude):null)};
+  cur.points.push(pt);
+  baseLine.addLatLng([pt.lat,pt.lng]);
+  map.setView([pt.lat,pt.lng]);
+  if(cur.points.length%5===0)idbPut(cur);
+  updateStats();
+}
+function onErr(e){toast('位置取得エラー: '+e.message);}
+function startRec(){
+  if(!consented){toast('先に同意が必要です');return;}
+  if(!navigator.geolocation){toast('この端末は位置情報に未対応');return;}
+  cur={id:'s'+Date.now()+'_'+uid,uid,startedAt:Date.now(),points:[]};
+  if(baseLine)map.removeLayer(baseLine);
+  baseLine=L.polyline([],{color:'#e8590c',weight:5,opacity:.9}).addTo(map);
+  startTs=Date.now(); recording=true; setRecUI();
+  timer=setInterval(updateStats,1000);
+  watchId=navigator.geolocation.watchPosition(onPos,onErr,{enableHighAccuracy:true,maximumAge:0,timeout:20000});
+  toast('記録開始（画面はONのまま）');
+}
+async function stopRec(){
+  if(watchId!=null){navigator.geolocation.clearWatch(watchId);watchId=null;}
+  if(timer){clearInterval(timer);timer=null;}
+  recording=false; setRecUI();
+  if(cur&&cur.points.length){cur.endedAt=Date.now();await idbPut(cur);uploadFB(cur);toast('記録停止・保存（'+cur.points.length+'点）');}
+  else toast('記録なし');
+}
+document.getElementById('recBtn').onclick=()=>recording?stopRec():startRec();
+
+// ===== 蓄積表示（ローカル＋クラウド） =====
+async function showAggregate(){
+  if(aggLayer){map.removeLayer(aggLayer);aggLayer=null;document.getElementById('aggBtn').textContent='📊 蓄積を表示';return;}
+  toast('蓄積を読み込み中…');
+  aggLayer=L.layerGroup().addTo(map);
+  let n=0;const b=L.latLngBounds([]);
+  const local=await idbAll();
+  local.forEach(s=>{if(s.points&&s.points.length>1){const ll=s.points.map(p=>[p.lat,p.lng]);L.polyline(ll,{color:'#1c7ed6',weight:2,opacity:.5}).addTo(aggLayer);ll.forEach(x=>b.extend(x));n++;}});
+  const x=await fbInit();
+  if(x){try{const snap=await x.f.getDocs(x.f.collection(x.db,'trajectories'));snap.forEach(doc=>{const s=doc.data();if(s.points&&s.points.length>1){const ll=s.points.map(p=>[p.lat,p.lng]);L.polyline(ll,{color:'#e64980',weight:2,opacity:.5}).addTo(aggLayer);ll.forEach(y=>b.extend(y));n++;}});}catch(e){console.error(e);toast('クラウド読込失敗');}}
+  if(b.isValid())map.fitBounds(b,{padding:[40,40]});
+  document.getElementById('aggBtn').textContent='🗺 蓄積を隠す';
+  toast(n+'本の軌跡を表示（青=端末/桃=クラウド）');
+}
+document.getElementById('aggBtn').onclick=showAggregate;
+
+// ===== 書き出し =====
+function dl(name,text,type){const b=new Blob([text],{type});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1000);}
+async function exportGeoJSON(){
+  const all=await idbAll();if(!all.length){toast('記録がありません');return;}
+  const fc={type:'FeatureCollection',features:all.filter(s=>s.points&&s.points.length>1).map(s=>({type:'Feature',properties:{id:s.id,uid:s.uid,startedAt:new Date(s.startedAt).toISOString(),endedAt:s.endedAt?new Date(s.endedAt).toISOString():null,count:s.points.length},geometry:{type:'LineString',coordinates:s.points.map(p=>[p.lng,p.lat])}}))};
+  dl('trajectories_'+Date.now()+'.geojson',JSON.stringify(fc),'application/geo+json');toast('GeoJSONを書き出しました');
+}
+async function exportCSV(){
+  const all=await idbAll();if(!all.length){toast('記録がありません');return;}
+  let csv='session_id,uid,seq,lat,lng,time_iso,accuracy_m,speed_mps,alt_m\n';
+  all.forEach(s=>(s.points||[]).forEach((p,i)=>{csv+=`${s.id},${s.uid},${i},${p.lat},${p.lng},${new Date(p.t).toISOString()},${p.acc},${p.spd==null?'':p.spd},${p.alt==null?'':p.alt}\n`;}));
+  dl('trajectory_points_'+Date.now()+'.csv',csv,'text/csv');toast('CSVを書き出しました');
+}
+document.getElementById('expBtn').onclick=exportGeoJSON;
+document.getElementById('csvBtn').onclick=exportCSV;
+
+// ===== 同意 =====
+document.getElementById('consentChk').onchange=e=>{document.getElementById('consentBtn').disabled=!e.target.checked;};
+document.getElementById('consentBtn').onclick=()=>{consented=true;localStorage.setItem('flow_consent','1');document.getElementById('consent').classList.remove('show');document.getElementById('recBtn').disabled=false;toast('準備完了。記録開始できます');};
+if(localStorage.getItem('flow_consent')==='1'){consented=true;document.getElementById('consent').classList.remove('show');document.getElementById('recBtn').disabled=false;}
+
+// ===== 設定 =====
+document.getElementById('setBtn').onclick=()=>{document.getElementById('fbInput').value=localStorage.getItem('flow_fb')||'';document.getElementById('fbMsg').textContent='';document.getElementById('settings').classList.add('show');};
+document.getElementById('setClose').onclick=()=>document.getElementById('settings').classList.remove('show');
+document.getElementById('fbSave').onclick=()=>{const v=document.getElementById('fbInput').value.trim();const m=document.getElementById('fbMsg');if(!v){localStorage.removeItem('flow_fb');fb=null;m.textContent='クラウド連携を解除';return;}try{JSON.parse(v);localStorage.setItem('flow_fb',v);fb=null;m.textContent='保存しました（次の記録からクラウド保存）';}catch(e){m.style.color='var(--rec)';m.textContent='JSON形式が不正です';}};
+document.getElementById('clearBtn').onclick=async()=>{if(confirm('端末内の記録を全消去します。よろしいですか？')){await idbClear();if(aggLayer){map.removeLayer(aggLayer);aggLayer=null;document.getElementById('aggBtn').textContent='📊 蓄積を表示';}toast('端末内の記録を消去しました');}};
+
+// 現在地に寄せる（初期）
+if(navigator.geolocation)navigator.geolocation.getCurrentPosition(p=>map.setView([p.coords.latitude,p.coords.longitude],16),()=>{},{enableHighAccuracy:true,timeout:8000});
+</script>
+</body>
+</html>
