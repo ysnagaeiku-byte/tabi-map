@@ -85,6 +85,14 @@
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;"><h2 style="margin:0;">⚙️ 設定</h2><button class="ibtn" id="setClose">✕</button></div>
     <div class="sec">
+      <div class="lbl">バージョン切替</div>
+      <div style="display:flex;gap:6px;">
+        <a href="index.html" style="flex:1;text-align:center;padding:9px 4px;border:1px solid #3a3f4b;border-radius:9px;text-decoration:none;color:#e8eaed;font-weight:800;font-size:12px;background:#222732;">🗺️ 無料版</a>
+        <a href="index-google.html" style="flex:1;text-align:center;padding:9px 4px;border:1px solid #3a3f4b;border-radius:9px;text-decoration:none;color:#e8eaed;font-weight:800;font-size:12px;background:#222732;">🌐 Google版</a>
+        <a href="track.html" style="flex:1;text-align:center;padding:9px 4px;border:1px solid #4f8cff;border-radius:9px;text-decoration:none;color:#fff;font-weight:800;font-size:12px;background:#4f8cff;">🔬 研究版</a>
+      </div>
+    </div>
+    <div class="sec">
       <div class="lbl">クラウド蓄積（Firebase Firestore）</div>
       <p style="margin:0 0 8px;">複数端末の軌跡を1か所に集約します。<a href="https://console.firebase.google.com/" target="_blank" rel="noopener">Firebaseコンソール</a>でプロジェクト作成→Firestore有効化→「設定>全般>マイアプリ(ウェブ)」の <b>firebaseConfig（{ }のオブジェクト）</b>を貼り付け。</p>
       <textarea id="fbInput" placeholder='{"apiKey":"...","authDomain":"...","projectId":"...", ...}'></textarea>

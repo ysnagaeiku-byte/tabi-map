@@ -132,6 +132,9 @@
   .modal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
   .modal-h b{font-size:16px;} .modal-h button{border:none;background:none;font-size:18px;color:var(--muted);cursor:pointer;}
   .set-sec{margin-bottom:18px;}
+  .ver-switch{display:flex;gap:6px;}
+  .ver-switch a{flex:1;text-align:center;padding:9px 4px;border:1px solid var(--line);border-radius:9px;text-decoration:none;color:var(--fg);font-weight:800;font-size:12px;background:var(--surface);}
+  .ver-switch a.on{background:var(--accent);color:#fff;border-color:var(--accent);}
   .set-label{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:7px;text-transform:uppercase;letter-spacing:.04em;}
   .set-sec input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;font-size:14px;background:var(--surface);color:var(--fg);}
   .set-help{font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.55;} .set-help a{color:var(--accent);}
@@ -240,6 +243,7 @@
 <div class="overlay" id="overlay">
   <div class="modal">
     <div class="modal-h"><b>⚙️ 設定</b><button id="setClose">✕</button></div>
+    <div class="set-sec"><div class="set-label">バージョン切替</div><div class="ver-switch"><a href="index.html" class="on">🗺️ 無料版</a><a href="index-google.html">🌐 Google版</a><a href="track.html">🔬 研究版</a></div></div>
     <div class="set-sec">
       <div class="set-label">楽天トラベル連携</div>
       <input id="rakInput" placeholder="楽天ウェブサービスの applicationId" autocomplete="off" />
