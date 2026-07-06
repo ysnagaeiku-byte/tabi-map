@@ -187,6 +187,8 @@
   #isoClearFab.show{display:block;}
   #myLocFab{position:fixed;right:12px;bottom:calc(98px + env(safe-area-inset-bottom));z-index:1040;width:54px;height:54px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--accent);box-shadow:0 4px 16px var(--shadow);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:19px;padding:0;}
   #myLocFab:active{background:var(--accent-weak);}
+  #myLocFab.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  #myLocFab.on small{color:rgba(255,255,255,.9);}
   #myLocFab small,#layerBtn small,#settleBtn small{font-size:8.5px;font-weight:800;color:var(--muted);letter-spacing:.02em;line-height:1;}
   /* ルートシート展開中はFAB・消去ボタン・パネルをシートの上へ退避（隠れ防止） */
   body:has(#routeSheet.open:not(.collapsed)) #myLocFab{bottom:calc(54dvh + 16px);}
@@ -545,6 +547,7 @@ window.initGMap=function(){
   infoWindow.addListener('closeclick',removeTempPin); // ポップアップを閉じたら仮ピンも消す（地図に残さない）
   placesSvc=new google.maps.places.PlacesService(map);
   map.addListener('click',(e)=>{const tr=document.getElementById('topResults');if(tr)tr.classList.remove('show');removeTempPin();if(activeTab==='route')addPoint(e.latLng.lat(),e.latLng.lng(),null);else if(activeTab==='iso')setIsoCenter(e.latLng.lat(),e.latLng.lng());});
+  map.addListener('dragstart',()=>{if(liveWatchId!=null&&liveFollow){liveFollow=false;liveFabUi();}}); // 地図ドラッグで追従解除（追跡は継続）
   applyTheme(localStorage.getItem('tabi_theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
   buildTabs(); updateGasNote();
   google.maps.event.addListenerOnce(map,'idle',()=>{restoreState();setPlain();showStatus('🔍 検索、または下のチップで温泉郷・ルートなどを表示',false);hideStatusLater();});
@@ -675,6 +678,7 @@ function clearAllObjects(){
   if(!confirm('地図上のレイヤー・ピン・到達圏・距離円・ルートをすべて消去します。よろしいですか？'))return;
   clearArr(bufferShapes);document.getElementById('bufClear').style.display='none';
   removeTempPin();
+  stopLiveLoc();liveMarker=liveCircle=null; // リアルタイム追跡も停止
   clearIso();
   Object.keys(poiLayers).forEach(poiCatClear);
   onsenLayerOn=false;clearArr(onsengoMarkers);
@@ -714,11 +718,49 @@ const PIN_PATH='M12 0C5.37 0 0 5.37 0 12c0 8.4 12 24 12 24s12-15.6 12-24C24 5.37
 function pinIcon(color,scale){return {path:PIN_PATH,fillColor:color,fillOpacity:1,strokeColor:'#ffffff',strokeWeight:1.4,scale:scale||1.5,anchor:new google.maps.Point(12,36),labelOrigin:new google.maps.Point(12,12)};}
 // 現在地：GPS誤差(accuracy m)を半径にした円＋中心ドット
 function showCurrentLoc(lat,lng,acc){
-  clearArr(locShapes);
+  if(liveWatchId!=null){updateLiveLoc(lat,lng,acc);return;} // 追跡中は既存ドットを更新（作り直さない）
+  clearArr(locShapes);liveMarker=liveCircle=null;
   const r=Math.max(acc||0,15);
   locShapes.push(new google.maps.Circle({center:{lat,lng},radius:r,strokeColor:'#1a73e8',strokeOpacity:.7,strokeWeight:1.5,fillColor:'#1a73e8',fillOpacity:.18,map,clickable:false,zIndex:50}));
   const m=new google.maps.Marker({position:{lat,lng},map,icon:{path:google.maps.SymbolPath.CIRCLE,scale:6,fillColor:'#1a73e8',fillOpacity:1,strokeColor:'#ffffff',strokeWeight:2.5},title:'現在地（GPS誤差 ±'+Math.round(acc||0)+'m）',zIndex:60});
   locShapes.push(m);
+}
+// ===== 現在地のリアルタイム追跡（Googleマップ風：青ドット連続更新・追従／ドラッグで追従解除／再タップで再追従／もう一度で停止） =====
+let liveWatchId=null, liveFollow=true, liveMarker=null, liveCircle=null, liveFirstFix=false;
+function liveFabUi(){
+  const fab=document.getElementById('myLocFab'),sm=fab.querySelector('small');
+  fab.classList.toggle('on',liveWatchId!=null);
+  if(sm)sm.textContent=liveWatchId==null?'現在地':(liveFollow?'追跡中':'追従再開');
+}
+function updateLiveLoc(lat,lng,acc){
+  const r=Math.max(acc||0,15);
+  if(!liveMarker||!liveMarker.getMap()){
+    clearArr(locShapes);
+    liveCircle=new google.maps.Circle({center:{lat,lng},radius:r,strokeColor:'#1a73e8',strokeOpacity:.7,strokeWeight:1.5,fillColor:'#1a73e8',fillOpacity:.18,map,clickable:false,zIndex:50});
+    liveMarker=new google.maps.Marker({position:{lat,lng},map,icon:{path:google.maps.SymbolPath.CIRCLE,scale:7,fillColor:'#1a73e8',fillOpacity:1,strokeColor:'#ffffff',strokeWeight:3},title:'現在地（リアルタイム追跡中）',zIndex:60});
+    locShapes.push(liveCircle,liveMarker);
+  }else{
+    liveCircle.setCenter({lat,lng});liveCircle.setRadius(r);liveMarker.setPosition({lat,lng});
+  }
+}
+function startLiveLoc(){
+  if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}
+  liveFollow=true;liveFirstFix=false;
+  liveWatchId=navigator.geolocation.watchPosition(pos=>{
+    const la=pos.coords.latitude,ln=pos.coords.longitude,acc=pos.coords.accuracy;
+    updateLiveLoc(la,ln,acc);
+    if(!liveFirstFix){liveFirstFix=true;statusEl.classList.remove('show');map.setCenter({lat:la,lng:ln});if(map.getZoom()<15)map.setZoom(16);
+      showStatus('📍 リアルタイム追跡中（ドラッグで追従解除・ボタン再タップで停止）',false);hideStatusLater();
+      if(activeTab&&activeTab!=='route'&&activeTab!=='iso'&&activeTab!=='onsengo')runSearch();
+    }else if(liveFollow){map.panTo({lat:la,lng:ln});}
+    liveFabUi();
+  },err=>{showStatus('現在地の追跡に失敗しました（位置情報の許可を確認）',false);hideStatusLater();stopLiveLoc();},
+  {enableHighAccuracy:true,maximumAge:2000,timeout:20000});
+  liveFabUi();showStatus('現在地を取得中…',true);
+}
+function stopLiveLoc(){
+  if(liveWatchId!=null){try{navigator.geolocation.clearWatch(liveWatchId);}catch(e){}}
+  liveWatchId=null;liveFollow=true;liveFabUi();
 }
 function addPoiMarker(lat,lng,cat,tags){
   const c=CATS[cat]||{emoji:'📍'},color=catColor(cat);
@@ -893,14 +935,20 @@ function kinkoFrac(sp){if(!sp||!sp.length)return 0;let inN=0;for(const v of sp){
 function computeRoute(opts){
   if(points.length<2){clearRouteLine();clearArr(restMarkers);routeAlts=[];if(document.getElementById('altSel'))renderAltSelector();lastDistanceKm=lastDurationSec=null;lastRests=[];lastEvents=[];lastPointT=[];document.getElementById('rsResult').classList.remove('show');document.getElementById('restSec').style.display='none';document.getElementById('rsDetails').style.display='none';document.getElementById('rsPeek').classList.remove('show');updatePrefHint();return;}
   updatePrefHint();showStatus(opts&&opts.optimize?'経由地を最適順に計算中…':'Googleでルート計算中…',true);
+  let localOpt=false;
+  if(opts&&opts.optimize&&points.length-2>MAX_INTERMEDIATES){localOpt=localOptimizeOrder();renderPoints();opts=Object.assign({},opts,{optimize:false});}
   routeViaRoutesAPI(opts||{}).then(res=>{
     if(opts&&opts.optimize&&res.optimizedOrder&&res.optimizedOrder.length){
       const inter=points.slice(1,-1);const newInter=res.optimizedOrder.map(idx=>inter[idx]).filter(Boolean);
       points=[points[0],...newInter,points[points.length-1]];renderPoints();
       showStatus('✅ 経由地を最も効率の良い順に並べ替えました',false);hideStatusLater();
-    }
+    }else if(localOpt){showStatus('✅ 経由地を並べ替えました（26箇所以上は距離ベースの近似最適化）',false);hideStatusLater();}
     routeAlts=res.routes;altIndex=0;applyRoute(routeAlts[0]);renderAltSelector();
-  }).catch(err=>{console.warn('Routes API失敗→Directionsにフォールバック:',err&&err.message);routeAlts=[];renderAltSelector();computeRouteLegacy(true);});
+    if(res.chunked)showStatus(`✅ 長距離ルートを${res.chunked}分割で計算・連結しました（経由地${points.length-2}箇所）`,false),hideStatusLater();
+  }).catch(err=>{
+    if(points.length-2>MAX_INTERMEDIATES){showStatus('長距離ルートの取得に失敗: '+(err&&err.message||err),false);hideStatusLater();return;} // 分割時は旧API(上限25)へのフォールバック不可
+    console.warn('Routes API失敗→Directionsにフォールバック:',err&&err.message);routeAlts=[];renderAltSelector();computeRouteLegacy(true);
+  });
 }
 function applyRoute(d){
   lastDistanceKm=d.distKm;lastDurationSec=d.baseSec;lastGBaseSec=d.baseSec;lastTrafficSec=d.trafSec;lastLegsTrafficSec=d.legTraf;
@@ -1040,20 +1088,69 @@ function renderLayerPanel(){
   list.querySelectorAll('.ly-edit[data-ed]').forEach(b=>b.onclick=()=>editSavedRoute(+b.dataset.ed));
   list.querySelectorAll('.ly-del[data-d]').forEach(b=>b.onclick=()=>deleteSavedRoute(+b.dataset.d));
 }
+const ROUTES_API_FIELDS=['routes.duration','routes.staticDuration','routes.distanceMeters','routes.polyline.encodedPolyline','routes.legs.distanceMeters','routes.legs.duration','routes.legs.staticDuration','routes.legs.steps.navigationInstruction','routes.legs.steps.distanceMeters','routes.legs.steps.staticDuration','routes.legs.steps.polyline.encodedPolyline','routes.travelAdvisory.speedReadingIntervals','routes.optimizedIntermediateWaypointIndex'].join(',');
+const MAX_INTERMEDIATES=25; // Google Routes APIの中間経由地上限（出発+25+目的=27地点/リクエスト）
+function routesApiBody(pts,opts){
+  const b={origin:{location:{latLng:{latitude:pts[0].lat,longitude:pts[0].lng}}},destination:{location:{latLng:{latitude:pts[pts.length-1].lat,longitude:pts[pts.length-1].lng}}},travelMode:'DRIVE',routingPreference:'TRAFFIC_AWARE',polylineQuality:'HIGH_QUALITY',extraComputations:['TRAFFIC_ON_POLYLINE'],routeModifiers:{avoidTolls:routePref==='avoid',avoidHighways:routePref==='avoid'},languageCode:'ja',units:'METRIC'};
+  if(pts.length>2){b.intermediates=pts.slice(1,-1).map(p=>({location:{latLng:{latitude:p.lat,longitude:p.lng}}}));if(opts&&opts.optimize)b.optimizeWaypointOrder=true;}
+  else if(opts&&opts.alternatives)b.computeAlternativeRoutes=true;
+  return b;
+}
+async function routesApiFetch(body,key){
+  const res=await fetch('https://routes.googleapis.com/directions/v2:computeRoutes',{method:'POST',headers:{'Content-Type':'application/json','X-Goog-Api-Key':key,'X-Goog-FieldMask':ROUTES_API_FIELDS},body:JSON.stringify(body)});
+  const j=await res.json();
+  if(!res.ok||!j.routes||!j.routes.length)throw new Error((j.error&&j.error.message)||('Routes API HTTP '+res.status));
+  return j;
+}
 async function routeViaRoutesAPI(opts){
   opts=opts||{};
   const key=cfgKey('gmap');if(!key)throw new Error('APIキー未設定');
   if(!(google.maps.geometry&&google.maps.geometry.encoding))throw new Error('geometryライブラリ未ロード');
-  const hasInter=points.length>2;
-  const body={origin:{location:{latLng:{latitude:points[0].lat,longitude:points[0].lng}}},destination:{location:{latLng:{latitude:points[points.length-1].lat,longitude:points[points.length-1].lng}}},travelMode:'DRIVE',routingPreference:'TRAFFIC_AWARE',polylineQuality:'HIGH_QUALITY',extraComputations:['TRAFFIC_ON_POLYLINE'],routeModifiers:{avoidTolls:routePref==='avoid',avoidHighways:routePref==='avoid'},languageCode:'ja',units:'METRIC'};
-  if(hasInter){body.intermediates=points.slice(1,-1).map(p=>({location:{latLng:{latitude:p.lat,longitude:p.lng}}}));if(opts.optimize)body.optimizeWaypointOrder=true;}
-  else body.computeAlternativeRoutes=true; // 経由地が無い時は複数候補を取得
-  const dep=gDeparture();if(dep.getTime()>Date.now()+60000)body.departureTime=new Date(dep).toISOString();
-  const fields=['routes.duration','routes.staticDuration','routes.distanceMeters','routes.polyline.encodedPolyline','routes.legs.distanceMeters','routes.legs.duration','routes.legs.staticDuration','routes.legs.steps.navigationInstruction','routes.legs.steps.distanceMeters','routes.legs.steps.staticDuration','routes.legs.steps.polyline.encodedPolyline','routes.travelAdvisory.speedReadingIntervals','routes.optimizedIntermediateWaypointIndex'].join(',');
-  const res=await fetch('https://routes.googleapis.com/directions/v2:computeRoutes',{method:'POST',headers:{'Content-Type':'application/json','X-Goog-Api-Key':key,'X-Goog-FieldMask':fields},body:JSON.stringify(body)});
-  const j=await res.json();
-  if(!res.ok||!j.routes||!j.routes.length)throw new Error((j.error&&j.error.message)||('Routes API HTTP '+res.status));
-  return {routes:j.routes.slice(0,3).map(parseRoutesAPI), optimizedOrder:(j.routes[0].optimizedIntermediateWaypointIndex||null)};
+  const dep=gDeparture();
+  if(points.length-2<=MAX_INTERMEDIATES){
+    const body=routesApiBody(points,{optimize:opts.optimize,alternatives:true});
+    if(dep.getTime()>Date.now()+60000)body.departureTime=new Date(dep).toISOString();
+    const j=await routesApiFetch(body,key);
+    return {routes:j.routes.slice(0,3).map(parseRoutesAPI), optimizedOrder:(j.routes[0].optimizedIntermediateWaypointIndex||null)};
+  }
+  // ===== 経由地26箇所以上：APIの上限(25)を跨いでルートを自動分割→連結（実質無制限） =====
+  const chunks=[];let ci=0;
+  while(ci<points.length-1){const end=Math.min(ci+MAX_INTERMEDIATES+1,points.length-1);chunks.push(points.slice(ci,end+1));ci=end;}
+  const dec=enc=>google.maps.geometry.encoding.decodePath(enc);
+  const combined=[],legsAll=[],intervals=[];let cumSec=0;
+  for(let k=0;k<chunks.length;k++){
+    showStatus(`Googleでルート計算中…（長距離分割 ${k+1}/${chunks.length}）`,true);
+    const body=routesApiBody(chunks[k],{}); // 分割時は候補・API最適順なし
+    const dt=new Date(dep.getTime()+cumSec*1000);if(dt.getTime()>Date.now()+60000)body.departureTime=dt.toISOString();
+    const j=await routesApiFetch(body,key);
+    const r=j.routes[0];
+    const path=dec(r.polyline.encodedPolyline);
+    const drop=combined.length?1:0;                     // 連結点の重複を除去
+    const off=combined.length-drop;                     // このチャンクのpolyline index補正
+    for(let p=drop;p<path.length;p++)combined.push(path[p]);
+    ((r.travelAdvisory&&r.travelAdvisory.speedReadingIntervals)||[]).forEach(x=>intervals.push({speed:x.speed,startPolylinePointIndex:(x.startPolylinePointIndex||0)+off,endPolylinePointIndex:(x.endPolylinePointIndex!=null?x.endPolylinePointIndex:0)+off}));
+    (r.legs||[]).forEach(l=>{legsAll.push(l);cumSec+=parseDur(l.duration);});
+  }
+  const synthetic={polyline:{encodedPolyline:google.maps.geometry.encoding.encodePath(combined)},legs:legsAll,travelAdvisory:{speedReadingIntervals:intervals}};
+  return {routes:[parseRoutesAPI(synthetic)], optimizedOrder:null, chunked:chunks.length};
+}
+// 経由地26箇所以上の「最適順」：距離ベースの近似最適化（最近傍法＋2-opt）。API最適化(25箇所まで)の代替
+function localOptimizeOrder(){
+  const inter=points.slice(1,-1);if(inter.length<2)return false;
+  const start=points[0],end=points[points.length-1];
+  const D=(a,b)=>{const dx=a.lat-b.lat,dy=(a.lng-b.lng)*Math.cos((a.lat+b.lat)*Math.PI/360);return Math.sqrt(dx*dx+dy*dy);};
+  const rem=inter.slice(),ord=[];let cur=start;
+  while(rem.length){let bi=0,bd=1e18;rem.forEach((p,i)=>{const d=D(cur,p);if(d<bd){bd=d;bi=i;}});cur=rem.splice(bi,1)[0];ord.push(cur);}
+  const full=[start,...ord,end];
+  let improved=true,guard=0;
+  while(improved&&guard++<40){improved=false;
+    for(let i=1;i<full.length-2;i++)for(let k=i+1;k<full.length-1;k++){
+      if(D(full[i-1],full[k])+D(full[i],full[k+1])<D(full[i-1],full[i])+D(full[k],full[k+1])-1e-12){
+        const seg=full.slice(i,k+1).reverse();full.splice(i,k-i+1,...seg);improved=true;
+      }
+    }
+  }
+  points=full;return true;
 }
 function evName(instr){let t=String(instr||'').replace(/<[^>]+>/g,'').trim();t=t.replace(/(に入ります|に入る|を進む|に向かう).*$/,'').trim();return t.length>20?t.slice(0,20)+'…':t;}
 function parseRoutesAPI(route){
@@ -1480,7 +1577,11 @@ document.getElementById('rsGrab').onclick=toggleRouteSheet;
 document.getElementById('rsPeek').onclick=toggleRouteSheet;
 document.getElementById('rsClear').onclick=()=>{if(points.length>=2&&!confirm('ルートの地点と計算結果をクリアします。よろしいですか？'))return;points=[];lastDistanceKm=lastDurationSec=null;lastFlatYen=0;lastFlatNames=[];lastLegSteps=[];lastRouteTimeline=[];lastRests=[];lastEvents=[];lastPointT=[];routeAlts=[];renderAltSelector();tollKmAuto=true;document.getElementById('tollKm').value='';document.getElementById('kinkoKm').value='0';clearArr(routeMarkers);clearArr(restMarkers);clearRouteLine();document.getElementById('rsResult').classList.remove('show');document.getElementById('restSec').style.display='none';document.getElementById('rsPeek').classList.remove('show');document.getElementById('rsDetails').style.display='none';routeSheet.classList.remove('collapsed');const lg=document.getElementById('routeLegend');if(lg)lg.style.display='none';renderPoints();};
 document.getElementById('rainBtn').onclick=toggleRain;
-document.getElementById('myLocFab').onclick=()=>{if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}showStatus('現在地を取得中…',true);navigator.geolocation.getCurrentPosition(pos=>{const la=pos.coords.latitude,ln=pos.coords.longitude;map.setCenter({lat:la,lng:ln});map.setZoom(15);statusEl.classList.remove('show');showCurrentLoc(la,ln,pos.coords.accuracy);if(activeTab&&activeTab!=='route'&&activeTab!=='iso'&&activeTab!=='onsengo')runSearch();},err=>{showStatus('現在地を取得できませんでした',false);hideStatusLater();},{enableHighAccuracy:true,timeout:8000});};
+document.getElementById('myLocFab').onclick=()=>{
+  if(liveWatchId==null){startLiveLoc();}                                        // 追跡開始
+  else if(!liveFollow){liveFollow=true;if(liveMarker)map.setCenter(liveMarker.getPosition());liveFabUi();showStatus('📍 追従を再開しました',false);hideStatusLater();} // 追従再開
+  else{stopLiveLoc();showStatus('現在地の追跡を終了しました（青ドットは残ります）',false);hideStatusLater();}                     // 停止
+};
 document.getElementById('reverse').onclick=()=>{if(points.length<2)return;points.reverse();renderPoints();computeRoute();};
 document.getElementById('optBtn').onclick=()=>{if(points.length<4){showStatus('最適化には経由地が2つ以上必要です',false);hideStatusLater();return;}computeRoute({optimize:true});};
 document.getElementById('saveRouteBtn').onclick=saveCurrentRoute;
