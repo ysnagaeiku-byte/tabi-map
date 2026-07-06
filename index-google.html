@@ -37,17 +37,11 @@
   body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;color:var(--fg);background:var(--bg);transition:background-color .3s,color .3s;}
   #map{position:absolute;inset:0;height:100dvh;width:100vw;z-index:0;background:var(--bg);}
   /* === 浮遊ヘッダ（Google Maps風） === */
-  #topbar{position:fixed;top:0;left:0;right:0;z-index:1000;padding-top:env(safe-area-inset-top);pointer-events:none;}
+  #topbar{position:fixed;top:0;left:0;right:0;z-index:1250;padding-top:env(safe-area-inset-top);pointer-events:none;}
   /* 現在時刻（NICT風デジタル時計）。pointer-events:none で地図操作を妨げない・常時最前面 */
   #liveClock{position:fixed;top:calc(60px + env(safe-area-inset-top));right:12px;z-index:1200;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px;background:rgba(8,10,14,.82);border:1px solid rgba(255,255,255,.14);border-radius:12px;padding:6px 13px 7px;box-shadow:0 6px 20px rgba(0,0,0,.45);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
   #lcTime{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;font-weight:800;font-size:21px;letter-spacing:2.5px;color:#ffb01f;text-shadow:0 0 7px rgba(255,176,31,.55);line-height:1;}
   #lcDate{font-size:10px;letter-spacing:1px;color:#cfd5dc;font-weight:700;line-height:1;}
-  @media(max-width:600px){
-    #lcTime{font-size:18px;letter-spacing:1.5px;}#lcDate{font-size:9px;}#liveClock{padding:5px 9px 6px;}
-    body{overflow-x:hidden;}
-    /* スマホ幅：右上の時計とタブが重ならないよう、タブ行の右側に時計分の領域を確保（タブは横スクロール可） */
-    .tabs{max-width:calc(100% - 146px);}
-  }
   #topbar>*{pointer-events:auto;}
   .toprow{display:flex;align-items:center;gap:8px;padding:10px 12px 0;}
   .searchbar{flex:1;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;box-shadow:0 4px 18px var(--shadow);padding:0 6px 0 15px;height:48px;min-width:0;}
@@ -56,6 +50,10 @@
   .searchbar .s-clr{flex:none;width:34px;height:34px;border:none;background:none;color:var(--muted);font-size:15px;cursor:pointer;display:none;border-radius:50%;}
   .searchbar .s-clr.show{display:block;}
   .icon-btn{width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:var(--panel);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--fg);box-shadow:0 4px 18px var(--shadow);flex:none;}
+  .top-actions{display:flex;align-items:center;gap:8px;}
+  .icon-btn .ib-lab{display:none;}
+  #menuBtn{display:none;}
+  #rainBtn.on{background:var(--accent);color:#fff;border-color:var(--accent);}
   .top-results{display:none;flex-direction:column;margin:8px 12px 0;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px var(--shadow);overflow:hidden;max-height:52vh;overflow-y:auto;}
   .top-results.show{display:flex;}
   .tr-item{display:flex;align-items:center;gap:11px;padding:12px 14px;border:none;background:none;color:var(--fg);text-align:left;cursor:pointer;border-bottom:1px solid var(--line);width:100%;}
@@ -143,11 +141,8 @@
   .dep-lab{flex:none;font-size:12px;font-weight:800;color:var(--muted);}
   .dep-row input{flex:1;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:10px;font-size:14px;background:var(--surface);color:var(--fg);}
   #costDetails{border:1px solid var(--line);border-radius:12px;margin-top:4px;background:var(--surface);}
-  #costDetails>summary{list-style:none;cursor:pointer;padding:12px;font-size:13px;font-weight:800;display:flex;align-items:center;gap:8px;min-height:44px;box-sizing:border-box;}
-  #costDetails>summary::-webkit-details-marker{display:none;}
-  #costDetails>summary::after{content:'▸';margin-left:auto;color:var(--muted);font-size:15px;transition:transform .15s;}
-  #costDetails[open]>summary::after{transform:rotate(90deg);}
-  #cdChip{font-size:10.5px;font-weight:700;color:var(--muted);margin-left:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:60%;}
+  #costDetails>.cd-header{padding:11px 12px 2px;font-size:13px;font-weight:800;display:flex;align-items:center;gap:8px;}
+  #cdChip{font-size:10.5px;font-weight:700;color:var(--muted);margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62%;text-align:right;}
   #costDetails .cd-body{padding:0 12px 12px;}
   #costDetails .cd-body .rs-section:first-child{border-top:none;margin-top:0;padding-top:0;}
   .ver-switch{display:flex;gap:6px;}
@@ -267,6 +262,37 @@
   .ly-del{flex:none;border:none;background:none;color:var(--muted);font-size:15px;cursor:pointer;}
   .ly-edit{flex:none;border:none;background:none;color:var(--muted);font-size:14px;cursor:pointer;padding:0 2px;}
   .ly-empty{font-size:12px;color:var(--muted);padding:6px 0;}
+  /* ===== スマホ最適化（Google Maps風スリム化）。基本ルールを上書きするため末尾に配置 ===== */
+  @media(max-width:600px){
+    html,body{overflow-x:hidden;max-width:100%;}
+    /* 時計：小型化して右上にコンパクト表示 */
+    #liveClock{top:calc(52px + env(safe-area-inset-top));padding:3px 8px 4px;border-radius:9px;gap:1px;}
+    #lcTime{font-size:14px;letter-spacing:1px;}#lcDate{font-size:8px;letter-spacing:.5px;}
+    /* トップ行：検索バー＋メニュー(☰)だけ。他のボタンはメニュー内へ集約 */
+    .toprow{position:relative;gap:7px;padding:8px 10px 0;}
+    .searchbar{height:44px;padding:0 4px 0 13px;}
+    .searchbar input{font-size:16px;} /* iOSズーム防止のため16px */
+    #menuBtn{display:flex;width:44px;height:44px;font-size:19px;}
+    #topActions{position:absolute;top:calc(100% + 6px);right:0;flex-direction:column;align-items:stretch;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 34px var(--shadow);padding:6px;z-index:1300;display:none;min-width:168px;}
+    #topActions.open{display:flex;}
+    #topActions .icon-btn{width:100%;height:auto;border:none;box-shadow:none;border-radius:10px;justify-content:flex-start;gap:11px;padding:11px 13px;font-size:19px;background:none;}
+    #topActions .icon-btn:active{background:var(--surface-2);}
+    #topActions .icon-btn .ib-lab{display:inline;font-size:13.5px;font-weight:700;}
+    #rainBtn.on{background:var(--accent-weak);color:var(--accent);border:none;}
+    /* タブ：時計と重ならないよう右側を確保 */
+    .tabs{max-width:calc(100% - 126px);padding:8px 10px 4px;}
+    .tab{padding:7px 12px;font-size:12.5px;min-height:34px;}
+    /* 右下FAB：小型の円＋ラベル無し（アイコンのみ）でスリムに */
+    #myLocFab,#layerBtn,#settleBtn{width:46px;height:46px;border-radius:50%;font-size:19px;bottom:auto;}
+    #myLocFab small,#layerBtn small,#settleBtn small{display:none;}
+    #myLocFab{bottom:calc(92px + env(safe-area-inset-bottom));}
+    #layerBtn{bottom:calc(146px + env(safe-area-inset-bottom));}
+    #settleBtn{bottom:calc(200px + env(safe-area-inset-bottom));}
+    body:has(#routeSheet.open:not(.collapsed)) #myLocFab{bottom:calc(54dvh + 14px);}
+    body:has(#routeSheet.open:not(.collapsed)) #layerBtn{bottom:calc(54dvh + 68px);}
+    body:has(#routeSheet.open:not(.collapsed)) #settleBtn{bottom:calc(54dvh + 122px);}
+    #bufClear,#isoClearFab{font-size:11.5px;padding:8px 12px;}
+  }
 </style>
 </head>
 <body>
@@ -278,10 +304,13 @@
       <input id="topSearch" placeholder="場所・施設を検索（例: 箱根湯本駅）" autocomplete="off" />
       <button class="s-clr" id="topClear" title="クリア">✕</button>
     </div>
-    <button class="icon-btn" id="clearAllBtn" title="レイヤー・ピン・ルートをすべて消去" aria-label="すべて消去">🧹</button>
-    <button class="icon-btn" id="rainBtn" title="雨雲レーダー（気象庁ナウキャスト）" aria-label="雨雲レーダー">🌧️</button>
-    <button class="icon-btn" id="themeBtn" title="テーマ切替" aria-label="テーマ切替">🌙</button>
-    <button class="icon-btn" id="setBtn" title="設定" aria-label="設定">⚙️</button>
+    <div class="top-actions" id="topActions">
+      <button class="icon-btn" id="clearAllBtn" title="レイヤー・ピン・ルートをすべて消去" aria-label="すべて消去">🧹<span class="ib-lab">全消去</span></button>
+      <button class="icon-btn" id="rainBtn" title="雨雲レーダー（気象庁ナウキャスト）" aria-label="雨雲レーダー">🌧️<span class="ib-lab">雨雲</span></button>
+      <button class="icon-btn" id="themeBtn" title="テーマ切替" aria-label="テーマ切替">🌙<span class="ib-lab">テーマ</span></button>
+      <button class="icon-btn" id="setBtn" title="設定" aria-label="設定">⚙️<span class="ib-lab">設定</span></button>
+    </div>
+    <button class="icon-btn" id="menuBtn" title="メニュー" aria-label="メニュー">☰</button>
   </div>
   <div id="topResults" class="top-results"></div>
   <div class="tabs" id="tabs"></div>
@@ -334,8 +363,8 @@
     <select id="segFrom" class="seg-sel"></select><span style="color:var(--muted);">→</span><select id="segTo" class="seg-sel"></select>
     <button id="segBtn" style="border:none;border-radius:9px;background:#1a73e8;color:#fff;font-weight:700;font-size:12.5px;padding:8px 12px;cursor:pointer;">区間をGマップ</button>
   </div>
-  <details id="costDetails">
-    <summary>⚙️ 費用の詳細設定<span id="cdChip"></span></summary>
+  <div id="costDetails">
+    <div class="cd-header">⚙️ 費用の詳細設定<span id="cdChip"></span></div>
     <div class="cd-body">
   <div class="rs-section">
     <div class="rs-label">ガソリン</div>
@@ -351,7 +380,7 @@
   </div>
   <div class="rs-section"><div class="rs-label">その他費用・割り勘</div><div class="rs-inputs"><label>車両保険・その他 (円)<input id="otherCost" type="number" inputmode="decimal" placeholder="例: 1日保険 800"></label><label>人数（割り勘）<input id="splitN" type="number" inputmode="numeric" min="1" value="1"></label></div></div>
     </div>
-  </details>
+  </div>
   <div class="rs-section" id="restSec" style="display:none;"><div id="restBox"></div></div>
   <div class="rs-section" id="itinSec" style="display:none;"><div id="itinerary"></div></div>
   </div>
@@ -521,6 +550,7 @@ const customSelected=new Set();
 let poiMarkers=[], onsengoMarkers=[], routeMarkers=[], searchMarkers=[], bufferShapes=[], routeLine=null, routeCasing=null, routeSegs=[], customSearchPins=[], isoShapes=[], locShapes=[], restMarkers=[];
 let poiLayers={}; // POIをカテゴリ別の永続レイヤーに（cat -> {markers:[],visible})
 let tempPin=null; // 検索時の「仮ピン」（地図に残さない／ポップアップを閉じると消える）
+const IS_TOUCH=window.matchMedia('(hover:none) and (pointer:coarse)').matches; // スマホ/タブレット判定（マウスPCはfalse）
 let points=[], lastDistanceKm=null, lastDurationSec=null, lastEngine='', lastNexcoKm=0, lastShutokoKm=0, lastLegs=[];
 let lastTrafficSec=null, lastLegsTrafficSec=null, lastGBaseSec=null, lastLegSteps=[], lastFlatYen=0, lastFlatNames=[], lastRouteTimeline=[];
 let isoMinutes=[30,60,120], isoProfile='driving', isoCenter=null, restMin=120, rainLayer=null, rainOn=false, restReqId=0;
@@ -568,7 +598,7 @@ function bootGoogle(){
   document.head.appendChild(s);
 }
 
-function applyTheme(t){currentTheme=t;document.documentElement.dataset.theme=t;document.getElementById('themeBtn').textContent=(t==='dark'?'☀️':'🌙');if(map)map.setOptions({styles:t==='dark'?DARK_STYLE:LIGHT_STYLE});if(routeCasing)routeCasing.setOptions({strokeColor:(t==='dark'?'#000':'#ffffff')});localStorage.setItem('tabi_theme',t);}
+function applyTheme(t){currentTheme=t;document.documentElement.dataset.theme=t;const tb=document.getElementById('themeBtn');if(tb&&tb.childNodes[0])tb.childNodes[0].nodeValue=(t==='dark'?'☀️':'🌙');const tl=tb&&tb.querySelector('.ib-lab');if(tl)tl.textContent=(t==='dark'?'ライト':'ダーク');if(map)map.setOptions({styles:t==='dark'?DARK_STYLE:LIGHT_STYLE});if(routeCasing)routeCasing.setOptions({strokeColor:(t==='dark'?'#000':'#ffffff')});localStorage.setItem('tabi_theme',t);}
 document.getElementById('themeBtn').onclick=()=>applyTheme(currentTheme==='dark'?'light':'dark');
 
 // ===== タブ =====
@@ -901,8 +931,8 @@ function renderPoints(){
     const isLast=(i===points.length-1&&points.length>1);
     const role=i===0?'出発':(isLast?'目的':String(i));
     const color=i===0?'#2f9e44':(isLast?'#e03131':cssvar('--accent'));
-    const m=new google.maps.Marker({position:{lat:p.lat,lng:p.lng},map,draggable:true,icon:pinIcon(color,1.7),label:{text:(i===0?'出':isLast?'着':String(i)),fontSize:'11px',color:'#fff',fontWeight:'700'}});
-    m.addListener('dragend',ev=>{points[i]={lat:+ev.latLng.lat().toFixed(6),lng:+ev.latLng.lng().toFixed(6),label:p.label,stay:p.stay||0};renderPoints();computeRoute();});
+    const m=new google.maps.Marker({position:{lat:p.lat,lng:p.lng},map,draggable:!IS_TOUCH,icon:pinIcon(color,1.7),label:{text:(i===0?'出':isLast?'着':String(i)),fontSize:'11px',color:'#fff',fontWeight:'700'},title:IS_TOUCH?'':'ドラッグで移動'}); // タッチ端末は誤操作防止でドラッグ無効
+    if(!IS_TOUCH)m.addListener('dragend',ev=>{points[i]={lat:+ev.latLng.lat().toFixed(6),lng:+ev.latLng.lng().toFixed(6),label:p.label,stay:p.stay||0};renderPoints();computeRoute();});
     routeMarkers.push(m);
     const isWaypoint=(i>0&&!isLast); // 経由地のみ滞在時間を設定可
     const row=document.createElement('div');row.className='pt-row';
@@ -1419,7 +1449,7 @@ function renderItinerary(){
     const role=i===0?'出発':(i===points.length-1?'目的':'経由'+i);
     nodes.push({t,kind:'point',role,stay:(i>0&&i<points.length-1)?(points[i].stay||0):0,label:points[i].label||(points[i].lat.toFixed(3)+', '+points[i].lng.toFixed(3))});
   }
-  (lastEvents||[]).forEach(e=>nodes.push({t:e.t,kind:e.type,label:e.name}));
+  (lastEvents||[]).filter(e=>e.type!=='jct').forEach(e=>nodes.push({t:e.t,kind:e.type,label:e.name})); // JCTは工程に表示しない
   (lastRests||[]).forEach((r,idx)=>nodes.push({t:r.t,kind:'rest',label:r.name,sub:r.kind,stay:r.stay,idx}));
   nodes.sort((a,b)=>a.t-b.t);
   let restAccum=0;let html='<div class="rs-label">🧭 行程（到着 / 出発）</div>';
@@ -1586,6 +1616,12 @@ document.getElementById('reverse').onclick=()=>{if(points.length<2)return;points
 document.getElementById('optBtn').onclick=()=>{if(points.length<4){showStatus('最適化には経由地が2つ以上必要です',false);hideStatusLater();return;}computeRoute({optimize:true});};
 document.getElementById('saveRouteBtn').onclick=saveCurrentRoute;
 document.getElementById('clearAllBtn').onclick=clearAllObjects;
+// スマホ用メニュー（☰）：トップのボタン群を集約
+(function(){const mb=document.getElementById('menuBtn'),ta=document.getElementById('topActions');if(!mb||!ta)return;
+  mb.onclick=(e)=>{e.stopPropagation();ta.classList.toggle('open');};
+  ta.querySelectorAll('.icon-btn').forEach(b=>b.addEventListener('click',()=>ta.classList.remove('open')));
+  document.addEventListener('click',(e)=>{if(!ta.contains(e.target)&&e.target!==mb)ta.classList.remove('open');});
+})();
 // 現在時刻（NTP同期・日本標準時JST／24時間表記）。Cloudflare trace(ts=epoch・CORS可)でサーバ時刻に同期し端末時計のズレを補正。失敗時は端末時計にフォールバック。
 (function(){const t=document.getElementById('lcTime'),d=document.getElementById('lcDate'),box=document.getElementById('liveClock'),W=['日','月','火','水','木','金','土'];const z=n=>String(n).padStart(2,'0');let offsetMs=0,synced=false;
   async function sync(){try{const txt=await fetch('https://www.cloudflare.com/cdn-cgi/trace',{cache:'no-store'}).then(r=>r.text());const m=txt.match(/ts=([0-9.]+)/);if(m){offsetMs=Math.round(parseFloat(m[1])*1000)-Date.now();synced=true;box.title='NTP同期済み（日本標準時 JST）';}}catch(e){if(!synced)box.title='端末時計（NTP同期に失敗）';}}
