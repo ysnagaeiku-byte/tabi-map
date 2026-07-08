@@ -348,7 +348,7 @@
   <div id="favRow" style="display:none;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
   <div id="ptList" class="pt-list"></div>
   <div class="rs-btns"><button id="useLoc">現在地を追加</button><button id="reverse">⇅ 反転</button><button id="optBtn" title="複数経由地を最も効率の良い順に並べ替え">最適順</button></div>
-  <div class="rs-hint">検索 / 地図タップ / 現在地 / ピンの「ここへ」で地点を追加。経由地もOK。</div>
+  <div class="rs-hint">検索 / 地図ダブルタップ / 現在地 / ピンの「ここへ」で地点を追加。経由地もOK。</div>
   <div id="rsDetails" style="display:none;">
   <div id="altSel" style="display:none;margin-bottom:10px;"></div>
   <div class="rs-section" style="border-top:none;padding-top:0;margin-top:0;">
@@ -648,7 +648,9 @@ window.initGMap=function(){
   infoWindow=new google.maps.InfoWindow();
   infoWindow.addListener('closeclick',removeTempPin); // ポップアップを閉じたら仮ピンも消す（地図に残さない）
   placesSvc=new google.maps.places.PlacesService(map);
-  map.addListener('click',(e)=>{const tr=document.getElementById('topResults');if(tr)tr.classList.remove('show');removeTempPin();if(activeTab==='route')addPoint(e.latLng.lat(),e.latLng.lng(),null);else if(activeTab==='iso')setIsoCenter(e.latLng.lat(),e.latLng.lng());});
+  map.addListener('click',(e)=>{const tr=document.getElementById('topResults');if(tr)tr.classList.remove('show');removeTempPin();if(activeTab==='iso')setIsoCenter(e.latLng.lat(),e.latLng.lng());});
+  // ルートタブは誤操作防止でダブルクリック（ダブルタップ）必須。ルート中は既定のダブルクリックズームを無効化
+  map.addListener('dblclick',(e)=>{if(activeTab==='route')addPoint(e.latLng.lat(),e.latLng.lng(),null);});
   map.addListener('dragstart',()=>{if(liveWatchId!=null&&liveFollow){liveFollow=false;liveFabUi();}}); // 地図ドラッグで追従解除（追跡は継続）
   applyTheme(localStorage.getItem('tabi_theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
   buildTabs(); updateGasNote();
@@ -680,6 +682,7 @@ const tabsEl=document.getElementById('tabs');
 function buildTabs(){tabsEl.innerHTML='';TAB_ORDER.forEach(key=>{const m=TAB_META[key],color=cssvar(m.cv);const b=document.createElement('button');b.className='tab'+(key===activeTab?' active':'');b.innerHTML=`<span class="dot" style="background:${color}"></span>${m.emoji?m.emoji+' ':''}${m.label}`;if(key===activeTab)b.style.background=color;b.onclick=()=>selectTab(key);tabsEl.appendChild(b);});}
 function setPlain(){
   activeTab=null;buildTabs();
+  if(map)map.setOptions({disableDoubleClickZoom:false}); // ルート以外は通常のダブルクリックズームに戻す
   customPanel.classList.remove('open');document.getElementById('isoPanel').classList.remove('open');routeSheet.classList.remove('open');
   document.getElementById('controls').style.display='none';
   if(!onsenLayerOn)clearArr(onsengoMarkers); // 温泉郷/POI/到達圏レイヤーはタブ離脱後も保持
@@ -688,6 +691,7 @@ function selectTab(key){
   if(key===activeTab){if(key==='onsengo'){onsenLayerOn=false;clearArr(onsengoMarkers);}setPlain();return;} // 再タップで解除（温泉郷はレイヤーOFF）
   activeTab=key;buildTabs();
   const routeMode=(key==='route'),isoMode=(key==='iso');
+  if(map)map.setOptions({disableDoubleClickZoom:routeMode}); // ルート中はダブルクリックで地点追加（ズーム誤発火を防止）
   customPanel.classList.toggle('open',key==='custom');
   document.getElementById('isoPanel').classList.toggle('open',isoMode);
   routeSheet.classList.toggle('open',routeMode);
@@ -696,7 +700,7 @@ function selectTab(key){
   if(key==='onsengo'){onsenLayerOn=true;renderOnsenGo();map.fitBounds(llBounds(ONSEN_GO),40);showStatus('温泉郷 '+ONSEN_GO.length+'件・ピンの大きさ/色＝規模（青:小→赤:最大級／入湯税ベース）。タップで詳細',false);hideStatusLater();}
   else if(key==='custom'){buildCustomPanel();runSearch();}
   else if(isoMode){buildIsoPanel();showStatus('地図をタップして到達圏の基準地点を設定',false);hideStatusLater();}
-  else if(routeMode){renderPoints();updatePrefHint();}
+  else if(routeMode){renderPoints();updatePrefHint();showStatus('地図を「ダブルタップ」で地点を追加できます（誤操作防止）',false);hideStatusLater();}
   else{runSearch();}
 }
 const customPanel=document.getElementById('customPanel');
@@ -1018,7 +1022,7 @@ function addPoint(lat,lng,label){touchDepTime();points.push({lat:+lat.toFixed(6)
 function renderPoints(){
   clearArr(routeMarkers);updateSegExport();renderFavs();
   const list=document.getElementById('ptList');
-  if(points.length===0){list.innerHTML='<div class="pt-empty">地点未設定 — 検索・地図タップ・現在地で追加</div>';return;}
+  if(points.length===0){list.innerHTML='<div class="pt-empty">地点未設定 — 検索・地図ダブルタップ・現在地で追加</div>';return;}
   list.innerHTML='';
   points.forEach((p,i)=>{
     const isLast=(i===points.length-1&&points.length>1);
