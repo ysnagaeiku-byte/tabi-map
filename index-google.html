@@ -48,6 +48,8 @@
   #spdVal{font-size:16px;line-height:1;font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace;}
   .spd-u{font-size:9px;opacity:.9;letter-spacing:.4px;}
   #topbar>*{pointer-events:auto;}
+  /* タブバー/アクション列は横幅いっぱいだが空白部はクリックを地図(InfoWindowの×等)へ透過。子(チップ/ボタン)のみ受ける */
+  #tabs,#topActions{pointer-events:none;} #tabs>*,#topActions>*{pointer-events:auto;}
   .toprow{display:flex;align-items:center;gap:8px;padding:10px 12px 0;}
   .searchbar{flex:1;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;box-shadow:0 4px 18px var(--shadow);padding:0 6px 0 15px;height:48px;min-width:0;}
   .searchbar .s-ic{font-size:15px;color:var(--muted);flex:none;}
@@ -259,6 +261,20 @@
   .sch-tag{font-size:10px;font-weight:800;color:#fff;background:var(--muted);border-radius:5px;padding:1px 5px;margin-left:2px;}
   .sch-row.evt{font-size:12px;} .sch-row.evt .sch-t{color:var(--muted);font-weight:700;}
   .sch-row.rest{background:rgba(138,90,43,.07);border-radius:8px;padding:6px 8px;border-bottom:none;margin:2px 0;}
+  .sch-row.rest.hasfac{flex-direction:column;align-items:stretch;gap:5px;}
+  .sch-rest-main{display:flex;align-items:flex-start;gap:9px;}
+  /* 工程内のSA/PA施設・規模（テーマ連動） */
+  .itin-sapa{display:flex;align-items:center;gap:9px;flex-wrap:wrap;padding-left:29px;}
+  .itf-row{display:inline-flex;gap:4px;}
+  .itf{width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;border-radius:6px;border:1px solid var(--line);color:var(--muted);position:relative;}
+  .itf svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
+  .itf.off{opacity:.3;} .itf.off .itf-x{position:absolute;right:1px;top:0;font-size:8px;font-weight:800;}
+  .itf.on.itf-bath{color:var(--c-onsengo);border-color:var(--c-onsengo);}
+  .itf.on.itf-conv{color:var(--c-conveni);border-color:var(--c-conveni);}
+  .itf.on.itf-gas{color:var(--c-fuel);border-color:var(--c-fuel);}
+  .itf.on.itf-rest{color:var(--c-food);border-color:var(--c-food);}
+  .itin-score{font-size:12.5px;font-weight:800;color:var(--fg);} .itin-score b{color:var(--c-sapa);font-size:14px;}
+  .itin-park{font-size:11px;color:var(--muted);font-weight:600;}
   .sch-stay{flex:none;font-size:11px;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:2px;}
   .sch-stay input{width:60px;padding:4px 6px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--fg);font-size:13px;text-align:right;}
   .alt-row{display:flex;gap:7px;flex-wrap:wrap;}
@@ -577,8 +593,18 @@ const customSelected=new Set();
 let poiMarkers=[], onsengoMarkers=[], routeMarkers=[], searchMarkers=[], bufferShapes=[], routeLine=null, routeCasing=null, routeSegs=[], customSearchPins=[], isoShapes=[], locShapes=[], restMarkers=[];
 let poiLayers={}; // POIをカテゴリ別の永続レイヤーに（cat -> {markers:[],visible})
 let lineLayers={}; // 路線・道路レイヤー（key -> {def,lines:[Polyline],visible,label}）
-// 路線・道路の全国強調表示：Google地図スタイルで再着色（全国・瞬時。Overpassの範囲取得＝重い/局所 を廃止）
-// 高速道路＝controlled_access（高速自動車国道・自動車専用道）を緑・少し細線。鉄道＝transit.line（JR/私鉄まとめて）。
+// 路線・道路の強調表示：高速/鉄道はGoogle地図スタイルで全国・瞬時に再着色。航路(船)はデータ方式(OpenStreetMap・この範囲)。
+// 高速道路＝controlled_access（高速自動車国道・自動車専用道）を緑・細線。鉄道＝transit.line（JR/私鉄。Google仕様上フェリー航路も含む）。航路は鉄道とは別トグル。
+const OVERPASS_EPS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
+async function overpassFetch(query){
+  const body='data='+encodeURIComponent('[out:json][timeout:30];('+query+');out geom;');
+  let lastErr;
+  for(const ep of OVERPASS_EPS){
+    try{const r=await fetch(ep,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});if(!r.ok){lastErr=new Error('HTTP '+r.status);continue;}const j=await r.json();return j.elements||[];}
+    catch(e){lastErr=e;}
+  }
+  throw lastErr||new Error('Overpass接続失敗');
+}
 const LINE_DEFS={
   highway:{label:'高速道路（緑・全国）', swatch:'#1e8e3e', stylers:[
     {featureType:'road.highway.controlled_access',elementType:'geometry',stylers:[{color:'#1e8e3e'},{visibility:'on'},{weight:1.4}]},
@@ -589,28 +615,52 @@ const LINE_DEFS={
     {featureType:'transit.line',elementType:'geometry',stylers:[{color:'#7048e8'},{visibility:'on'},{weight:1.4}]},
     {featureType:'transit.station.rail',elementType:'geometry',stylers:[{color:'#7048e8'},{visibility:'on'}]},
   ]},
+  ferry:{label:'航路（船）', swatch:'#1c7ed6', overpass:true, color:'#1c7ed6',
+    q:b=>`way["route"="ferry"](${b});`},
 };
-// 現在のテーマ基本スタイル＋有効な路線スタイルを合成して適用（後勝ち・より詳細なfeatureが優先）
+// 現在のテーマ基本スタイル＋有効な「スタイル方式」路線を合成して適用（後勝ち・より詳細なfeatureが優先）
 function applyMapStyles(){
   if(!map)return;
   let s=(currentTheme==='dark'?DARK_STYLE:LIGHT_STYLE).slice();
-  Object.keys(lineLayers).forEach(k=>{const L=lineLayers[k];if(L&&L.visible&&LINE_DEFS[k])s=s.concat(LINE_DEFS[k].stylers);});
+  Object.keys(lineLayers).forEach(k=>{const L=lineLayers[k];if(L&&L.visible&&LINE_DEFS[k]&&LINE_DEFS[k].stylers)s=s.concat(LINE_DEFS[k].stylers);});
   map.setOptions({styles:s});
 }
-function toggleLineLayer(key){
-  if(lineLayers[key])delete lineLayers[key];
-  else lineLayers[key]={def:LINE_DEFS[key],visible:true,label:LINE_DEFS[key].label};
+async function toggleLineLayer(key){
+  const def=LINE_DEFS[key];
+  if(lineLayers[key]){ // OFF
+    if(lineLayers[key].lines)lineLayers[key].lines.forEach(p=>p.setMap(null));
+    delete lineLayers[key];applyMapStyles();renderLayerPanel();
+    showStatus(def.label.replace(/（.*）/,'')+'の表示を解除',false);hideStatusLater();return;
+  }
+  if(def.overpass){ // 航路：データ方式（この範囲）
+    if(!map.getBounds())return;
+    if(map.getZoom()<7){showStatus('航路は、地方程度までズームしてから表示してください',false);hideStatusLater();return;}
+    const b=map.getBounds(),sw=b.getSouthWest(),ne=b.getNorthEast();
+    const bs=`${sw.lat().toFixed(4)},${sw.lng().toFixed(4)},${ne.lat().toFixed(4)},${ne.lng().toFixed(4)}`;
+    showStatus(def.label+'を取得中…（OpenStreetMap）',true);
+    try{
+      const els=await overpassFetch(def.q(bs));
+      const lines=[];let drawn=0;
+      els.forEach(el=>{if(!el.geometry||el.geometry.length<2)return;const path=el.geometry.map(g=>({lat:g.lat,lng:g.lon}));
+        lines.push(new google.maps.Polyline({path,strokeOpacity:0,zIndex:2,clickable:false,map,icons:[{icon:{path:'M 0,-1 0,1',strokeColor:def.color,strokeOpacity:1,strokeWeight:2.4,scale:2},offset:'0',repeat:'11px'}]}));drawn++;});
+      if(!drawn){showStatus(def.label+'はこの範囲に見つかりませんでした',false);hideStatusLater();return;}
+      lineLayers[key]={def,lines,visible:true,label:def.label,overpass:true};
+      showStatus(def.label+' '+drawn+'本を表示（この範囲・青の破線）',false);hideStatusLater();renderLayerPanel();
+    }catch(e){showStatus(def.label+'の取得に失敗しました（時間をおいて再試行）',false);hideStatusLater();}
+    return;
+  }
+  // スタイル方式（高速/鉄道）：全国・瞬時
+  lineLayers[key]={def,visible:true,label:def.label};
   applyMapStyles();renderLayerPanel();
-  const on=!!lineLayers[key];showStatus(LINE_DEFS[key].label.replace(/（.*）/,'')+(on?'を全国で強調表示':'の強調表示を解除'),false);hideStatusLater();
-  return Promise.resolve();
+  showStatus(def.label.replace(/（.*）/,'')+'を全国で強調表示',false);hideStatusLater();
 }
-function toggleLineVisible(key){const L=lineLayers[key];if(!L)return;L.visible=!L.visible;applyMapStyles();renderLayerPanel();}
-function lineLayerClear(key){if(lineLayers[key]){delete lineLayers[key];applyMapStyles();}}
-function refreshLineLayers(){applyMapStyles();} // 全国スタイルのため範囲再取得は不要
+function toggleLineVisible(key){const L=lineLayers[key];if(!L)return;L.visible=!L.visible;if(L.overpass)L.lines.forEach(p=>p.setMap(L.visible?map:null));else applyMapStyles();renderLayerPanel();}
+function lineLayerClear(key){const L=lineLayers[key];if(!L)return;if(L.overpass&&L.lines)L.lines.forEach(p=>p.setMap(null));delete lineLayers[key];if(!L.overpass)applyMapStyles();}
+function refreshLineLayers(){applyMapStyles();Object.keys(lineLayers).forEach(k=>{const L=lineLayers[k];if(L&&L.overpass){L.lines.forEach(p=>p.setMap(null));delete lineLayers[k];toggleLineLayer(k);}});} // 航路のみ範囲取り直し
 function buildLineToggles(){
   const wrap=document.createElement('div');wrap.style.cssText='width:100%;display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px solid var(--line);padding-top:10px;margin-top:2px;';
-  wrap.innerHTML='<div style="width:100%;font-size:11px;font-weight:800;color:var(--muted);margin-bottom:-2px;">路線・道路の強調（全国・地図スタイル）</div>';
-  ['highway','rail'].forEach(key=>{const d=LINE_DEFS[key],on=!!lineLayers[key];const b=document.createElement('button');b.className='chk';b.type='button';b.style.cssText='cursor:pointer;'+(on?'background:var(--accent-weak);border-color:var(--accent);':'');b.innerHTML=`<span class="dot" style="background:${d.swatch};${d.ring?'box-shadow:inset 0 0 0 1px #fff;':''}"></span>${d.label}`;b.onclick=()=>{toggleLineLayer(key).then(()=>buildCustomPanel());};wrap.appendChild(b);});
+  wrap.innerHTML='<div style="width:100%;font-size:11px;font-weight:800;color:var(--muted);margin-bottom:-2px;">路線・道路の強調（高速/鉄道＝全国・瞬時、航路＝この範囲）</div>';
+  ['highway','rail','ferry'].forEach(key=>{const d=LINE_DEFS[key],on=!!lineLayers[key];const b=document.createElement('button');b.className='chk';b.type='button';b.style.cssText='cursor:pointer;'+(on?'background:var(--accent-weak);border-color:var(--accent);':'');b.innerHTML=`<span class="dot" style="background:${d.swatch};${d.ring?'box-shadow:inset 0 0 0 1px #fff;':''}"></span>${d.label}`;b.onclick=()=>{toggleLineLayer(key).then(()=>buildCustomPanel());};wrap.appendChild(b);});
   customPanel.appendChild(wrap);
 }
 let tempPin=null; // 検索時の「仮ピン」（地図に残さない／ポップアップを閉じると消える）
@@ -640,9 +690,9 @@ window.initGMap=function(){
   infoWindow=new google.maps.InfoWindow();
   infoWindow.addListener('closeclick',removeTempPin); // ポップアップを閉じたら仮ピンも消す（地図に残さない）
   placesSvc=new google.maps.places.PlacesService(map);
-  map.addListener('click',(e)=>{const tr=document.getElementById('topResults');if(tr)tr.classList.remove('show');removeTempPin();if(activeTab==='iso')setIsoCenter(e.latLng.lat(),e.latLng.lng());});
-  // ルートタブは誤操作防止でダブルクリック（ダブルタップ）必須。ルート中は既定のダブルクリックズームを無効化
-  map.addListener('dblclick',(e)=>{if(activeTab==='route')addPoint(e.latLng.lat(),e.latLng.lng(),null);});
+  map.addListener('click',(e)=>{const tr=document.getElementById('topResults');if(tr)tr.classList.remove('show');if(infoWindow)infoWindow.close();removeTempPin();if(activeTab==='iso')setIsoCenter(e.latLng.lat(),e.latLng.lng());}); // 地図タップでポップアップも閉じる（×が上部UIに隠れても確実に閉じられる）
+  // ルートタブは誤操作防止でダブルクリック（ダブルタップ）必須。ルート中は既定のダブルクリックズームを無効化。海上は不可（addPointMap内で陸判定）
+  map.addListener('dblclick',(e)=>{if(activeTab==='route')addPointMap(e.latLng.lat(),e.latLng.lng());});
   map.addListener('dragstart',()=>{if(liveWatchId!=null&&liveFollow){liveFollow=false;liveFabUi();}}); // 地図ドラッグで追従解除（追跡は継続）
   applyTheme(localStorage.getItem('tabi_theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
   buildTabs(); updateGasNote();
@@ -1013,6 +1063,18 @@ document.getElementById('isoClearFab').onclick=clearIso;
 // ===== ルート =====
 const routeSheet=document.getElementById('routeSheet');
 function addPoint(lat,lng,label){touchDepTime();points.push({lat:+lat.toFixed(6),lng:+lng.toFixed(6),label:label||null,stay:0});renderPoints();if(points.length>=2)computeRoute();else map.panTo({lat,lng});}
+// 地図ダブルタップからの追加：逆ジオコーディングで陸地判定（海上・領域外はピンを立てさせない）
+let _geocoder=null;
+function addPointMap(lat,lng){
+  if(!_geocoder)_geocoder=new google.maps.Geocoder();
+  showStatus('地点を確認中…',true);
+  _geocoder.geocode({location:{lat,lng},language:'ja'},(res,status)=>{
+    const land=(status===google.maps.GeocoderStatus.OK)&&(res||[]).some(r=>(r.address_components||[]).some(c=>c.types.includes('administrative_area_level_1')||c.types.includes('country')));
+    if(!land){showStatus('海など地点を追加できない場所です（陸地をダブルタップしてください）',false);hideStatusLater();return;}
+    statusEl.classList.remove('show');
+    addPoint(lat,lng,null);
+  });
+}
 function renderPoints(){
   clearArr(routeMarkers);updateSegExport();renderFavs();
   const list=document.getElementById('ptList');
@@ -1198,7 +1260,7 @@ function renderLayerPanel(){
   const poiCats=Object.keys(poiLayers);
   poiCats.forEach(cat=>{const L=poiLayers[cat],c=CATS[cat]||{emoji:'',label:cat},col=catColor(cat);h+=`<div class="ly-item"><span class="ly-sw poi-sw" data-c="${cat}" style="background:${L.visible?col:'var(--surface-2)'};border:1px solid ${col};"></span><span class="ly-name">${c.label} (${L.markers.length})</span><button class="ly-del poi-del" data-c="${cat}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   const lineKeys=Object.keys(lineLayers);
-  lineKeys.forEach(key=>{const L=lineLayers[key];h+=`<div class="ly-item"><span class="ly-sw ln-sw" data-k="${key}" style="background:${L.visible?L.def.swatch:'var(--surface-2)'};border:1px solid ${L.def.swatch};"></span><span class="ly-name">${L.label} <small style="color:var(--muted);font-weight:500;">全国強調</small></span><button class="ly-del ln-del" data-k="${key}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
+  lineKeys.forEach(key=>{const L=lineLayers[key];h+=`<div class="ly-item"><span class="ly-sw ln-sw" data-k="${key}" style="background:${L.visible?L.def.swatch:'var(--surface-2)'};border:1px solid ${L.def.swatch};"></span><span class="ly-name">${L.label} <small style="color:var(--muted);font-weight:500;">${L.overpass?((L.lines?L.lines.length:0)+'本・この範囲'):'全国強調'}</small></span><button class="ly-del ln-del" data-k="${key}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   if(isoShapes.length)h+=`<div class="ly-item"><span class="ly-sw" style="background:#1a73e8;"></span><span class="ly-name">到達圏</span><button class="ly-del" id="lyIsoDel"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
   savedRoutes.forEach((r,i)=>{h+=`<div class="ly-item"><span class="ly-sw ly-rt" data-i="${i}" style="background:${r.visible?r.color:'var(--surface-2)'};border:1px solid ${r.color};"></span><span class="ly-name" style="color:${r.color}">${escapeHtml(r.name||r.label)}<br><small style="color:var(--muted);font-weight:500;">${r.distKm.toFixed(0)}km・${fmtDuration(r.trafSec)}・¥${r.toll.toLocaleString()}</small></span><button class="ly-edit" data-e="${i}" title="名前を変更">✎</button>${(r.pts&&r.pts.length)?`<button class="ly-edit" data-ed="${i}" title="工程を再編集">✎</button>`:''}<button class="ly-del" data-d="${i}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   if(!savedRoutes.length&&!isoShapes.length&&!onsenLayerOn&&!poiCats.length&&!lineKeys.length)h+='<div class="ly-empty">レイヤーは空です。カスタムタブでPOI・高速/鉄道の全国強調を表示、温泉郷タブ、到達圏、ルートの「保存」などで要素を地図に重ねられます（タブを切り替えても残ります）。</div>';
@@ -2229,6 +2291,12 @@ function sapaInfoBlock(name){
   if(!d)return '';
   return '<div class="sapa-info">'+sapaFacRow(d)+sapaMetaHtml(d)+'<div class="sapa-src">'+escapeHtml(d.road)+'・'+escapeHtml(d.pref)+'</div></div>';
 }
+// 工程（行程）用のコンパクトなSA/PA施設＋規模（テーマ連動）。データ無し（コンビニ/道の駅）は''。
+function sapaItinHtml(d){
+  if(!d)return '';
+  const fac=['bath','conv','gas','rest'].map(function(k){const on=!!d[k];return '<span class="itf itf-'+k+' '+(on?'on':'off')+'" title="'+FAC_LABEL[k]+(on?'：あり':'：なし')+'">'+FAC_SVG[k]+(on?'':'<span class="itf-x">✕</span>')+'</span>';}).join('');
+  return '<div class="itin-sapa"><span class="itf-row">'+fac+'</span><span class="itin-score">規模<b>'+d.score+'</b>/10</span><span class="itin-park">駐車'+d.total+'台（大'+d.large+'/小'+d.small+'）</span></div>';
+}
 
 // ===== 休憩提案：連続運転時間ごとにルート沿いのSA/PA・道の駅・コンビニを提案 =====
 // 高速はstep単位のtimelineが粗い（1ステップ数十km）ため、密なfullPathへ時刻を補間した休憩用パスを構築（キャッシュ）
@@ -2491,7 +2559,7 @@ function renderItinerary(){
     nodes.push({t,kind:'point',role,stay:(i>0&&i<points.length-1)?(points[i].stay||0):0,label:points[i].label||(points[i].lat.toFixed(3)+', '+points[i].lng.toFixed(3))});
   }
   (lastEvents||[]).filter(e=>e.type!=='jct').forEach(e=>nodes.push({t:e.t,kind:e.type,label:e.name})); // JCTは工程に表示しない
-  (lastRests||[]).forEach((r,idx)=>nodes.push({t:r.t,kind:'rest',label:r.name,sub:r.kind,stay:r.stay,idx}));
+  (lastRests||[]).forEach((r,idx)=>nodes.push({t:r.t,kind:'rest',label:r.name,sub:r.kind,stay:r.stay,idx,data:r.data}));
   nodes.sort((a,b)=>a.t-b.t);
   let restAccum=0;let html='<div class="rs-label">行程（到着 / 出発）</div>';
   nodes.forEach(nd=>{
@@ -2502,7 +2570,8 @@ function renderItinerary(){
       else html+=`<div class="sch-row"><span class="sch-t">${fmtClockAdd(dep,arrSec)}</span><span class="sch-badge" style="background:${color}">${nd.role}</span><span class="sch-label">${escapeHtml(nd.label)}</span></div>`;
     }else if(nd.kind==='rest'){
       const depSec=arrSec+(nd.stay||0)*60;restAccum+=(nd.stay||0)*60;
-      html+=`<div class="sch-row rest"><span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発${fmtClockAdd(dep,depSec)}</small></span><span class="sch-ic">休</span><span class="sch-label">${escapeHtml(nd.label)}<small> ${escapeHtml(nd.sub||'')}</small></span><span class="sch-stay">休憩<input type="number" min="0" max="180" class="stay-in" data-i="${nd.idx}" value="${nd.stay}">分</span></div>`;
+      const fac=sapaItinHtml(nd.data);
+      html+=`<div class="sch-row rest${fac?' hasfac':''}"><div class="sch-rest-main"><span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発${fmtClockAdd(dep,depSec)}</small></span><span class="sch-ic">休</span><span class="sch-label">${escapeHtml(nd.label)}<small> ${escapeHtml(nd.sub||'')}</small></span><span class="sch-stay">休憩<input type="number" min="0" max="180" class="stay-in" data-i="${nd.idx}" value="${nd.stay}">分</span></div>${fac}</div>`;
     }else{
       const ic='▸',tag=nd.kind==='in'?'入口/料金所':(nd.kind==='out'?'出口/料金所':'JCT');
       html+=`<div class="sch-row evt"><span class="sch-t">${fmtClockAdd(dep,arrSec)}</span><span class="sch-ic">${ic}</span><span class="sch-label">${escapeHtml(nd.label||'')} <span class="sch-tag">${tag}</span></span></div>`;
