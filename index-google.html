@@ -399,6 +399,7 @@
     <div id="routeLegend"><span><i style="background:#1e8e3e"></i>高速(順調)</span><span><i style="background:#1a73e8"></i>一般道</span><span><i style="background:#f9a825"></i>やや混雑</span><span><i style="background:#d93025"></i>渋滞</span></div>
   </div>
   <button id="saveRouteBtn" style="width:100%;min-height:42px;border:none;border-radius:11px;background:#0ca678;color:#fff;font-weight:700;font-size:13px;cursor:pointer;margin:10px 0 8px;">このルートを保存（車両として登録・割り勘へ）</button>
+  <button id="schedBtn" style="width:100%;min-height:42px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--fg);font-weight:700;font-size:13px;cursor:pointer;margin:0 0 8px;">工程表を作成（印刷・PDF保存）</button>
   <button id="gmapsBtn" class="gmaps-btn">Googleマップでこのルートを開く（ナビ・渋滞）</button>
   <div id="segExport" style="display:none;align-items:center;gap:6px;margin:-4px 0 12px;flex-wrap:wrap;">
     <span style="font-size:12px;color:var(--muted);font-weight:700;">区間だけ出力:</span>
@@ -2582,6 +2583,90 @@ function renderItinerary(){
   box.innerHTML=html;sec.style.display='block';
   box.querySelectorAll('.stay-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(lastRests[i]){lastRests[i].stay=Math.max(0,Math.min(180,parseInt(inp.value)||0));renderItinerary();updateCost();}});
 }
+// ===== 工程表の出力（手書きフォーマット風・印刷/PDF保存。用紙右側にメモ余白を確保） =====
+function schedFacText(d){const arr=['温泉','コンビニ','GS','レストラン'].filter((_,k)=>[d.bath,d.conv,d.gas,d.rest][k]);return arr.length?arr.join('・'):'施設なし';}
+function exportSchedule(){
+  if(!lastLegs||!lastLegs.length||points.length<2){showStatus('先にルートを2地点以上で計算してください',false);hideStatusLater();return;}
+  const dv=document.getElementById('depTime').value;const dep=dv?new Date(dv):new Date();
+  const pT=(lastPointT&&lastPointT.length===points.length)?lastPointT:points.map((_,i)=>lastLegs.slice(0,i).reduce((a,l)=>a+(l.sec||0),0));
+  // 到着/出発の時刻（滞在・休憩を時間順に加算）
+  const nodes=[];
+  for(let i=0;i<points.length;i++)nodes.push({t:pT[i],kind:'point',i});
+  (lastRests||[]).forEach((r,idx)=>nodes.push({t:r.t,kind:'rest',idx}));
+  nodes.sort((a,b)=>a.t-b.t);
+  let acc=0;const ptClock=[],restClock=[];
+  nodes.forEach(nd=>{const arr=new Date(dep.getTime()+(nd.t+acc)*1000);let stay=0;
+    if(nd.kind==='point')stay=(nd.i>0&&nd.i<points.length-1)?(points[nd.i].stay||0):0;else stay=(lastRests[nd.idx].stay||0);
+    const depC=new Date(arr.getTime()+stay*60000);acc+=stay*60;
+    if(nd.kind==='point')ptClock[nd.i]={arr,dep:depC,stay};else restClock[nd.idx]={arr,dep:depC,stay};});
+  const roleOf=i=>i===0?'出発':(i===points.length-1?'目的':'経由'+i);
+  const placeOf=i=>points[i].label||(points[i].lat.toFixed(3)+', '+points[i].lng.toFixed(3));
+  // 行（stop→segment→rest→...）
+  let rows='';
+  for(let i=0;i<points.length;i++){
+    const c=ptClock[i]||{arr:dep,dep:dep,stay:0},isEnd=i===points.length-1,isStart=i===0;
+    const timeHtml=isStart?('<b>'+fmtClock(c.arr)+'</b>'):('着<b>'+fmtClock(c.arr)+'</b>'+(c.stay?'<small>発 '+fmtClock(c.dep)+'</small>':''));
+    rows+='<div class="stop '+(isStart?'s-start':(isEnd?'s-end':'s-via'))+'"><span class="badge">'+roleOf(i)+'</span><span class="times">'+timeHtml+'</span><span class="place">'+escapeHtml(placeOf(i))+(c.stay?'<span class="stay">滞在'+c.stay+'分</span>':'')+'</span><span class="pnote" contenteditable="true"></span></div>';
+    if(!isEnd){
+      const leg=lastLegs[i]||{km:0,sec:0};
+      rows+='<div class="seg"><span class="seg-ar">↓</span><span class="seg-info"><b>'+fmtDuration(leg.sec||0)+'</b> ・ '+(leg.km||0).toFixed(1)+' km'+((leg.nexcoKm||0)>0.5?' <span class="seg-hw">高速'+leg.nexcoKm.toFixed(0)+'km</span>':'')+'</span><span class="seg-note" contenteditable="true"></span></div>';
+      (lastRests||[]).forEach((r,idx)=>{ if(r.t>=pT[i]&&(i+1>=points.length||r.t<pT[i+1])){const rc=restClock[idx]||{arr:dep,dep:dep};
+        rows+='<div class="rest"><span class="r-ic">休</span><span class="r-t">着'+fmtClock(rc.arr)+(r.stay?' 発'+fmtClock(rc.dep):'')+'</span><span class="r-name">'+escapeHtml(r.name)+' <small>'+escapeHtml(r.kind)+'</small>'+(r.data?' <span class="r-scale">規模'+r.data.score+'</span> <span class="r-fac">'+schedFacText(r.data)+'</span>':'')+'</span></div>';
+      }});
+    }
+  }
+  // 費用
+  const price=parseFloat(document.getElementById('price').value)||0,eff=parseFloat(document.getElementById('eff').value)||0;
+  const liters=eff>0?lastDistanceKm/eff:0,gas=(eff>0&&price>0)?Math.round(liters*price):0;
+  const t=calcToll(),other=parseFloat(document.getElementById('otherCost').value)||0,total=gas+t.toll+other;
+  const splitN=Math.max(1,parseInt(document.getElementById('splitN').value)||1),perPerson=Math.ceil(total/splitN);
+  const endClock=(ptClock[points.length-1]||{}).arr||dep;
+  const wd='日月火水木金土',fmtDate=d=>(d.getMonth()+1)+'/'+d.getDate()+'('+wd[d.getDay()]+')';
+  const period=fmtDate(dep)+(endClock.toDateString()!==dep.toDateString()?(' 〜 '+fmtDate(endClock)):'');
+  const title=placeOf(0).split(',')[0]+' → '+placeOf(points.length-1).split(',')[0];
+  const vehLine='車両: '+(VEHLBL[vehType]||'')+'・'+fuelLabel(fuelType)+' '+(price||'-')+'円/L・'+(eff||'-')+'km/L'+(splitN>1?('・'+splitN+'人で割り勘'):'');
+  const cost='<table>'
+    +'<tr><td class="k">レンタカー代等</td><td contenteditable="true"></td><td class="k">有料道路(ETC)</td><td class="big">¥'+t.toll.toLocaleString()+'</td></tr>'
+    +'<tr><td class="k">パーキング等</td><td contenteditable="true"></td><td class="k">任意保険等</td><td contenteditable="true"></td></tr>'
+    +'<tr><td class="k">燃料</td><td>'+(price||'-')+'円/L・'+(eff||'-')+'km/L → ¥'+gas.toLocaleString()+'（'+liters.toFixed(1)+'L）</td><td class="k">その他</td><td>¥'+other.toLocaleString()+'</td></tr>'
+    +'<tr><td class="k">合計</td><td class="big">¥'+total.toLocaleString()+'</td><td class="k">キロ程</td><td class="big">'+lastDistanceKm.toFixed(1)+' km</td></tr>'
+    +'<tr><td class="k">予算</td><td contenteditable="true"></td><td class="k">1人あたり（'+splitN+'人）</td><td class="big">¥'+perPerson.toLocaleString()+'</td></tr>'
+    +'</table>';
+  const css='@page{size:A4 portrait;margin:10mm;}*{box-sizing:border-box;}'
+    +'body{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#111;margin:0;padding:14px 16px;font-size:12px;line-height:1.4;}'
+    +'.hdr{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:6px;gap:12px;}'
+    +'.ttl{font-size:20px;font-weight:800;} .ed{border-bottom:1px dashed #999;padding:0 6px;display:inline-block;min-width:60px;}'
+    +'.period{font-size:13px;font-weight:700;white-space:nowrap;}'
+    +'.subttl{font-size:13px;font-weight:700;margin:7px 0 2px;color:#333;} .vehln{font-size:11px;color:#666;margin:0 0 9px;}'
+    +'.main{display:grid;grid-template-columns:1fr 33%;gap:0;}'
+    +'.col-left{padding-right:10px;} .col-right{border-left:1.5px solid #bbb;padding:2px 0 0 8px;background:repeating-linear-gradient(to bottom,transparent,transparent 26px,#e8e8e8 26px,#e8e8e8 27px);}'
+    +'.rlab{font-size:10px;font-weight:800;color:#aaa;letter-spacing:.04em;}'
+    +'.stop{display:flex;align-items:stretch;gap:8px;padding:5px 0;border-bottom:1px solid #eee;}'
+    +'.badge{flex:0 0 46px;background:#eef2f6;border:1px solid #99a;color:#334;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;border-radius:5px;text-align:center;line-height:1.1;}'
+    +'.s-start .badge{background:#e9f5ee;border-color:#2f9e44;color:#1a7a37;} .s-end .badge{background:#fdecec;border-color:#e03131;color:#c92a2a;}'
+    +'.times{flex:0 0 78px;font-size:13px;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;justify-content:center;} .times small{font-weight:600;color:#666;font-size:10px;}'
+    +'.place{flex:1;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;} .place .stay{font-size:10px;font-weight:700;color:#e8590c;background:#fff3e6;border-radius:4px;padding:1px 5px;}'
+    +'.pnote{flex:0 0 88px;border-bottom:1px dotted #ccc;min-height:16px;}'
+    +'.seg{display:flex;align-items:center;gap:8px;padding:3px 0 3px 8px;color:#555;font-size:11.5px;} .seg-ar{color:#999;font-weight:800;} .seg-info b{color:#111;} .seg-hw{color:#1a7a37;font-weight:800;} .seg-note{flex:1;border-bottom:1px dotted #ddd;min-height:14px;}'
+    +'.rest{display:flex;align-items:center;gap:7px;padding:2px 0 2px 22px;font-size:11px;color:#444;} .r-ic{background:#8a5a2b;color:#fff;font-weight:800;border-radius:4px;padding:0 5px;font-size:10px;} .r-t{color:#666;font-variant-numeric:tabular-nums;} .r-scale{background:#0ca678;color:#fff;border-radius:4px;padding:0 5px;font-weight:800;} .r-fac{color:#555;}'
+    +'.cost{margin-top:12px;} .cost table{width:100%;border-collapse:collapse;font-size:12px;} .cost td{border:1px solid #999;padding:5px 8px;} .cost .k{background:#f2f2f2;font-weight:800;white-space:nowrap;width:1%;} .cost .big{font-size:15px;font-weight:800;}'
+    +'.toolbar{position:fixed;top:10px;right:12px;} .toolbar button{font-size:13px;font-weight:800;padding:9px 15px;border:none;border-radius:8px;background:#0ca678;color:#fff;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.2);}'
+    +'.hint{font-size:10.5px;color:#999;margin-top:8px;}'
+    +'@media print{.toolbar,.hint{display:none;} body{padding:0;}}';
+  const html='<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>工程表 '+escapeHtml(title)+'</title><style>'+css+'</style></head><body>'
+    +'<div class="toolbar"><button onclick="window.print()">印刷 / PDF保存</button></div>'
+    +'<div class="hdr"><div class="ttl">工程表【<span class="ed" contenteditable="true">'+escapeHtml(title)+'</span>】</div><div class="period">期間 <span class="ed" contenteditable="true">'+period+'</span></div></div>'
+    +'<div class="subttl">〈<span class="ed" contenteditable="true">　　　　　　　</span>〉</div>'
+    +'<div class="vehln">'+escapeHtml(vehLine)+'</div>'
+    +'<div class="main"><div class="col-left">'+rows+'</div><div class="col-right"><div class="rlab">メモ / 乗換・買い出し等</div></div></div>'
+    +'<div class="cost">'+cost+'</div>'
+    +'<div class="hint">タイトル・期間・〈テーマ〉・各行の点線部・費用の空欄はクリックして直接記入できます。右の余白は手書き用です。「印刷 / PDF保存」からA4で出力してください。</div>'
+    +'</body></html>';
+  const w=window.open('','_blank');
+  if(!w){showStatus('ポップアップがブロックされました。ブラウザで許可してください',false);hideStatusLater();return;}
+  w.document.open();w.document.write(html);w.document.close();
+  showStatus('工程表を新しいタブに作成しました（印刷/PDF保存・直接記入可）',false);hideStatusLater();
+}
 // Google渋滞ETA
 function gDeparture(){const dv=document.getElementById('depTime').value;let d=dv?new Date(dv):new Date();const now=new Date();return d.getTime()<now.getTime()?now:d;}
 function computeGoogleTraffic(){
@@ -2726,6 +2811,7 @@ document.getElementById('myLocFab').onclick=()=>{
 document.getElementById('reverse').onclick=()=>{if(points.length<2)return;points.reverse();renderPoints();computeRoute();};
 document.getElementById('optBtn').onclick=()=>{if(points.length<4){showStatus('最適化には経由地が2つ以上必要です',false);hideStatusLater();return;}computeRoute({optimize:true});};
 document.getElementById('saveRouteBtn').onclick=saveCurrentRoute;
+document.getElementById('schedBtn').onclick=exportSchedule;
 document.getElementById('clearAllBtn').onclick=clearAllObjects;
 // スマホ用メニュー（☰）：トップのボタン群を集約
 (function(){const mb=document.getElementById('menuBtn'),ta=document.getElementById('topActions');if(!mb||!ta)return;
