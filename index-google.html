@@ -597,11 +597,12 @@ let lineLayers={}; // 路線・道路レイヤー（key -> {def,lines:[Polyline]
 // 高速道路＝controlled_access（高速自動車国道・自動車専用道）を緑・細線。鉄道＝transit.line（JR/私鉄。Google仕様上フェリー航路も含む）。航路は鉄道とは別トグル。
 const OVERPASS_EPS=['https://overpass-api.de/api/interpreter','https://overpass.kumi.systems/api/interpreter'];
 async function overpassFetch(query){
-  const body='data='+encodeURIComponent('[out:json][timeout:30];('+query+');out geom;');
+  const body='data='+encodeURIComponent('[out:json][timeout:25];('+query+');out geom;');
   let lastErr;
   for(const ep of OVERPASS_EPS){
-    try{const r=await fetch(ep,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body});if(!r.ok){lastErr=new Error('HTTP '+r.status);continue;}const j=await r.json();return j.elements||[];}
-    catch(e){lastErr=e;}
+    const ac=new AbortController();const to=setTimeout(()=>ac.abort(),22000); // ハング防止：22秒で打ち切り次のエンドポイントへ
+    try{const r=await fetch(ep,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body,signal:ac.signal});clearTimeout(to);if(!r.ok){lastErr=new Error('HTTP '+r.status);continue;}const j=await r.json();return j.elements||[];}
+    catch(e){clearTimeout(to);lastErr=e;}
   }
   throw lastErr||new Error('Overpass接続失敗');
 }
@@ -634,7 +635,7 @@ async function toggleLineLayer(key){
   }
   if(def.overpass){ // 航路：データ方式（この範囲）
     if(!map.getBounds())return;
-    if(map.getZoom()<7){showStatus('航路は、地方程度までズームしてから表示してください',false);hideStatusLater();return;}
+    if(map.getZoom()<9){showStatus('航路は範囲が広いと重いため、都市・湾が見える程度までズームしてから表示してください',false);hideStatusLater();return;}
     const b=map.getBounds(),sw=b.getSouthWest(),ne=b.getNorthEast();
     const bs=`${sw.lat().toFixed(4)},${sw.lng().toFixed(4)},${ne.lat().toFixed(4)},${ne.lng().toFixed(4)}`;
     showStatus(def.label+'を取得中…（OpenStreetMap）',true);
