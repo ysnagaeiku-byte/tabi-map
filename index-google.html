@@ -2598,7 +2598,9 @@ function renderItinerary(){
       html+=`<div class="sch-row rest${fac?' hasfac':''}"><div class="sch-rest-main"><span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発${fmtClockAdd(dep,depSec)}</small></span><span class="sch-ic">休</span><span class="sch-label">${escapeHtml(nd.label)}<small> ${escapeHtml(nd.sub||'')}</small></span><span class="sch-stay">休憩<input type="number" min="0" max="180" class="stay-in" data-i="${nd.idx}" value="${nd.stay}">分</span></div>${fac}</div>`;
     }else{
       const ic='▸',tag=nd.kind==='in'?'入口/料金所':(nd.kind==='out'?'出口/料金所':'JCT');
-      const road=nd.label||'',icn=nd.ic||'';const evLabel=icn?(road&&road!==icn?`<b>${escapeHtml(icn)}</b>（${escapeHtml(road)}）`:`<b>${escapeHtml(icn)}</b>`):escapeHtml(road);
+      const road=nd.label||'',icn=nd.ic||'';
+      const cleanRoad=(/(自動車道|高速道路|有料道路|バイパス|スカイライン|道路|高速)$/.test(road)&&road.length<=16&&road!==icn)?road:''; // 冗長な案内文は括弧に入れない
+      const evLabel=icn?(cleanRoad?`<b>${escapeHtml(icn)}</b>（${escapeHtml(cleanRoad)}）`:`<b>${escapeHtml(icn)}</b>`):escapeHtml(cleanRoad||road);
       html+=`<div class="sch-row evt"><span class="sch-t">${fmtClockAdd(dep,arrSec)}</span><span class="sch-ic">${ic}</span><span class="sch-label">${evLabel} <span class="sch-tag">${tag}</span></span></div>`;
     }
   });
