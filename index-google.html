@@ -367,7 +367,8 @@
 </div>
 <button id="bufClear">◎ 距離円を消去</button>
 <button id="isoClearFab">到達圏を消去</button>
-<button id="myLocFab" title="現在地を表示" aria-label="現在地を表示"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.6"/><path d="M12 1.6V4M12 20v2.4M1.6 12H4M20 12h2.4"/></svg><small>現在地</small></button>
+<button id="myLocFab" title="現在地へ移動（1回）" aria-label="現在地へ移動"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.6"/><path d="M12 1.6V4M12 20v2.4M1.6 12H4M20 12h2.4"/></svg><small>現在地</small></button>
+<button id="trackFab" title="リアルタイム追跡の開始/停止" aria-label="リアルタイム追跡"><svg class="svgi" viewBox="0 0 24 24"><path d="M3.5 11.5 21 4l-7.2 17-2.4-7.3z"/></svg><small>追跡</small></button>
 <button id="layerBtn" title="レイヤー（温泉郷・圏域・保存ルート）" aria-label="レイヤー管理"><svg class="svgi" viewBox="0 0 24 24"><path d="M12 2 22 7.5 12 13 2 7.5 12 2z"/><path d="m2 12.2 10 5.5 10-5.5"/><path d="m2 16.7 10 5.5 10-5.5"/></svg><small>レイヤー</small></button>
 <button id="settleBtn" title="複数車両の割り勘決算" aria-label="複数車両の割り勘決算"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.6 7.6 3.4 4.3 3.4-4.3M12 11.9V17M9.4 13.4h5.2M9.4 15.6h5.2"/></svg><small>割り勘</small></button>
 <div id="layerPanel"><div class="ly-head"><span>レイヤー</span><button id="layerClose">✕</button></div><div id="layerList"></div></div>
@@ -898,9 +899,9 @@ function updateSpeed(pos){
 }
 function speedChip(show){const c=document.getElementById('speedChip');if(!c)return;c.classList.toggle('show',!!show);if(!show){spdPrev=null;spdEMA=null;const el=document.getElementById('spdVal');if(el)el.textContent='--';}}
 function liveFabUi(){
-  const fab=document.getElementById('myLocFab'),sm=fab.querySelector('small');
+  const fab=document.getElementById('trackFab');if(!fab)return;const sm=fab.querySelector('small');
   fab.classList.toggle('on',liveWatchId!=null);
-  if(sm)sm.textContent=liveWatchId==null?'現在地':(liveFollow?'追跡中':'追従再開');
+  if(sm)sm.textContent=liveWatchId==null?'追跡':(liveFollow?'追跡中':'追従再開');
 }
 function updateLiveLoc(lat,lng,acc){
   const r=Math.max(acc||0,15);
@@ -1344,6 +1345,13 @@ function localOptimizeOrder(){
   points=full;return true;
 }
 function evName(instr){let t=String(instr||'').replace(/<[^>]+>/g,'').trim();t=t.replace(/(に入ります|に入る|を進む|に向かう).*$/,'').trim();return t.length>20?t.slice(0,20)+'…':t;}
+// 料金所(入口/出口)イベント用：案内文から「道路名」だけを抽出（ひらがな助詞で区切れるので路線名が孤立する）。無ければevName。
+function roadNameOf(instr){
+  const t=String(instr||'').replace(/<[^>]+>/g,'').trim();
+  const ms=t.match(/[一-龥ァ-ヶーA-Za-z0-9０-９々]+?(?:自動車道|高速道路|有料道路|バイパス|スカイライン|高速道|道路|高速)/g);
+  if(ms&&ms.length)return ms[ms.length-1];
+  return evName(instr);
+}
 function parseRoutesAPI(route){
   const dec=enc=>google.maps.geometry.encoding.decodePath(enc);
   const pts=dec(route.polyline.encodedPolyline),n=pts.length;
@@ -1361,8 +1369,8 @@ function parseRoutesAPI(route){
       if(fr){if(!flatNames.has(fr.name)){flatTotal+=fr.yen;flatNames.add(fr.name);}}
       else if(c==='shutoko')lsh+=dm;
       const tStart=cum; // この区間開始時の累積時間
-      if(hw&&!prevHw)events.push({t:tStart,type:'in',name:evName(instr)});
-      else if(!hw&&prevHw)events.push({t:tStart,type:'out',name:evName(instr)});
+      if(hw&&!prevHw)events.push({t:tStart,type:'in',name:roadNameOf(instr)});
+      else if(!hw&&prevHw)events.push({t:tStart,type:'out',name:roadNameOf(instr)});
       if(/JCT|ジャンクション/.test(instr))events.push({t:tStart,type:'jct',name:evName(instr)});
       prevHw=hw;
       let sp=[];try{if(s.polyline&&s.polyline.encodedPolyline)sp=dec(s.polyline.encodedPolyline);}catch(e){}
@@ -1405,8 +1413,8 @@ function computeRouteLegacy(fellback){
         const hw=(c==='nexco'||c==='shutoko'||!!fr);
         const col=hw?COL_HW:cssvar('--route'); // フォールバックは実渋滞データ無し→道路種別のみで着色（誤検出を回避）
         const tStart=cum;
-        if(hw&&!prevHw)events.push({t:tStart,type:'in',name:evName(s.instructions)});
-        else if(!hw&&prevHw)events.push({t:tStart,type:'out',name:evName(s.instructions)});
+        if(hw&&!prevHw)events.push({t:tStart,type:'in',name:roadNameOf(s.instructions)});
+        else if(!hw&&prevHw)events.push({t:tStart,type:'out',name:roadNameOf(s.instructions)});
         if(/JCT|ジャンクション/.test(String(s.instructions||'')))events.push({t:tStart,type:'jct',name:evName(s.instructions)});
         prevHw=hw;
         const path=s.path||s.lat_lngs||[];
@@ -2281,11 +2289,9 @@ function sapaFacRow(d){
   }).join('')+'</div>';
 }
 function sapaMetaHtml(d){
-  const boost=[];if(d.b24>0)boost.push('コンビニ24h +'+d.b24);if(d.bgas>0)boost.push('GS +'+d.bgas);
-  const bstr=boost.length?boost.join(' / '):'補正なし';
-  return '<div class="sapa-line"><span class="sapa-score"><b>'+d.score+'</b><small>/10</small> 規模</span>'
-    +'<span class="sapa-park">駐車 '+d.total+'台<small>（大型'+d.large+'/小型'+d.small+'）</small></span></div>'
-    +'<div class="sapa-sub">10段階評価：基礎 '+d.base+' ＋ '+bstr+'</div>';
+  return '<div class="sapa-line"><span class="sapa-score">Lv.<b>'+d.score+'</b></span>'
+    +'<span class="sapa-park">駐車 '+d.total+'台</span></div>'
+    +'<div class="sapa-sub">基礎 '+d.base+'</div>';
 }
 // SA/PA名（またはデータ行）から施設アイコン＋規模＋駐車台数のHTMLブロックを生成。対象外は''。
 function sapaInfoBlock(name){
@@ -2297,7 +2303,7 @@ function sapaInfoBlock(name){
 function sapaItinHtml(d){
   if(!d)return '';
   const fac=['bath','conv','gas','rest'].map(function(k){const on=!!d[k];return '<span class="itf itf-'+k+' '+(on?'on':'off')+'" title="'+FAC_LABEL[k]+(on?'：あり':'：なし')+'">'+FAC_SVG[k]+(on?'':'<span class="itf-x">✕</span>')+'</span>';}).join('');
-  return '<div class="itin-sapa"><span class="itf-row">'+fac+'</span><span class="itin-score">規模<b>'+d.score+'</b>/10</span><span class="itin-park">駐車'+d.total+'台（大'+d.large+'/小'+d.small+'）</span></div>';
+  return '<div class="itin-sapa"><span class="itf-row">'+fac+'</span><span class="itin-score">Lv.<b>'+d.score+'</b></span><span class="itin-park">駐車'+d.total+'台</span><span class="itin-park">基礎'+d.base+'</span></div>';
 }
 
 // ===== 休憩提案：連続運転時間ごとにルート沿いのSA/PA・道の駅・コンビニを提案 =====
@@ -2422,7 +2428,7 @@ async function suggestRests(){
 // 休憩ピンのポップアップ：SA/PAは施設アイコン＋規模＋駐車台数を表示。下道は簡易表記。
 function restPopupHtml(r){
   const enc=encodeURIComponent(r.name);
-  let h=`<div class="popup"><h3>${escapeHtml(r.name)}</h3><div class="meta">${escapeHtml(r.kind)}・休憩スポット</div>`;
+  let h=`<div class="popup"><h3>${escapeHtml(r.name)}</h3><div class="meta">${escapeHtml(r.kind)}</div>`;
   const block=sapaInfoBlock(r.data||r.name);
   h+=block||`<div class="sapa-note">立ち寄り休憩スポット</div>`;
   h+=`<div class="links"><button class="dest" onclick="window.insertWp(${r.lat},${r.lng},'${enc}')">＋ 経由地に追加</button></div></div>`;
@@ -2611,7 +2617,7 @@ function exportSchedule(){
       const leg=lastLegs[i]||{km:0,sec:0};
       rows+='<div class="seg"><span class="seg-ar">↓</span><span class="seg-info"><b>'+fmtDuration(leg.sec||0)+'</b> ・ '+(leg.km||0).toFixed(1)+' km'+((leg.nexcoKm||0)>0.5?' <span class="seg-hw">高速'+leg.nexcoKm.toFixed(0)+'km</span>':'')+'</span><span class="seg-note" contenteditable="true"></span></div>';
       (lastRests||[]).forEach((r,idx)=>{ if(r.t>=pT[i]&&(i+1>=points.length||r.t<pT[i+1])){const rc=restClock[idx]||{arr:dep,dep:dep};
-        rows+='<div class="rest"><span class="r-ic">休</span><span class="r-t">着'+fmtClock(rc.arr)+(r.stay?' 発'+fmtClock(rc.dep):'')+'</span><span class="r-name">'+escapeHtml(r.name)+' <small>'+escapeHtml(r.kind)+'</small>'+(r.data?' <span class="r-scale">規模'+r.data.score+'</span> <span class="r-fac">'+schedFacText(r.data)+'</span>':'')+'</span></div>';
+        rows+='<div class="rest"><span class="r-ic">休</span><span class="r-t">着'+fmtClock(rc.arr)+(r.stay?' 発'+fmtClock(rc.dep):'')+'</span><span class="r-name">'+escapeHtml(r.name)+' <small>'+escapeHtml(r.kind)+'</small>'+(r.data?' <span class="r-scale">Lv.'+r.data.score+'</span> <span class="r-fac">基礎'+r.data.base+'・'+schedFacText(r.data)+'</span>':'')+'</span></div>';
       }});
     }
   }
@@ -2632,15 +2638,15 @@ function exportSchedule(){
     +'<tr><td class="k">合計</td><td class="big">¥'+total.toLocaleString()+'</td><td class="k">キロ程</td><td class="big">'+lastDistanceKm.toFixed(1)+' km</td></tr>'
     +'<tr><td class="k">予算</td><td contenteditable="true"></td><td class="k">1人あたり（'+splitN+'人）</td><td class="big">¥'+perPerson.toLocaleString()+'</td></tr>'
     +'</table>';
-  const css='@page{size:A4 portrait;margin:10mm;}*{box-sizing:border-box;}'
-    +'body{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#111;margin:0;padding:14px 16px;font-size:12px;line-height:1.4;}'
+  const css='*{box-sizing:border-box;}'
+    +'body{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#111;margin:0 auto;padding:14px 16px;font-size:12px;line-height:1.4;max-width:210mm;}'
     +'.hdr{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:6px;gap:12px;}'
     +'.ttl{font-size:20px;font-weight:800;} .ed{border-bottom:1px dashed #999;padding:0 6px;display:inline-block;min-width:60px;}'
     +'.period{font-size:13px;font-weight:700;white-space:nowrap;}'
     +'.subttl{font-size:13px;font-weight:700;margin:7px 0 2px;color:#333;} .vehln{font-size:11px;color:#666;margin:0 0 9px;}'
-    +'.main{display:grid;grid-template-columns:1fr 33%;gap:0;}'
-    +'.col-left{padding-right:10px;} .col-right{border-left:1.5px solid #bbb;padding:2px 0 0 8px;background:repeating-linear-gradient(to bottom,transparent,transparent 26px,#e8e8e8 26px,#e8e8e8 27px);}'
-    +'.rlab{font-size:10px;font-weight:800;color:#aaa;letter-spacing:.04em;}'
+    +'.main{display:grid;grid-template-columns:2fr 1fr;gap:0;}'  /* 右1/3はメモ用の白紙 */
+    +'.col-left{padding-right:10px;} .col-right{border-left:1px solid #ddd;}'
+    +'.szbtn{background:#fff !important;color:#0ca678 !important;border:1px solid #0ca678 !important;} .szbtn.on{background:#0ca678 !important;color:#fff !important;}'
     +'.stop{display:flex;align-items:stretch;gap:8px;padding:5px 0;border-bottom:1px solid #eee;}'
     +'.badge{flex:0 0 46px;background:#eef2f6;border:1px solid #99a;color:#334;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;border-radius:5px;text-align:center;line-height:1.1;}'
     +'.s-start .badge{background:#e9f5ee;border-color:#2f9e44;color:#1a7a37;} .s-end .badge{background:#fdecec;border-color:#e03131;color:#c92a2a;}'
@@ -2650,17 +2656,18 @@ function exportSchedule(){
     +'.seg{display:flex;align-items:center;gap:8px;padding:3px 0 3px 8px;color:#555;font-size:11.5px;} .seg-ar{color:#999;font-weight:800;} .seg-info b{color:#111;} .seg-hw{color:#1a7a37;font-weight:800;} .seg-note{flex:1;border-bottom:1px dotted #ddd;min-height:14px;}'
     +'.rest{display:flex;align-items:center;gap:7px;padding:2px 0 2px 22px;font-size:11px;color:#444;} .r-ic{background:#8a5a2b;color:#fff;font-weight:800;border-radius:4px;padding:0 5px;font-size:10px;} .r-t{color:#666;font-variant-numeric:tabular-nums;} .r-scale{background:#0ca678;color:#fff;border-radius:4px;padding:0 5px;font-weight:800;} .r-fac{color:#555;}'
     +'.cost{margin-top:12px;} .cost table{width:100%;border-collapse:collapse;font-size:12px;} .cost td{border:1px solid #999;padding:5px 8px;} .cost .k{background:#f2f2f2;font-weight:800;white-space:nowrap;width:1%;} .cost .big{font-size:15px;font-weight:800;}'
-    +'.toolbar{position:fixed;top:10px;right:12px;} .toolbar button{font-size:13px;font-weight:800;padding:9px 15px;border:none;border-radius:8px;background:#0ca678;color:#fff;cursor:pointer;box-shadow:0 3px 10px rgba(0,0,0,.2);}'
+    +'.toolbar{position:fixed;top:10px;right:12px;display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.9);padding:5px;border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.15);} .toolbar .tlab{font-size:11px;font-weight:800;color:#555;padding-left:4px;} .toolbar button{font-size:13px;font-weight:800;padding:8px 13px;border:none;border-radius:8px;background:#0ca678;color:#fff;cursor:pointer;}'
     +'.hint{font-size:10.5px;color:#999;margin-top:8px;}'
     +'@media print{.toolbar,.hint{display:none;} body{padding:0;}}';
-  const html='<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>工程表 '+escapeHtml(title)+'</title><style>'+css+'</style></head><body>'
-    +'<div class="toolbar"><button onclick="window.print()">印刷 / PDF保存</button></div>'
+  const html='<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>工程表 '+escapeHtml(title)+'</title><style>'+css+'</style><style id="pg">@page{size:A4 portrait;margin:10mm;}</style></head><body>'
+    +'<div class="toolbar"><span class="tlab">用紙</span><button class="szbtn" data-s="A4" onclick="setSize(\'A4\')">A4</button><button class="szbtn" data-s="B5" onclick="setSize(\'B5\')">B5</button><button onclick="window.print()">印刷 / PDF保存</button></div>'
     +'<div class="hdr"><div class="ttl">工程表【<span class="ed" contenteditable="true">'+escapeHtml(title)+'</span>】</div><div class="period">期間 <span class="ed" contenteditable="true">'+period+'</span></div></div>'
     +'<div class="subttl">〈<span class="ed" contenteditable="true">　　　　　　　</span>〉</div>'
     +'<div class="vehln">'+escapeHtml(vehLine)+'</div>'
-    +'<div class="main"><div class="col-left">'+rows+'</div><div class="col-right"><div class="rlab">メモ / 乗換・買い出し等</div></div></div>'
+    +'<div class="main"><div class="col-left">'+rows+'</div><div class="col-right"></div></div>'
     +'<div class="cost">'+cost+'</div>'
-    +'<div class="hint">タイトル・期間・〈テーマ〉・各行の点線部・費用の空欄はクリックして直接記入できます。右の余白は手書き用です。「印刷 / PDF保存」からA4で出力してください。</div>'
+    +'<div class="hint">タイトル・期間・〈テーマ〉・各行の点線部・費用の空欄はクリックして直接記入できます。右の1/3は手書きメモ用の白紙です。用紙(A4/B5)を選んで「印刷 / PDF保存」してください。</div>'
+    +'<script>function setSize(s){document.getElementById("pg").textContent="@page{size:"+s+" portrait;margin:10mm;}";document.body.style.maxWidth=(s==="B5"?"182mm":"210mm");document.querySelectorAll(".szbtn").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-s")===s);});}setSize("A4");<\/script>'
     +'</body></html>';
   const w=window.open('','_blank');
   if(!w){showStatus('ポップアップがブロックされました。ブラウザで許可してください',false);hideStatusLater();return;}
@@ -2803,10 +2810,13 @@ document.getElementById('rsGrab').onclick=toggleRouteSheet;
 document.getElementById('rsPeek').onclick=toggleRouteSheet;
 document.getElementById('rsClear').onclick=()=>{if(points.length>=2&&!confirm('ルートの地点と計算結果をクリアします。よろしいですか？'))return;points=[];lastDistanceKm=lastDurationSec=null;lastFlatYen=0;lastFlatNames=[];lastLegSteps=[];lastRouteTimeline=[];lastRests=[];lastEvents=[];lastPointT=[];routeAlts=[];renderAltSelector();tollKmAuto=true;document.getElementById('tollKm').value='';document.getElementById('kinkoKm').value='0';clearArr(routeMarkers);clearArr(restMarkers);clearRouteLine();document.getElementById('rsResult').classList.remove('show');document.getElementById('restSec').style.display='none';document.getElementById('rsPeek').classList.remove('show');document.getElementById('rsDetails').style.display='none';routeSheet.classList.remove('collapsed');const lg=document.getElementById('routeLegend');if(lg)lg.style.display='none';renderPoints();};
 document.getElementById('rainBtn').onclick=toggleRain;
-document.getElementById('myLocFab').onclick=()=>{
+// 現在地：1回だけ現在地へ移動して表示（追跡はしない）
+document.getElementById('myLocFab').onclick=()=>{if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}showStatus('現在地を取得中…',true);navigator.geolocation.getCurrentPosition(pos=>{const la=pos.coords.latitude,ln=pos.coords.longitude;map.setCenter({lat:la,lng:ln});map.setZoom(15);statusEl.classList.remove('show');showCurrentLoc(la,ln,pos.coords.accuracy);},err=>{showStatus('現在地を取得できませんでした',false);hideStatusLater();},{enableHighAccuracy:true,timeout:8000});};
+// 追跡：リアルタイム追跡の開始→（ドラッグで追従解除時は）追従再開→停止
+document.getElementById('trackFab').onclick=()=>{
   if(liveWatchId==null){startLiveLoc();}                                        // 追跡開始
   else if(!liveFollow){liveFollow=true;if(liveMarker)map.setCenter(liveMarker.getPosition());liveFabUi();showStatus('追従を再開しました',false);hideStatusLater();} // 追従再開
-  else{stopLiveLoc();showStatus('現在地の追跡を終了しました（青ドットは残ります）',false);hideStatusLater();}                     // 停止
+  else{stopLiveLoc();showStatus('リアルタイム追跡を終了しました（青ドットは残ります）',false);hideStatusLater();}                     // 停止
 };
 document.getElementById('reverse').onclick=()=>{if(points.length<2)return;points.reverse();renderPoints();computeRoute();};
 document.getElementById('optBtn').onclick=()=>{if(points.length<4){showStatus('最適化には経由地が2つ以上必要です',false);hideStatusLater();return;}computeRoute({optimize:true});};
