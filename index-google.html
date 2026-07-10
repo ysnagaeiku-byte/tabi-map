@@ -680,7 +680,7 @@ let depTimeManual=false; // 出発日時をユーザーが手動指定したらt
 function setDepNow(){const e=document.getElementById('depTime');if(e){e.value=nowLocal();}depTimeManual=false;if(typeof lastDistanceKm!=='undefined'&&lastDistanceKm!=null)updateCost();}
 function touchDepTime(){if(depTimeManual)return;const e=document.getElementById('depTime');if(e)e.value=nowLocal();if(typeof lastDistanceKm!=='undefined'&&lastDistanceKm!=null)updateCost();}
 let lastEvents=[], lastPointT=[], lastRests=[], restStay=15, lastNexcoKinkoKm=0, lastRestSkipped=0, lastFullPath=[];
-let routeAlts=[], altIndex=0, savedRoutes=[], onsenLayerOn=false;
+let routeAlts=[], altIndex=0, savedRoutes=[], onsenLayerOn=false, isoVisible=true;
 const ROUTE_COLORS=['#1a73e8','#d6336c','#f76707','#7048e8','#0ca678','#e8590c'];
 let fuelType='regular', priceManual=false;
 // 全国平均燃料価格（資源エネルギー庁 石油製品価格調査・最新公表値）。ルート計算時に自動反映
@@ -829,8 +829,10 @@ function drawIso(mbData,sel,center){
   isoShapes.push(new google.maps.Marker({position:center,map,icon:pinIcon('#d93025',1.6),label:{text:'',fontSize:'1px'}}));
   const b=new google.maps.LatLngBounds();isoShapes.forEach(s=>{if(s.getPaths)s.getPaths().forEach(pa=>pa.forEach(ll=>b.extend(ll)));else if(s.getBounds&&s.getBounds())b.union(s.getBounds());});if(!b.isEmpty())map.fitBounds(b,60);
   document.getElementById('isoClearFab').classList.add('show'); // どのタブからでも消去できる常設ボタン
+  isoVisible=true;renderLayerPanel(); // 到達圏をレイヤーへ（表示中）
 }
-function clearIso(){clearArr(isoShapes);isoCenter=null;document.getElementById('isoClearFab').classList.remove('show');if(document.getElementById('isoLeg'))renderIsoLegend();}
+function clearIso(){clearArr(isoShapes);isoCenter=null;document.getElementById('isoClearFab').classList.remove('show');if(document.getElementById('isoLeg'))renderIsoLegend();renderLayerPanel();}
+function toggleIsoVisible(){isoVisible=!isoVisible;isoShapes.forEach(s=>s.setMap(isoVisible?map:null));renderLayerPanel();}
 // どの画面からでも押せる「全消去」：レイヤー・ピン・到達圏・距離円・保存車両・ルートをまとめて消去
 function clearAllObjects(){
   if(!confirm('地図上のレイヤー・ピン・到達圏・距離円・ルートをすべて消去します。よろしいですか？'))return;
@@ -1269,13 +1271,14 @@ function renderLayerPanel(){
   poiCats.forEach(cat=>{const L=poiLayers[cat],c=CATS[cat]||{emoji:'',label:cat},col=catColor(cat);h+=`<div class="ly-item"><span class="ly-sw poi-sw" data-c="${cat}" style="background:${L.visible?col:'var(--surface-2)'};border:1px solid ${col};"></span><span class="ly-name">${c.label} (${L.markers.length})</span><button class="ly-del poi-del" data-c="${cat}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   const lineKeys=Object.keys(lineLayers);
   lineKeys.forEach(key=>{const L=lineLayers[key];h+=`<div class="ly-item"><span class="ly-sw ln-sw" data-k="${key}" style="background:${L.visible?L.def.swatch:'var(--surface-2)'};border:1px solid ${L.def.swatch};"></span><span class="ly-name">${L.label} <small style="color:var(--muted);font-weight:500;">${L.overpass?((L.lines?L.lines.length:0)+'本・この範囲'):'全国強調'}</small></span><button class="ly-del ln-del" data-k="${key}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
-  if(isoShapes.length)h+=`<div class="ly-item"><span class="ly-sw" style="background:#1a73e8;"></span><span class="ly-name">到達圏</span><button class="ly-del" id="lyIsoDel"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
+  if(isoShapes.length)h+=`<div class="ly-item"><span class="ly-sw ly-iso-sw" style="background:${isoVisible?'#1a73e8':'var(--surface-2)'};border:1px solid #1a73e8;"></span><span class="ly-name">到達圏</span><button class="ly-del" id="lyIsoDel"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
   savedRoutes.forEach((r,i)=>{h+=`<div class="ly-item"><span class="ly-sw ly-rt" data-i="${i}" style="background:${r.visible?r.color:'var(--surface-2)'};border:1px solid ${r.color};"></span><span class="ly-name" style="color:${r.color}">${escapeHtml(r.name||r.label)}<br><small style="color:var(--muted);font-weight:500;">${r.distKm.toFixed(0)}km・${fmtDuration(r.trafSec)}・¥${r.toll.toLocaleString()}</small></span><button class="ly-edit" data-e="${i}" title="名前を変更">✎</button>${(r.pts&&r.pts.length)?`<button class="ly-edit" data-ed="${i}" title="工程を再編集">✎</button>`:''}<button class="ly-del" data-d="${i}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   if(!savedRoutes.length&&!isoShapes.length&&!onsenLayerOn&&!poiCats.length&&!lineKeys.length)h+='<div class="ly-empty">レイヤーは空です。カスタムタブでPOI・高速/鉄道の全国強調を表示、温泉郷タブ、到達圏、ルートの「保存」などで要素を地図に重ねられます（タブを切り替えても残ります）。</div>';
   list.innerHTML=h;
   const lyOnsen=document.getElementById('lyOnsen');if(lyOnsen)lyOnsen.onclick=toggleOnsenLayer;
   const lyOnsenDel=document.getElementById('lyOnsenDel');if(lyOnsenDel)lyOnsenDel.onclick=toggleOnsenLayer;
   const isoDel=document.getElementById('lyIsoDel');if(isoDel)isoDel.onclick=clearIso;
+  const isoSw=list.querySelector('.ly-iso-sw');if(isoSw)isoSw.onclick=toggleIsoVisible;
   list.querySelectorAll('.poi-sw').forEach(s=>s.onclick=()=>togglePoiCat(s.dataset.c));
   list.querySelectorAll('.poi-del').forEach(b=>b.onclick=()=>{poiCatClear(b.dataset.c);renderLayerPanel();});
   list.querySelectorAll('.ln-sw').forEach(s=>s.onclick=()=>toggleLineVisible(s.dataset.k));
@@ -1357,6 +1360,12 @@ function roadNameOf(instr){
   if(ms&&ms.length)return ms[ms.length-1];
   return evName(instr);
 }
+// 料金所(IC/JCT/本線料金所)の具体名を案内文から抽出（先頭側に出る）。無ければ''。
+function icNameOf(instr){
+  const t=String(instr||'').replace(/<[^>]+>/g,'').trim();
+  const m=t.match(/[一-龥ァ-ヶーA-Za-z0-9０-９々]+?(?:スマートIC|本線料金所|料金所|IC|JCT)/);
+  return m?m[0]:'';
+}
 function parseRoutesAPI(route){
   const dec=enc=>google.maps.geometry.encoding.decodePath(enc);
   const pts=dec(route.polyline.encodedPolyline),n=pts.length;
@@ -1374,8 +1383,8 @@ function parseRoutesAPI(route){
       if(fr){if(!flatNames.has(fr.name)){flatTotal+=fr.yen;flatNames.add(fr.name);}}
       else if(c==='shutoko')lsh+=dm;
       const tStart=cum; // この区間開始時の累積時間
-      if(hw&&!prevHw)events.push({t:tStart,type:'in',name:roadNameOf(instr)});
-      else if(!hw&&prevHw)events.push({t:tStart,type:'out',name:roadNameOf(instr)});
+      if(hw&&!prevHw)events.push({t:tStart,type:'in',name:roadNameOf(instr),ic:icNameOf(instr)});
+      else if(!hw&&prevHw)events.push({t:tStart,type:'out',name:roadNameOf(instr),ic:icNameOf(instr)});
       if(/JCT|ジャンクション/.test(instr))events.push({t:tStart,type:'jct',name:evName(instr)});
       prevHw=hw;
       let sp=[];try{if(s.polyline&&s.polyline.encodedPolyline)sp=dec(s.polyline.encodedPolyline);}catch(e){}
@@ -1418,8 +1427,8 @@ function computeRouteLegacy(fellback){
         const hw=(c==='nexco'||c==='shutoko'||!!fr);
         const col=hw?COL_HW:cssvar('--route'); // フォールバックは実渋滞データ無し→道路種別のみで着色（誤検出を回避）
         const tStart=cum;
-        if(hw&&!prevHw)events.push({t:tStart,type:'in',name:roadNameOf(s.instructions)});
-        else if(!hw&&prevHw)events.push({t:tStart,type:'out',name:roadNameOf(s.instructions)});
+        if(hw&&!prevHw)events.push({t:tStart,type:'in',name:roadNameOf(s.instructions),ic:icNameOf(s.instructions)});
+        else if(!hw&&prevHw)events.push({t:tStart,type:'out',name:roadNameOf(s.instructions),ic:icNameOf(s.instructions)});
         if(/JCT|ジャンクション/.test(String(s.instructions||'')))events.push({t:tStart,type:'jct',name:evName(s.instructions)});
         prevHw=hw;
         const path=s.path||s.lat_lngs||[];
@@ -2293,10 +2302,12 @@ function sapaFacRow(d){
     return '<span class="fac '+(on?'on fac-'+k:'off')+'" title="'+FAC_LABEL[k]+(on?'：あり':'：なし')+'">'+FAC_SVG[k]+(on?'':'<span class="fac-x">✕</span>')+'</span>';
   }).join('')+'</div>';
 }
+// 規模Lv.ごとの色（小=灰→青→緑→琥珀→橙 大）
+function lvColor(n){n=+n||0;return n>=10?'#e8590c':n>=9?'#f76707':n>=7?'#f59f00':n>=5?'#0ca678':n>=3?'#1c7ed6':'#868e96';}
 function sapaMetaHtml(d){
-  return '<div class="sapa-line"><span class="sapa-score">Lv.<b>'+d.score+'</b></span>'
+  return '<div class="sapa-line"><span class="sapa-score">Lv.<b style="color:'+lvColor(d.score)+'">'+d.score+'</b></span>'
     +'<span class="sapa-park">駐車 '+d.total+'台</span></div>'
-    +'<div class="sapa-sub">基礎 '+d.base+'</div>';
+    +'<div class="sapa-sub">基礎 Lv.'+d.base+'</div>';
 }
 // SA/PA名（またはデータ行）から施設アイコン＋規模＋駐車台数のHTMLブロックを生成。対象外は''。
 function sapaInfoBlock(name){
@@ -2308,7 +2319,7 @@ function sapaInfoBlock(name){
 function sapaItinHtml(d){
   if(!d)return '';
   const fac=['bath','conv','gas','rest'].map(function(k){const on=!!d[k];return '<span class="itf itf-'+k+' '+(on?'on':'off')+'" title="'+FAC_LABEL[k]+(on?'：あり':'：なし')+'">'+FAC_SVG[k]+(on?'':'<span class="itf-x">✕</span>')+'</span>';}).join('');
-  return '<div class="itin-sapa"><span class="itf-row">'+fac+'</span><span class="itin-score">Lv.<b>'+d.score+'</b></span><span class="itin-park">駐車'+d.total+'台</span><span class="itin-park">基礎'+d.base+'</span></div>';
+  return '<div class="itin-sapa"><span class="itf-row">'+fac+'</span><span class="itin-score">Lv.<b style="color:'+lvColor(d.score)+'">'+d.score+'</b></span><span class="itin-park">駐車'+d.total+'台</span><span class="itin-park">基礎 Lv.'+d.base+'</span></div>';
 }
 
 // ===== 休憩提案：連続運転時間ごとにルート沿いのSA/PA・道の駅・コンビニを提案 =====
@@ -2571,7 +2582,7 @@ function renderItinerary(){
     const role=i===0?'出発':(i===points.length-1?'目的':'経由'+i);
     nodes.push({t,kind:'point',role,stay:(i>0&&i<points.length-1)?(points[i].stay||0):0,label:points[i].label||(points[i].lat.toFixed(3)+', '+points[i].lng.toFixed(3))});
   }
-  (lastEvents||[]).filter(e=>e.type!=='jct').forEach(e=>nodes.push({t:e.t,kind:e.type,label:e.name})); // JCTは工程に表示しない
+  (lastEvents||[]).filter(e=>e.type!=='jct').forEach(e=>nodes.push({t:e.t,kind:e.type,label:e.name,ic:e.ic})); // JCTは工程に表示しない
   (lastRests||[]).forEach((r,idx)=>nodes.push({t:r.t,kind:'rest',label:r.name,sub:r.kind,stay:r.stay,idx,data:r.data}));
   nodes.sort((a,b)=>a.t-b.t);
   let restAccum=0;let html='<div class="rs-label">行程（到着 / 出発）</div>';
@@ -2587,7 +2598,8 @@ function renderItinerary(){
       html+=`<div class="sch-row rest${fac?' hasfac':''}"><div class="sch-rest-main"><span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発${fmtClockAdd(dep,depSec)}</small></span><span class="sch-ic">休</span><span class="sch-label">${escapeHtml(nd.label)}<small> ${escapeHtml(nd.sub||'')}</small></span><span class="sch-stay">休憩<input type="number" min="0" max="180" class="stay-in" data-i="${nd.idx}" value="${nd.stay}">分</span></div>${fac}</div>`;
     }else{
       const ic='▸',tag=nd.kind==='in'?'入口/料金所':(nd.kind==='out'?'出口/料金所':'JCT');
-      html+=`<div class="sch-row evt"><span class="sch-t">${fmtClockAdd(dep,arrSec)}</span><span class="sch-ic">${ic}</span><span class="sch-label">${escapeHtml(nd.label||'')} <span class="sch-tag">${tag}</span></span></div>`;
+      const road=nd.label||'',icn=nd.ic||'';const evLabel=icn?(road&&road!==icn?`<b>${escapeHtml(icn)}</b>（${escapeHtml(road)}）`:`<b>${escapeHtml(icn)}</b>`):escapeHtml(road);
+      html+=`<div class="sch-row evt"><span class="sch-t">${fmtClockAdd(dep,arrSec)}</span><span class="sch-ic">${ic}</span><span class="sch-label">${evLabel} <span class="sch-tag">${tag}</span></span></div>`;
     }
   });
   html+=`<div class="itin-note">休憩ルール：経由地・目的地の<b>前後30分以内</b>に重なる休憩は、立寄り時に休憩したものとして<b>省略</b>します。ただし<b>経由地の直後</b>でも次の地点まで<b>1時間以上</b>かかる区間は休憩を残します。${lastRestSkipped>0?`<br>今回 ${lastRestSkipped}件 を省略しました。`:''}</div>`;
@@ -2622,7 +2634,7 @@ function exportSchedule(){
       const leg=lastLegs[i]||{km:0,sec:0};
       rows+='<div class="seg"><span class="seg-ar">↓</span><span class="seg-info"><b>'+fmtDuration(leg.sec||0)+'</b> ・ '+(leg.km||0).toFixed(1)+' km'+((leg.nexcoKm||0)>0.5?' <span class="seg-hw">高速'+leg.nexcoKm.toFixed(0)+'km</span>':'')+'</span><span class="seg-note" contenteditable="true"></span></div>';
       (lastRests||[]).forEach((r,idx)=>{ if(r.t>=pT[i]&&(i+1>=points.length||r.t<pT[i+1])){const rc=restClock[idx]||{arr:dep,dep:dep};
-        rows+='<div class="rest"><span class="r-ic">休</span><span class="r-t">着'+fmtClock(rc.arr)+(r.stay?' 発'+fmtClock(rc.dep):'')+'</span><span class="r-name">'+escapeHtml(r.name)+' <small>'+escapeHtml(r.kind)+'</small>'+(r.data?' <span class="r-scale">Lv.'+r.data.score+'</span> <span class="r-fac">基礎'+r.data.base+'・'+schedFacText(r.data)+'</span>':'')+'</span></div>';
+        rows+='<div class="rest"><span class="r-ic">休</span><span class="r-t">着'+fmtClock(rc.arr)+(r.stay?' 発'+fmtClock(rc.dep):'')+'</span><span class="r-name">'+escapeHtml(r.name)+' <small>'+escapeHtml(r.kind)+'</small>'+(r.data?' <span class="r-scale" style="background:'+lvColor(r.data.score)+'">Lv.'+r.data.score+'</span> <span class="r-fac">基礎Lv.'+r.data.base+'・'+schedFacText(r.data)+'</span>':'')+'</span></div>';
       }});
     }
   }
