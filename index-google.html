@@ -212,11 +212,14 @@
   #myLocFab:active{background:var(--accent-weak);}
   #myLocFab.on{background:var(--accent);color:#fff;border-color:var(--accent);}
   #myLocFab.on small{color:rgba(255,255,255,.9);}
-  #myLocFab small,#layerBtn small,#settleBtn small{font-size:8.5px;font-weight:800;color:var(--muted);letter-spacing:.02em;line-height:1;}
+  #trackFab{position:fixed;right:12px;bottom:calc(160px + env(safe-area-inset-bottom));z-index:1040;width:54px;height:54px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--accent);box-shadow:0 4px 16px var(--shadow);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;}
+  #trackFab.on{background:var(--accent);color:#fff;border-color:var(--accent);} #trackFab.on small{color:rgba(255,255,255,.9);}
+  #myLocFab small,#trackFab small,#layerBtn small,#settleBtn small{font-size:8.5px;font-weight:800;color:var(--muted);letter-spacing:.02em;line-height:1;}
   /* ルートシート展開中はFAB・消去ボタン・パネルをシートの上へ退避（隠れ防止） */
   body:has(#routeSheet.open:not(.collapsed)) #myLocFab{bottom:calc(54dvh + 16px);}
-  body:has(#routeSheet.open:not(.collapsed)) #layerBtn{bottom:calc(54dvh + 78px);}
-  body:has(#routeSheet.open:not(.collapsed)) #settleBtn{bottom:calc(54dvh + 140px);}
+  body:has(#routeSheet.open:not(.collapsed)) #trackFab{bottom:calc(54dvh + 78px);}
+  body:has(#routeSheet.open:not(.collapsed)) #layerBtn{bottom:calc(54dvh + 140px);}
+  body:has(#routeSheet.open:not(.collapsed)) #settleBtn{bottom:calc(54dvh + 202px);}
   body:has(#routeSheet.open:not(.collapsed)) #bufClear{bottom:calc(54dvh + 16px);}
   body:has(#routeSheet.open:not(.collapsed)) #isoClearFab{bottom:calc(54dvh + 64px);}
   body:has(#routeSheet.open:not(.collapsed)) #layerPanel,body:has(#routeSheet.open:not(.collapsed)) #settlePanel{bottom:calc(54dvh + 20px);max-height:calc(44dvh - 40px);}
@@ -281,8 +284,8 @@
   .alt-chip{flex:1 1 auto;min-height:40px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;padding:6px 10px;}
   .alt-chip.on{background:var(--accent);color:#fff;border-color:transparent;}
   /* レイヤーパネル */
-  #layerBtn{position:fixed;right:12px;bottom:calc(160px + env(safe-area-inset-bottom));z-index:1040;width:54px;height:54px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:18px;box-shadow:0 4px 16px var(--shadow);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;}
-  #settleBtn{position:fixed;right:12px;bottom:calc(222px + env(safe-area-inset-bottom));z-index:1040;width:54px;height:54px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:18px;box-shadow:0 4px 16px var(--shadow);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;}
+  #layerBtn{position:fixed;right:12px;bottom:calc(222px + env(safe-area-inset-bottom));z-index:1040;width:54px;height:54px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:18px;box-shadow:0 4px 16px var(--shadow);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;}
+  #settleBtn{position:fixed;right:12px;bottom:calc(284px + env(safe-area-inset-bottom));z-index:1040;width:54px;height:54px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:18px;box-shadow:0 4px 16px var(--shadow);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;}
   #layerPanel,#settlePanel{display:none;position:fixed;right:12px;bottom:calc(214px + env(safe-area-inset-bottom));z-index:1090;width:min(320px,88vw);max-height:56vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px var(--shadow);padding:12px 14px;}
   #layerPanel.open,#settlePanel.open{display:block;}
   .stl-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
@@ -325,14 +328,16 @@
     .tabs{max-width:calc(100% - 126px);padding:8px 10px 4px;}
     .tab{padding:7px 12px;font-size:12.5px;min-height:34px;}
     /* 右下FAB：小型の円＋ラベル無し（アイコンのみ）でスリムに */
-    #myLocFab,#layerBtn,#settleBtn{width:46px;height:46px;border-radius:50%;font-size:19px;bottom:auto;}
-    #myLocFab small,#layerBtn small,#settleBtn small{display:none;}
+    #myLocFab,#trackFab,#layerBtn,#settleBtn{width:46px;height:46px;border-radius:50%;font-size:19px;bottom:auto;}
+    #myLocFab small,#trackFab small,#layerBtn small,#settleBtn small{display:none;}
     #myLocFab{bottom:calc(92px + env(safe-area-inset-bottom));}
-    #layerBtn{bottom:calc(146px + env(safe-area-inset-bottom));}
-    #settleBtn{bottom:calc(200px + env(safe-area-inset-bottom));}
+    #trackFab{bottom:calc(146px + env(safe-area-inset-bottom));}
+    #layerBtn{bottom:calc(200px + env(safe-area-inset-bottom));}
+    #settleBtn{bottom:calc(254px + env(safe-area-inset-bottom));}
     body:has(#routeSheet.open:not(.collapsed)) #myLocFab{bottom:calc(54dvh + 14px);}
-    body:has(#routeSheet.open:not(.collapsed)) #layerBtn{bottom:calc(54dvh + 68px);}
-    body:has(#routeSheet.open:not(.collapsed)) #settleBtn{bottom:calc(54dvh + 122px);}
+    body:has(#routeSheet.open:not(.collapsed)) #trackFab{bottom:calc(54dvh + 68px);}
+    body:has(#routeSheet.open:not(.collapsed)) #layerBtn{bottom:calc(54dvh + 122px);}
+    body:has(#routeSheet.open:not(.collapsed)) #settleBtn{bottom:calc(54dvh + 176px);}
     #bufClear,#isoClearFab{font-size:11.5px;padding:8px 12px;}
   }
 </style>
