@@ -424,7 +424,7 @@
     <div class="rs-label">高速料金（概算）・車種</div>
     <div class="seg" id="vehSeg"><button data-v="kei">軽</button><button data-v="normal" class="on">普通</button><button data-v="mid">中型</button><button data-v="large">大型</button><button data-v="xl">特大</button></div>
     <div class="rs-inputs"><label>高速(NEXCO)距離 (km) <span class="ro-tag">自動</span><input id="tollKm" class="ro-field" type="number" inputmode="decimal" placeholder="自動判定" readonly tabindex="-1"></label><label>うち大都市近郊区間 (km) <span class="ro-tag">自動</span><input id="kinkoKm" class="ro-field" type="number" inputmode="decimal" placeholder="自動判定" value="0" readonly tabindex="-1"></label></div>
-    <label class="opt" style="margin-top:8px;"><input type="checkbox" id="applyDisc" checked> 割引を自動適用（深夜/休日）</label>
+    <label class="opt" style="margin-top:8px;"><input type="checkbox" id="applyDisc" checked> 割引を自動適用（深夜/休日/首都高深夜）</label>
     <div class="rs-hint" id="tollHint" style="margin-top:8px;"></div>
   </div>
   <div class="rs-section"><div class="rs-label">その他費用・割り勘</div><div class="rs-inputs"><label>車両保険・その他 (円)<input id="otherCost" type="number" inputmode="decimal" placeholder="例: 1日保険 800"></label><label>人数（割り勘）<input id="splitN" type="number" inputmode="numeric" min="1" value="1"></label></div></div>
@@ -680,6 +680,7 @@ let depTimeManual=false; // 出発日時をユーザーが手動指定したらt
 function setDepNow(){const e=document.getElementById('depTime');if(e){e.value=nowLocal();}depTimeManual=false;if(typeof lastDistanceKm!=='undefined'&&lastDistanceKm!=null)updateCost();}
 function touchDepTime(){if(depTimeManual)return;const e=document.getElementById('depTime');if(e)e.value=nowLocal();if(typeof lastDistanceKm!=='undefined'&&lastDistanceKm!=null)updateCost();}
 let lastEvents=[], lastPointT=[], lastRests=[], restStay=15, lastNexcoKinkoKm=0, lastRestSkipped=0, lastFullPath=[];
+let lastNexRuns=[], lastShuRuns=[]; // 走行単位（入口料金所→出口料金所）{t0,t1,km,kinkoKm}。深夜/休日割引の判定に使用
 let routeAlts=[], altIndex=0, savedRoutes=[], onsenLayerOn=false, isoVisible=true;
 const ROUTE_COLORS=['#1a73e8','#d6336c','#f76707','#7048e8','#0ca678','#e8590c'];
 let fuelType='regular', priceManual=false;
@@ -1126,7 +1127,7 @@ function isKinko(lat,lng){return pointInPoly(lng,lat,KINKO_TOKYO)||pointInPoly(l
 function kinkoFrac(sp){if(!sp||!sp.length)return 0;let inN=0;for(const v of sp){if(isKinko(v.lat(),v.lng()))inN++;}return inN/sp.length;} // ポリライン頂点のうち近郊区間に入る割合
 // ===== ルート計算：Routes API(v2) を優先（実渋滞 TRAFFIC_ON_POLYLINE）→失敗時はDirectionsにフォールバック =====
 function computeRoute(opts){
-  if(points.length<2){clearRouteLine();clearArr(restMarkers);routeAlts=[];if(document.getElementById('altSel'))renderAltSelector();lastDistanceKm=lastDurationSec=null;lastRests=[];lastEvents=[];lastPointT=[];document.getElementById('rsResult').classList.remove('show');document.getElementById('restSec').style.display='none';document.getElementById('rsDetails').style.display='none';document.getElementById('rsPeek').classList.remove('show');updatePrefHint();return;}
+  if(points.length<2){clearRouteLine();clearArr(restMarkers);routeAlts=[];if(document.getElementById('altSel'))renderAltSelector();lastDistanceKm=lastDurationSec=null;lastRests=[];lastEvents=[];lastPointT=[];lastNexRuns=[];lastShuRuns=[];document.getElementById('rsResult').classList.remove('show');document.getElementById('restSec').style.display='none';document.getElementById('rsDetails').style.display='none';document.getElementById('rsPeek').classList.remove('show');updatePrefHint();return;}
   updatePrefHint();showStatus(opts&&opts.optimize?'経由地を最適順に計算中…':'Googleでルート計算中…',true);
   let localOpt=false;
   if(opts&&opts.optimize&&points.length-2>MAX_INTERMEDIATES){localOpt=localOptimizeOrder();renderPoints();opts=Object.assign({},opts,{optimize:false});}
@@ -1146,7 +1147,7 @@ function computeRoute(opts){
 function applyRoute(d){
   lastDistanceKm=d.distKm;lastDurationSec=d.baseSec;lastGBaseSec=d.baseSec;lastTrafficSec=d.trafSec;lastLegsTrafficSec=d.legTraf;
   lastNexcoKm=d.legArr.reduce((a,l)=>a+l.nexcoKm,0);lastShutokoKm=d.legArr.reduce((a,l)=>a+l.shutokoKm,0);lastNexcoKinkoKm=d.legArr.reduce((a,l)=>a+(l.nexcoKinkoKm||0),0);
-  lastLegs=d.legArr;lastLegSteps=d.legSteps;lastFlatYen=d.flatYen;lastFlatNames=d.flatNames;lastRouteTimeline=d.timeline;lastEvents=d.events||[];lastPointT=d.pointT||[];lastEngine=d.engine;lastFullPath=(d.fullPath||[]).map(p=>((typeof p.lat==='function')?{lat:p.lat(),lng:p.lng()}:{lat:p.lat,lng:p.lng}));
+  lastLegs=d.legArr;lastLegSteps=d.legSteps;lastFlatYen=d.flatYen;lastFlatNames=d.flatNames;lastRouteTimeline=d.timeline;lastEvents=d.events||[];lastPointT=d.pointT||[];lastNexRuns=d.nexRuns||[];lastShuRuns=d.shuRuns||[];lastEngine=d.engine;lastFullPath=(d.fullPath||[]).map(p=>((typeof p.lat==='function')?{lat:p.lat(),lng:p.lng()}:{lat:p.lat,lng:p.lng}));
   clearRouteLine();
   routeCasing=new google.maps.Polyline({path:d.fullPath,strokeColor:(currentTheme==='dark'?'#000':'#ffffff'),strokeOpacity:.85,strokeWeight:11,map,zIndex:1});
   d.segs.forEach(sg=>{routeSegs.push(new google.maps.Polyline({path:sg.path,strokeColor:sg.color,strokeOpacity:.97,strokeWeight:6,map,zIndex:3}));});
@@ -1372,6 +1373,7 @@ function parseRoutesAPI(route){
   const cls=new Array(n).fill('normal');
   let gi=0,distM=0,baseSec=0,trafSec=0,cum=0,flatTotal=0;const flatNames=new Set();
   const legArr=[],legSteps=[],legTraf=[],timeline=[],events=[],pointT=[0];let prevHw=false;
+  const nexRuns=[],shuRuns=[];let curNex=null,curShu=null; // 走行単位（料金所間）
   (route.legs||[]).forEach(l=>{
     const ld=parseDur(l.duration),ls=parseDur(l.staticDuration)||ld,ratio=ls>0?ld/ls:1;
     distM+=(l.distanceMeters||0);baseSec+=ls;trafSec+=ld;legTraf.push(ld);
@@ -1389,7 +1391,10 @@ function parseRoutesAPI(route){
       prevHw=hw;
       let sp=[];try{if(s.polyline&&s.polyline.encodedPolyline)sp=dec(s.polyline.encodedPolyline);}catch(e){}
       if(sp.length){for(let k=0;k<sp.length;k++){const ri=gi+k;if(ri<n)cls[ri]=hw?'hw':'normal';}gi+=sp.length-1;const last=sp[sp.length-1];cum+=(parseDur(s.staticDuration)||0)*ratio;timeline.push({lat:last.lat(),lng:last.lng(),t:cum});}
-      if(c==='nexco'&&!fr){const fk=kinkoFrac(sp);lnK+=dm*fk;lnC+=dm*(1-fk);} // 大都市近郊区間を頂点ごとに按分
+      if(c==='nexco'&&!fr){const fk=kinkoFrac(sp);lnK+=dm*fk;lnC+=dm*(1-fk); // 大都市近郊区間を頂点ごとに按分
+        if(!curNex||tStart-curNex.t1>120){curNex={t0:tStart,t1:cum,km:0,kinkoKm:0};nexRuns.push(curNex);} // 120秒未満の途切れ(ランプ等の誤分類)は同一走行に連結
+        curNex.t1=cum;curNex.km+=dm/1000;curNex.kinkoKm+=dm*fk/1000;}
+      else if(c==='shutoko'&&!fr){if(!curShu||tStart-curShu.t1>120){curShu={t0:tStart,t1:cum,km:0};shuRuns.push(curShu);}curShu.t1=cum;curShu.km+=dm/1000;}
       stepInfo.push({html:instr.replace(/<[^>]+>/g,''),dist:dm,klass,maneuver:(s.navigationInstruction&&s.navigationInstruction.maneuver)||''});
     });
     legArr.push({km:(l.distanceMeters||0)/1000,sec:ls,nexcoKm:(lnC+lnK)/1000,nexcoKinkoKm:lnK/1000,shutokoKm:lsh/1000});legSteps.push(stepInfo);pointT.push(cum);
@@ -1400,7 +1405,7 @@ function parseRoutesAPI(route){
   // 色分けセグメント（連続する同色をまとめる）
   const segs=[];let curSeg=null;
   for(let i=0;i<n-1;i++){const lvl=congest[i];const col=lvl==='TRAFFIC_JAM'?COL_JAM:(lvl==='SLOW'?COL_SLOW:(cls[i]==='hw'?COL_HW:cssvar('--route')));if(!curSeg||curSeg.color!==col){curSeg={color:col,path:[pts[i]]};segs.push(curSeg);}curSeg.path.push(pts[i+1]);}
-  return {distKm:distM/1000,baseSec,trafSec,legTraf,legArr,legSteps,flatYen:flatTotal,flatNames:[...flatNames],timeline,segs,fullPath:pts,events,pointT,engine:'Google Routes'};
+  return {distKm:distM/1000,baseSec,trafSec,legTraf,legArr,legSteps,flatYen:flatTotal,flatNames:[...flatNames],timeline,segs,fullPath:pts,events,pointT,nexRuns,shuRuns,engine:'Google Routes'};
 }
 function segColor(spdKmh,hw){if(spdKmh<20)return COL_JAM;if(spdKmh<40)return COL_SLOW;return hw?COL_HW:cssvar('--route');}
 function computeRouteLegacy(fellback){
@@ -1413,6 +1418,7 @@ function computeRouteLegacy(fellback){
     const r=res.routes[0],legs=r.legs;
     let dist=0,base=0,traf=0;const legArr=[],legTraf=[],legStepArr=[];
     let flatTotal=0;const flatNames=new Set();const segs=[];const fullPath=[];let cum=0;const timeline=[],events=[],pointT=[0];let prevHw=false;
+    const nexRuns=[],shuRuns=[];let curNex=null,curShu=null;
     legs.forEach(l=>{
       dist+=l.distance.value;base+=l.duration.value;const tt=(l.duration_in_traffic||l.duration).value;traf+=tt;legTraf.push(tt);
       const legRatio=(l.duration&&l.duration.value)?Math.max(tt/l.duration.value,1):1;
@@ -1433,7 +1439,10 @@ function computeRouteLegacy(fellback){
         prevHw=hw;
         const path=s.path||s.lat_lngs||[];
         if(path&&path.length){segs.push({path,color:col});path.forEach(p=>fullPath.push(p));const last=path[path.length-1];cum+=s.duration.value;timeline.push({lat:last.lat(),lng:last.lng(),t:cum});}
-        if(c==='nexco'&&!fr){const fk=kinkoFrac(path);lnK+=s.distance.value*fk;lnC+=s.distance.value*(1-fk);}
+        if(c==='nexco'&&!fr){const fk=kinkoFrac(path);lnK+=s.distance.value*fk;lnC+=s.distance.value*(1-fk);
+          if(!curNex||tStart-curNex.t1>120){curNex={t0:tStart,t1:cum,km:0,kinkoKm:0};nexRuns.push(curNex);}
+          curNex.t1=cum;curNex.km+=dm/1000;curNex.kinkoKm+=dm*fk/1000;}
+        else if(c==='shutoko'&&!fr){if(!curShu||tStart-curShu.t1>120){curShu={t0:tStart,t1:cum,km:0};shuRuns.push(curShu);}curShu.t1=cum;curShu.km+=dm/1000;}
         stepInfo.push({html:String(s.instructions||'').replace(/<[^>]+>/g,''),dist:dm,klass,maneuver:s.maneuver||''});
       });
       legArr.push({km:l.distance.value/1000,sec:l.duration.value,nexcoKm:(lnC+lnK)/1000,nexcoKinkoKm:lnK/1000,shutokoKm:ls/1000});
@@ -1441,7 +1450,7 @@ function computeRouteLegacy(fellback){
     });
     lastDistanceKm=dist/1000;lastDurationSec=base;lastGBaseSec=base;lastTrafficSec=traf;lastLegsTrafficSec=legTraf;
     lastNexcoKm=legArr.reduce((a,l)=>a+l.nexcoKm,0);lastShutokoKm=legArr.reduce((a,l)=>a+l.shutokoKm,0);lastNexcoKinkoKm=legArr.reduce((a,l)=>a+(l.nexcoKinkoKm||0),0);
-    lastLegs=legArr;lastLegSteps=legStepArr;lastFlatYen=flatTotal;lastFlatNames=[...flatNames];lastRouteTimeline=timeline;lastEvents=events;lastPointT=pointT;lastEngine='Google';lastFullPath=(fullPath||[]).map(p=>((typeof p.lat==='function')?{lat:p.lat(),lng:p.lng()}:{lat:p.lat,lng:p.lng}));
+    lastLegs=legArr;lastLegSteps=legStepArr;lastFlatYen=flatTotal;lastFlatNames=[...flatNames];lastRouteTimeline=timeline;lastEvents=events;lastPointT=pointT;lastNexRuns=nexRuns;lastShuRuns=shuRuns;lastEngine='Google';lastFullPath=(fullPath||[]).map(p=>((typeof p.lat==='function')?{lat:p.lat(),lng:p.lng()}:{lat:p.lat,lng:p.lng}));
     clearRouteLine();
     // 高精度ジオメトリ：overview_path（簡略）ではなく各ステップの詳細パスを連結
     routeCasing=new google.maps.Polyline({path:fullPath,strokeColor:(currentTheme==='dark'?'#000':'#ffffff'),strokeOpacity:.85,strokeWeight:11,map,zIndex:1});
@@ -2495,38 +2504,82 @@ function shutokoTollCalc(km,factor){if(!(km>0))return 0;let t=300+(Math.max(km,4
 // 祝日カレンダー（2026-2027。休日割引の判定に使用）
 const JP_HOLIDAYS=new Set(['2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23','2026-10-12','2026-11-03','2026-11-23','2027-01-01','2027-01-11','2027-02-11','2027-02-23','2027-03-21','2027-03-22','2027-04-29','2027-05-03','2027-05-04','2027-05-05','2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11','2027-11-03','2027-11-23']);
 function isHolidayDate(d){const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return d.getDay()===0||d.getDay()===6||JP_HOLIDAYS.has(k);}
-// ETC割引（全国一律30%）。出発時刻からの走行時間帯を分単位でサンプリングし、深夜(0-4時)・休日(土日祝)に該当する走行割合を算出→区間ごとに按分適用。深夜は全車種・地方部+近郊、休日は軽/普通の地方部のみ。深夜と休日は重複せず深夜優先。
-function discInfo(){
-  const applied=document.getElementById('applyDisc').checked;
-  if(!applied||lastDurationSec==null)return{applied:false,nightFrac:0,holFrac:0,name:'',spanDays:false};
-  const dv=document.getElementById('depTime').value;const dep=dv?new Date(dv):new Date();
-  const total=Math.max(1,Math.round((lastDurationSec||0)/60));
-  let nightMin=0,holMin=0;const dayset=new Set();
-  for(let m=0;m<total;m++){const c=new Date(dep.getTime()+m*60000);dayset.add(c.toDateString());const h=c.getHours();if(h>=0&&h<4)nightMin++;else if(isHolidayDate(c))holMin++;}
-  const nightFrac=nightMin/total,holFrac=holMin/total;
-  let name='';if(nightFrac>0&&holFrac>0)name='深夜＋休日割引';else if(nightFrac>0)name='深夜割引';else if(holFrac>0)name='休日割引';
-  return{applied:true,nightFrac,holFrac,name,spanDays:dayset.size>1};
+// 休日割引の適用除外日（交通混雑期等）：GW(4/25〜5/6)・お盆(8/8〜8/16)・年末年始(12/26〜1/3)の窓＋3連休以上の連続休日は全て除外。
+// NEXCO公表の2026年度除外38日（4/25,26,29・5/2〜6・7/18〜20・8/8,9,11,15,16・9/19〜23・10/10〜12・11/21〜23・12/26,27・1/1〜3・1/9〜11・3/20〜22）をこのルールで完全再現
+function isHolExcluded(d){
+  const m=d.getMonth()+1,dd=d.getDate();
+  if((m===4&&dd>=25)||(m===5&&dd<=6))return true;
+  if(m===8&&dd>=8&&dd<=16)return true;
+  if((m===12&&dd>=26)||(m===1&&dd<=3))return true;
+  let len=1,p=new Date(d.getTime()-86400000);while(isHolidayDate(p)&&len<7){len++;p=new Date(p.getTime()-86400000);}
+  let nx=new Date(d.getTime()+86400000);while(isHolidayDate(nx)&&len<7){len++;nx=new Date(nx.getTime()+86400000);}
+  return len>=3;
+}
+// ルート内経過秒→実時刻（その時点までの休憩・経由地滞在を加算。SA車中泊で走行が深夜帯に入るケースも正しく判定される）
+function dwellBeforeSec(t){
+  let s=0;(lastRests||[]).forEach(r=>{if(r.t<t)s+=(r.stay||0)*60;});
+  if(lastPointT&&lastPointT.length===points.length)for(let i=1;i<points.length-1;i++)if(lastPointT[i]<t)s+=(points[i].stay||0)*60;
+  return s;
+}
+function clockAt(dep,t){return new Date(dep.getTime()+(t+dwellBeforeSec(t))*1000);}
+// 走行[a,b]が深夜時間帯(0〜4時)と少しでも重なるか（日またぎ対応。4:00ちょうどの入場は対象外）
+function hitsNight(a,b){
+  let d=new Date(a.getFullYear(),a.getMonth(),a.getDate()),g=0;
+  for(;d<=b&&g++<14;d=new Date(d.getTime()+86400000)){
+    const w1=new Date(d.getFullYear(),d.getMonth(),d.getDate(),4);
+    if(a<w1&&b>d)return true;
+  }
+  return false;
+}
+// 走行[a,b]が休日割引の対象日（土日祝かつ適用除外日でない）に少しでもかかるか
+function hitsHoliday(a,b){
+  let d=new Date(a.getFullYear(),a.getMonth(),a.getDate()),g=0;
+  for(;d<=b&&g++<14;d=new Date(d.getTime()+86400000))if(isHolidayDate(d)&&!isHolExcluded(d))return true;
+  return false;
 }
 const r10=x=>Math.round(x/10)*10;
+// ETC割引（制度準拠・2026年7月現在の現行制度）。走行単位（入口料金所→出口料金所）ごとに判定：
+//  深夜割引=0〜4時に走行が少しでもかかれば「その走行全額」30%OFF（毎日・全車種・近郊含む。按分しない。例:3:59入場→11:00出場も全区間3割引）
+//  休日割引=対象日にかかる走行の地方部のみ30%OFF（軽/普通のみ・近郊対象外）。深夜と重複せず深夜優先。
+//  首都高=入口通過(流入)が0〜4時の走行を20%OFF。長距離逓減・ターミナルチャージも走行単位で計上（複数回乗り降りに対応）。
+//  ※深夜割引は22〜5時・走行分按分・還元型への見直しが公表済みだが開始時期未定（2026-07現在）。開始後はここを新制度に更新すること。
 function calcToll(){
-  const f=VEH[vehType],di=discInfo();
+  const f=VEH[vehType];
+  const applyD=document.getElementById('applyDisc').checked&&lastDurationSec!=null;
+  const dv=document.getElementById('depTime').value;const dep=dv?new Date(dv):new Date();
   const nk=parseFloat(document.getElementById('tollKm').value)||0;
   const kel=document.getElementById('kinkoKm');let kinko=kel?(parseFloat(kel.value)||0):0;kinko=Math.min(Math.max(kinko,0),nk);
-  const chiho=Math.max(nk-kinko,0);                       // 地方部（長距離逓減＋深夜/休日割引の対象）
-  const chihoFull=nexcoTollFlat(chiho,f);                 // 逓減なし基準
-  const chihoTeigen=nexcoTollCalc(chiho,f,0);             // 逓減後・割引前
-  const holEligible=(vehType==='kei'||vehType==='normal')?di.holFrac:0; // 休日割引は軽/普通の地方部のみ
-  const chihoDiscFrac=Math.min(1,di.nightFrac+holEligible)*0.30;        // 走行時間帯の按分割引率（地方部）
-  const chihoNexco=r10(chihoTeigen*(1-chihoDiscFrac));    // 逓減後・按分割引後
-  const noChiho=(chiho<=0);                               // 近郊単独ならターミナルチャージを近郊側で計上
-  const kinkoFull=kinkoTollCalc(kinko,f,0,noChiho);
-  const kinkoNexco=r10(kinkoFull*(1-di.nightFrac*0.30)); // 近郊は深夜のみ按分適用
-  const nexco=chihoNexco+kinkoNexco;
-  const longDisc=Math.max(chihoFull-chihoTeigen,0);
-  const timeDisc=Math.max(chihoTeigen-chihoNexco,0)+Math.max(kinkoFull-kinkoNexco,0);
-  const shu=shutokoTollCalc(lastShutokoKm||0,SHU[vehType]);
+  // 走行単位。ルート解析で検出できなければ全行程を1走行として扱う
+  let runs=(lastNexRuns&&lastNexRuns.length)?lastNexRuns.slice():(nk>0?[{t0:0,t1:lastDurationSec||0,km:nk,kinkoKm:kinko}]:[]);
+  const rsum=runs.reduce((a,r)=>a+r.km,0);
+  if(rsum>0&&nk>0&&Math.abs(rsum-nk)>0.05)runs=runs.map(r=>({t0:r.t0,t1:r.t1,km:r.km*nk/rsum,kinkoKm:(r.kinkoKm||0)*nk/rsum})); // 表示中の自動判定距離と整合
+  let nexco=0,longDisc=0,timeDisc=0,nightRuns=0,holRuns=0;
+  runs.forEach(r=>{
+    const c0=clockAt(dep,r.t0),c1=clockAt(dep,Math.max(r.t1,r.t0));
+    const night=applyD&&hitsNight(c0,c1);
+    const hol=applyD&&!night&&(vehType==='kei'||vehType==='normal')&&hitsHoliday(c0,c1);
+    const ck=Math.min(Math.max(r.kinkoKm||0,0),r.km),ch=Math.max(r.km-ck,0);
+    const chAfter=nexcoTollCalc(ch,f,(night||hol)?0.30:0);           // 地方部：深夜/休日どちらかで全額30%OFF
+    const kAfter=kinkoTollCalc(ck,f,night?0.30:0,ch<=0);             // 近郊：深夜のみ対象（休日割引対象外）
+    nexco+=chAfter+kAfter;
+    longDisc+=Math.max(nexcoTollFlat(ch,f)-nexcoTollCalc(ch,f,0),0);
+    timeDisc+=Math.max(nexcoTollCalc(ch,f,0)-chAfter,0)+Math.max(kinkoTollCalc(ck,f,0,ch<=0)-kAfter,0);
+    if(night)nightRuns++;else if(hol)holRuns++;
+  });
+  let discName='';if(nightRuns>0&&holRuns>0)discName='深夜＋休日割引';else if(nightRuns>0)discName='深夜割引';else if(holRuns>0)discName='休日割引';
+  // 首都高：深夜割引20%（入口通過が0〜4時。首都高は最初のETCアンテナ通過時刻で判定）
+  let sruns=(lastShuRuns&&lastShuRuns.length)?lastShuRuns.slice():((lastShutokoKm||0)>0.05?[{t0:0,t1:lastDurationSec||0,km:lastShutokoKm}]:[]);
+  const ssum=sruns.reduce((a,r)=>a+r.km,0);
+  if(ssum>0&&(lastShutokoKm||0)>0&&Math.abs(ssum-lastShutokoKm)>0.05)sruns=sruns.map(r=>({t0:r.t0,t1:r.t1,km:r.km*lastShutokoKm/ssum}));
+  let shu=0,shuDisc=0;
+  sruns.forEach(r=>{
+    const full=shutokoTollCalc(r.km,SHU[vehType]);
+    const h=clockAt(dep,r.t0).getHours();
+    const after=(applyD&&h>=0&&h<4)?r10(full*0.8):full;
+    shu+=after;shuDisc+=full-after;
+  });
   const flat=lastFlatYen>0?Math.round(lastFlatYen*f/10)*10:0;
-  return{toll:nexco+shu+flat,nexco,shu,flat,longDisc,timeDisc,kinko,discName:di.name,nightFrac:di.nightFrac,holFrac:holEligible,spanDays:di.spanDays};
+  return{toll:nexco+shu+flat,nexco,shu,flat,longDisc,timeDisc,shuDisc,kinko,discName,nightRuns,holRuns,runCount:runs.length};
 }
 function fmtDuration(sec){const m=Math.round(sec/60);return m<60?(m+'分'):(Math.floor(m/60)+'時間'+(m%60)+'分');}
 function fuelLabel(f){return{regular:'レギュラー',premium:'ハイオク',diesel:'軽油'}[f];}
@@ -2544,7 +2597,7 @@ function updateCost(){
   let gas=0,liters=0;if(eff>0&&price>0){liters=lastDistanceKm/eff;gas=Math.round(liters*price);document.getElementById('rGas').textContent='¥'+gas.toLocaleString();}else document.getElementById('rGas').textContent='–';
   const other=parseFloat(document.getElementById('otherCost').value)||0;const t=calcToll();const nk=parseFloat(document.getElementById('tollKm').value)||0;
   const total=gas+t.toll+other;
-  const totalDisc=(t.longDisc||0)+(t.timeDisc||0);const listPrice=t.toll+totalDisc;
+  const totalDisc=(t.longDisc||0)+(t.timeDisc||0)+(t.shuDisc||0);const listPrice=t.toll+totalDisc;
   document.getElementById('rToll').innerHTML='¥'+t.toll.toLocaleString()+(totalDisc>0?`<div style="font-size:10.5px;font-weight:800;margin-top:1px;color:var(--muted)">定価¥${listPrice.toLocaleString()} <span style="color:#2f9e44">−¥${totalDisc.toLocaleString()}(${Math.round(totalDisc/listPrice*100)}%off)</span></div>`:'');
   document.getElementById('rTotal').textContent='¥'+total.toLocaleString();
   const splitN=Math.max(1,parseInt(document.getElementById('splitN').value)||1);const splitRow=document.getElementById('splitRow');
@@ -2554,11 +2607,12 @@ function updateCost(){
   else peek.classList.remove('show');
   const dParts=[];
   if(t.longDisc>0)dParts.push(`長距離割引 -¥${t.longDisc.toLocaleString()}`);
-  if(t.timeDisc>0){const fr=Math.min(1,(t.nightFrac||0)+(t.holFrac||0)),pct=Math.round(fr*100);dParts.push(`${t.discName||'時間帯割引'} -¥${t.timeDisc.toLocaleString()}${(pct>0&&pct<100)?`（走行の約${pct}%が対象）`:''}`);}
+  if(t.timeDisc>0){const n=(t.nightRuns||0)+(t.holRuns||0),m=t.runCount||0;dParts.push(`${t.discName||'時間帯割引'} -¥${t.timeDisc.toLocaleString()}${(m>1)?`（対象 ${n}/${m}走行）`:''}`);}
+  if(t.shuDisc>0)dParts.push(`首都高深夜割引 -¥${t.shuDisc.toLocaleString()}`);
   const discTxt=dParts.length?`（${dParts.join('／')} 適用済）`:'';
   const flatTxt=(t.flat>0)?` ＋ 均一区間(${lastFlatNames.join('・')})=¥${t.flat.toLocaleString()}`:'';
   const kinkoTxt=(t.kinko>0)?` うち近郊${t.kinko.toFixed(1)}kmは割増29.52円/km・逓減/休日割引対象外。`:'';
-  document.getElementById('tollHint').textContent=`高速距離は自動判定（手動可）。NEXCO ${nk.toFixed(1)}km=¥${t.nexco.toLocaleString()}${discTxt}${lastShutokoKm>0.1?` ＋ 首都高 ${lastShutokoKm.toFixed(1)}km=¥${t.shu.toLocaleString()}`:''}${flatTxt}。${kinkoTxt}長距離逓減(100/200km超で減額)＋深夜割引は併用、深夜と休日は重複なし(率は全国一律30%)。首都高=距離別(上限¥1950)。`;
+  document.getElementById('tollHint').textContent=`高速距離は自動判定。NEXCO ${nk.toFixed(1)}km=¥${t.nexco.toLocaleString()}${discTxt}${lastShutokoKm>0.1?` ＋ 首都高 ${lastShutokoKm.toFixed(1)}km=¥${t.shu.toLocaleString()}`:''}${flatTxt}。${kinkoTxt}割引は走行(入口→出口)単位で判定：深夜=0〜4時に少しでもかかれば全額30%OFF(毎日・全車種)／休日=土日祝に軽・普通車の地方部30%OFF(3連休・GW/盆/年末年始は適用除外、深夜と重複なし)／首都高=0〜4時流入で20%OFF(距離別・上限¥1950)。長距離逓減(100/200km超)は併用。`;
   const lg=document.getElementById('routeLegend');if(lg)lg.style.display='flex';
   document.getElementById('rNote').textContent=`ガソリン ${liters.toFixed(1)}L＋高速概算${other>0?('＋その他¥'+other.toLocaleString()):''}。距離・料金は ${lastEngine}（経路）、時間はGoogle渋滞。`;
   // 折りたたみ中でも現在の設定が一目で分かるチップ
@@ -2827,7 +2881,7 @@ function toggleRouteSheet(){routeSheet.classList.toggle('collapsed');if(lastDist
 function maybeCollapse(){if(points.length>=2&&!routeSheet.contains(document.activeElement)){routeSheet.classList.add('collapsed');if(lastDistanceKm!=null)updateCost();}}
 document.getElementById('rsGrab').onclick=toggleRouteSheet;
 document.getElementById('rsPeek').onclick=toggleRouteSheet;
-document.getElementById('rsClear').onclick=()=>{if(points.length>=2&&!confirm('ルートの地点と計算結果をクリアします。よろしいですか？'))return;points=[];lastDistanceKm=lastDurationSec=null;lastFlatYen=0;lastFlatNames=[];lastLegSteps=[];lastRouteTimeline=[];lastRests=[];lastEvents=[];lastPointT=[];routeAlts=[];renderAltSelector();tollKmAuto=true;document.getElementById('tollKm').value='';document.getElementById('kinkoKm').value='0';clearArr(routeMarkers);clearArr(restMarkers);clearRouteLine();document.getElementById('rsResult').classList.remove('show');document.getElementById('restSec').style.display='none';document.getElementById('rsPeek').classList.remove('show');document.getElementById('rsDetails').style.display='none';routeSheet.classList.remove('collapsed');const lg=document.getElementById('routeLegend');if(lg)lg.style.display='none';renderPoints();};
+document.getElementById('rsClear').onclick=()=>{if(points.length>=2&&!confirm('ルートの地点と計算結果をクリアします。よろしいですか？'))return;points=[];lastDistanceKm=lastDurationSec=null;lastFlatYen=0;lastFlatNames=[];lastLegSteps=[];lastRouteTimeline=[];lastRests=[];lastEvents=[];lastPointT=[];lastNexRuns=[];lastShuRuns=[];routeAlts=[];renderAltSelector();tollKmAuto=true;document.getElementById('tollKm').value='';document.getElementById('kinkoKm').value='0';clearArr(routeMarkers);clearArr(restMarkers);clearRouteLine();document.getElementById('rsResult').classList.remove('show');document.getElementById('restSec').style.display='none';document.getElementById('rsPeek').classList.remove('show');document.getElementById('rsDetails').style.display='none';routeSheet.classList.remove('collapsed');const lg=document.getElementById('routeLegend');if(lg)lg.style.display='none';renderPoints();};
 document.getElementById('rainBtn').onclick=toggleRain;
 // 現在地：1回だけ現在地へ移動して表示（追跡はしない）
 document.getElementById('myLocFab').onclick=()=>{if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}showStatus('現在地を取得中…',true);navigator.geolocation.getCurrentPosition(pos=>{const la=pos.coords.latitude,ln=pos.coords.longitude;map.setCenter({lat:la,lng:ln});map.setZoom(15);statusEl.classList.remove('show');showCurrentLoc(la,ln,pos.coords.accuracy);},err=>{showStatus('現在地を取得できませんでした',false);hideStatusLater();},{enableHighAccuracy:true,timeout:8000});};
