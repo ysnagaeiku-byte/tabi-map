@@ -827,7 +827,7 @@ function drawIso(mbData,sel,center){
       isoShapes.push(new google.maps.Circle({center,radius:(m/60)*speed*1000,strokeColor:col,strokeWeight:2,strokeOpacity:.85,fillColor:col,fillOpacity:.05,map,clickable:false,zIndex:idx}));
     }
   });
-  isoShapes.push(new google.maps.Marker({position:center,map,icon:pinIcon('#d93025',1.6),label:{text:'',fontSize:'1px'}}));
+  isoShapes.push(new google.maps.Marker({position:center,map,icon:dotIcon('#d93025',6.5),zIndex:6}));
   const b=new google.maps.LatLngBounds();isoShapes.forEach(s=>{if(s.getPaths)s.getPaths().forEach(pa=>pa.forEach(ll=>b.extend(ll)));else if(s.getBounds&&s.getBounds())b.union(s.getBounds());});if(!b.isEmpty())map.fitBounds(b,60);
   document.getElementById('isoClearFab').classList.add('show'); // どのタブからでも消去できる常設ボタン
   isoVisible=true;renderLayerPanel(); // 到達圏をレイヤーへ（表示中）
@@ -879,6 +879,8 @@ function hideStatusLater(){setTimeout(()=>statusEl.classList.remove('show'),2600
 function dot(color,scale){return {path:google.maps.SymbolPath.CIRCLE,scale:scale||11,fillColor:color,fillOpacity:1,strokeColor:cssvar('--panel'),strokeWeight:2};}
 const PIN_PATH='M12 0C5.37 0 0 5.37 0 12c0 8.4 12 24 12 24s12-15.6 12-24C24 5.37 18.63 0 12 0z';
 function pinIcon(color,scale){return {path:PIN_PATH,fillColor:color,fillOpacity:1,strokeColor:'#ffffff',strokeWeight:1.4,scale:scale||1.5,anchor:new google.maps.Point(12,36),labelOrigin:new google.maps.Point(12,12)};}
+// 小さい円マーカー（ルート上の休憩・到達圏中心など控えめに見せたいピン用。中心アンカー）
+function dotIcon(color,scale){return {path:google.maps.SymbolPath.CIRCLE,fillColor:color,fillOpacity:1,strokeColor:'#ffffff',strokeWeight:2,scale:scale||7};}
 // 現在地：GPS誤差(accuracy m)を半径にした円＋中心ドット
 function showCurrentLoc(lat,lng,acc){
   if(liveWatchId!=null){updateLiveLoc(lat,lng,acc);return;} // 追跡中は既存ドットを更新（作り直さない）
@@ -2464,7 +2466,7 @@ function finalizeRests(list,box){
   list.forEach(r=>{
     if(lastRests.some(x=>x.name===r.name))return; // 同一スポットの重複を除外
     lastRests.push({t:r.t,name:r.name,kind:r.kind,lat:r.lat,lng:r.lng,stay:restStay,data:r.data});
-    const m=new google.maps.Marker({position:{lat:r.lat,lng:r.lng},map,icon:pinIcon('#8a5a2b',1.5),label:{text:'休',fontSize:'10px',color:'#fff',fontWeight:'700'},title:r.name});
+    const m=new google.maps.Marker({position:{lat:r.lat,lng:r.lng},map,icon:dotIcon('#8a5a2b',8.5),label:{text:'休',fontSize:'9px',color:'#fff',fontWeight:'700'},title:r.name,zIndex:5});
     m.addListener('click',()=>{infoWindow.setContent(restPopupHtml(r));infoWindow.open(map,m);});
     restMarkers.push(m);
   });
