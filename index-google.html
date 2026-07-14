@@ -611,7 +611,14 @@ const SHU={kei:0.83,normal:1.0,mid:1.06,large:1.57,xl:2.0};
 const DARK_STYLE=[{elementType:'geometry',stylers:[{color:'#1d2330'}]},{elementType:'labels.text.stroke',stylers:[{color:'#1d2330'}]},{elementType:'labels.text.fill',stylers:[{color:'#9aa3af'}]},{featureType:'water',elementType:'geometry',stylers:[{color:'#0c0e13'}]},{featureType:'road',elementType:'geometry',stylers:[{color:'#2a313d'}]},{featureType:'road.highway',elementType:'geometry',stylers:[{color:'#3a4150'}]},{featureType:'poi',stylers:[{visibility:'off'}]},{featureType:'transit',stylers:[{visibility:'off'}]}];
 const LIGHT_STYLE=[{featureType:'poi',elementType:'labels',stylers:[{visibility:'off'}]},{featureType:'transit',stylers:[{visibility:'off'}]}];
 
-let map=null, infoWindow=null, placesSvc=null;
+let map=null, infoWindow=null, placesSvc=null, curInfoMarker=null;
+// InfoWindowを開く。同じピン/詳細を再クリックしたら閉じる（トグル）。開いたらtrue・閉じたらfalse
+function openInfo(m,html){
+  if(curInfoMarker===m&&infoWindow&&infoWindow.getMap()){infoWindow.close();curInfoMarker=null;return false;}
+  if(html!=null)infoWindow.setContent(html);
+  infoWindow.open(map,m);curInfoMarker=m;return true;
+}
+function closeInfo(){if(infoWindow)infoWindow.close();curInfoMarker=null;}
 let activeTab=null;
 const customSelected=new Set();
 let poiMarkers=[], onsengoMarkers=[], routeMarkers=[], searchMarkers=[], bufferShapes=[], routeLine=null, routeCasing=null, routeSegs=[], customSearchPins=[], isoShapes=[], locShapes=[], restMarkers=[];
@@ -726,9 +733,16 @@ function llBounds(arr){const b=new google.maps.LatLngBounds();arr.forEach(p=>b.e
 window.initGMap=function(){
   map=new google.maps.Map(document.getElementById('map'),{center:{lat:36.5,lng:138},zoom:5,disableDefaultUI:true,zoomControl:true,gestureHandling:'greedy',styles:LIGHT_STYLE});
   infoWindow=new google.maps.InfoWindow();
-  infoWindow.addListener('closeclick',removeTempPin); // ポップアップを閉じたら仮ピンも消す（地図に残さない）
+  infoWindow.addListener('closeclick',()=>{curInfoMarker=null;removeTempPin();}); // ×で閉じたら状態リセット＋仮ピンも消す
   placesSvc=new google.maps.places.PlacesService(map);
-  map.addListener('click',(e)=>{const tr=document.getElementById('topResults');if(tr)tr.classList.remove('show');if(infoWindow)infoWindow.close();removeTempPin();if(activeTab==='iso')setIsoCenter(e.latLng.lat(),e.latLng.lng());}); // 地図タップでポップアップも閉じる（×が上部UIに隠れても確実に閉じられる）
+  map.addListener('click',(e)=>{const tr=document.getElementById('topResults');if(tr)tr.classList.remove('show');closeInfo();removeTempPin();if(activeTab==='iso')setIsoCenter(e.latLng.lat(),e.latLng.lng());}); // 地図タップでポップアップも閉じる（×が上部UIに隠れても確実に閉じられる）
+  // 詳細（InfoWindow）の余白＝ボタン/リンク以外をクリックしても閉じる（×が小さく押しにくい対策）
+  document.addEventListener('click',(ev)=>{
+    const t=ev.target;if(!t||!t.closest)return;
+    if(!t.closest('.gm-style-iw'))return;                 // InfoWindow外のクリックは対象外
+    if(t.closest('button,a,input,textarea,select,[contenteditable="true"]'))return; // 操作要素は閉じない（×も含む）
+    closeInfo();
+  });
   // ルートタブは誤操作防止でダブルクリック（ダブルタップ）必須。ルート中は既定のダブルクリックズームを無効化。海上は不可（addPointMap内で陸判定）
   map.addListener('dblclick',(e)=>{if(activeTab==='route')addPointMap(e.latLng.lat(),e.latLng.lng());});
   map.addListener('dragstart',()=>{if(liveWatchId!=null&&liveFollow){liveFollow=false;liveFabUi();}}); // 地図ドラッグで追従解除（追跡は継続）
@@ -1008,7 +1022,7 @@ function stopLiveLoc(){
 function addPoiMarker(lat,lng,cat,tags){
   const c=CATS[cat]||{emoji:''},color=catColor(cat);
   const m=new google.maps.Marker({position:{lat,lng},map,icon:pinIcon(color),label:{text:c.emoji||'・',fontSize:(String(c.emoji).length>1?'8.5px':'11px'),color:'#fff',fontWeight:'700'},title:tags.name||''});
-  m.addListener('click',()=>{infoWindow.setContent(popupHtml(tags,lat,lng,cat));infoWindow.open(map,m);setTimeout(()=>fillRakuten(),300);});
+  m.addListener('click',()=>{if(!openInfo(m,popupHtml(tags,lat,lng,cat)))return;setTimeout(()=>fillRakuten(),300);});
   poiAdd(cat,m);
 }
 function poiAdd(cat,m){(poiLayers[cat]||(poiLayers[cat]={markers:[],visible:true})).markers.push(m);}
@@ -1023,8 +1037,8 @@ function addPlaceMarker(place,cat){
   const c=CATS[cat]||{emoji:''},color=catColor(cat);
   const m=new google.maps.Marker({position:loc,map,icon:pinIcon(color),label:{text:c.emoji||'・',fontSize:(String(c.emoji).length>1?'8.5px':'11px'),color:'#fff',fontWeight:'700'},title:place.name});
   m.addListener('click',()=>{
-    infoWindow.setContent(placePopup(place,cat));infoWindow.open(map,m);
-    if(place.place_id)placesSvc.getDetails({placeId:place.place_id,fields:['name','rating','user_ratings_total','formatted_phone_number','website','opening_hours','photos','url','formatted_address']},(d,st)=>{if(st===google.maps.places.PlacesServiceStatus.OK&&d)infoWindow.setContent(placePopupFull(d,place,cat));});
+    if(!openInfo(m,placePopup(place,cat)))return; // 再クリックで閉じたら詳細は取得しない
+    if(place.place_id)placesSvc.getDetails({placeId:place.place_id,fields:['name','rating','user_ratings_total','formatted_phone_number','website','opening_hours','photos','url','formatted_address']},(d,st)=>{if(st===google.maps.places.PlacesServiceStatus.OK&&d&&curInfoMarker===m)infoWindow.setContent(placePopupFull(d,place,cat));});
   });
   poiAdd(cat,m);
 }
@@ -1139,7 +1153,7 @@ function taxOku(tx){return (tx/100000).toFixed(2)+'億円';}
 function renderOnsenGo(){clearArr(onsengoMarkers);
   [...ONSEN_GO].sort((a,b)=>(a.s||2)-(b.s||2)).forEach(o=>{const sc=onsenScale(o);
     const m=new google.maps.Marker({position:{lat:o.lat,lng:o.lng},map,icon:pinIcon(sc.c,sc.sz),label:{text:'♨',fontSize:Math.round(9+sc.sz*1.6)+'px',color:'#fff',fontWeight:'700'},title:o.name+'（'+sc.l+'）',zIndex:(o.s||2)});
-    m.addListener('click',()=>{infoWindow.setContent(onsengoPopup(o));infoWindow.open(map,m);});onsengoMarkers.push(m);});}
+    m.addListener('click',()=>openInfo(m,onsengoPopup(o)));onsengoMarkers.push(m);});}
 function onsengoPopup(o){const q=encodeURIComponent(o.name);const sc=onsenScale(o);const taxTxt=o.tax?`入湯税 ${taxOku(o.tax)}/年（2023年度・全国上位）`:'入湯税データ非公表';return `<div class="popup"><h3>♨ ${escapeHtml(o.name)}</h3><div class="meta">${escapeHtml(o.area)}${o.note?(' ・ '+escapeHtml(o.note)):''}</div><div class="meta" style="margin-top:3px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${sc.c};margin-right:5px;vertical-align:middle;"></span><b>規模：${sc.l}</b>・${taxTxt}</div>${routeActionsHtml(o.lat,o.lng,o.name)}<div class="links"><button class="dest" onclick="window.setDest(${o.lat},${o.lng},'${encodeURIComponent(o.name)}')">ここへ</button><button onclick="window.ogNearby(${o.lat},${o.lng})">周辺の温泉</button>${circleIsoBtns(o.lat,o.lng,o.name)}<a class="rakuten" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+楽天トラベル">宿(楽天)</a><a class="official" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+ゆこゆこ">♨ ゆこゆこ</a><a class="official" target="_blank" rel="noopener" href="https://ja.wikipedia.org/wiki/${q}">詳細</a></div></div>`;}
 window.ogNearby=function(lat,lng){infoWindow.close();map.setCenter({lat,lng});map.setZoom(14);selectTab('onsen');};
 
@@ -1208,7 +1222,7 @@ function openRoutePointPopup(i,m){
   const nm=p.label||(p.lat.toFixed(4)+', '+p.lng.toFixed(4));
   const color=i===0?'#2f9e44':(isLast?'#e03131':cssvar('--accent'));
   const html=`<div class="popup"><h3>${escapeHtml(nm)}</h3><div class="meta"><span style="display:inline-block;background:${color};color:#fff;font-weight:800;font-size:10px;border-radius:4px;padding:1px 6px;margin-right:4px;">${role}</span> ${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</div><div class="links">${circleIsoBtns(p.lat,p.lng,p.label||role)}<button class="pin-del-btn" onclick="window.delRoutePoint(${i})">この地点を削除</button></div></div>`;
-  infoWindow.setContent(html);infoWindow.open(map,m);
+  openInfo(m,html);
 }
 window.delRoutePoint=function(i){infoWindow.close();points.splice(i,1);renderPoints();if(points.length>=2)computeRoute();else{clearRouteLine();lastDistanceKm=lastDurationSec=null;document.getElementById('rsResult').classList.remove('show');document.getElementById('rsPeek').classList.remove('show');}};
 function clearRouteLine(){if(routeLine){routeLine.setMap(null);routeLine=null;}if(routeCasing){routeCasing.setMap(null);routeCasing=null;}clearArr(routeSegs);}
@@ -2575,7 +2589,7 @@ function finalizeRests(list,box){
     if(lastRests.some(x=>x.name===r.name))return; // 同一スポットの重複を除外
     lastRests.push({t:r.t,name:r.name,kind:r.kind,lat:r.lat,lng:r.lng,stay:restStay,data:r.data});
     const m=new google.maps.Marker({position:{lat:r.lat,lng:r.lng},map,icon:dotIcon('#8a5a2b',8.5),label:{text:'休',fontSize:'9px',color:'#fff',fontWeight:'700'},title:r.name,zIndex:5});
-    m.addListener('click',()=>{infoWindow.setContent(restPopupHtml(r));infoWindow.open(map,m);});
+    m.addListener('click',()=>openInfo(m,restPopupHtml(r)));
     restMarkers.push(m);
   });
   const cnt=lastRests.length;
@@ -2939,8 +2953,7 @@ function placeTempPin(lat,lng,name,sub){
   map.panTo({lat,lng});if(map.getZoom()<14)map.setZoom(15);openTempPopup(m);
 }
 function openTempPopup(m){const i=m._info,e=encodeURIComponent(i.name||''),es=i.sub?encodeURIComponent(i.sub):'';
-  infoWindow.setContent(`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}<div class="meta" style="color:var(--muted);font-size:11px;">仮表示・地図には残りません（必要なら「ピンを残す」）</div>${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest" onclick="window.keepPin(${i.lat},${i.lng},'${e}','${es}')">ピンを残す</button>${circleIsoBtns(i.lat,i.lng,i.name)}<button onclick="window.addFav2('${e}',${i.lat},${i.lng})">★ 保存</button></div></div>`);
-  infoWindow.open(map,m);
+  openInfo(m,`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}<div class="meta" style="color:var(--muted);font-size:11px;">仮表示・地図には残りません（必要なら「ピンを残す」）</div>${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest" onclick="window.keepPin(${i.lat},${i.lng},'${e}','${es}')">ピンを残す</button>${circleIsoBtns(i.lat,i.lng,i.name)}<button onclick="window.addFav2('${e}',${i.lat},${i.lng})">★ 保存</button></div></div>`);
 }
 // ===== 常設ピン（保存ピン）：友達の最寄り駅などを地図に残し、レイヤータブに個別表示・カスタムタブで一括保存/描画 =====
 // 保存ピン＝休憩(茶円)と区別したピンクの小円（コンパクト表示）
@@ -2973,8 +2986,7 @@ function drawPinGroup(idx){const g=getPinGroups()[idx];if(!g)return;let n=0;g.pi
 function deletePinGroup(idx){const g=getPinGroups();if(!g[idx])return;if(!confirm(`保存済みピン「${g[idx].name}」を削除します（地図上のピンは消えません）`))return;g.splice(idx,1);savePinGroups(g);if(activeTab==='custom')buildCustomPanel();}
 window.keepPin=function(lat,lng,enc,encSub){const name=enc?decodeURIComponent(enc):'',sub=encSub?decodeURIComponent(encSub):'';removeTempPin();const pin=addSavedPin({name,lat,lng,sub});if(pin&&pin.marker){openKeptPopup(pin.marker);}showStatus('ピンを残しました（レイヤータブに表示・カスタムタブで一括保存できます）',false);hideStatusLater();};
 function openKeptPopup(m){const i=m._info,e=encodeURIComponent(i.name||'');
-  infoWindow.setContent(`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest" onclick="window.routeTo(${i.lat},${i.lng},'${e}')">ルートに追加</button>${circleIsoBtns(i.lat,i.lng,i.name)}${i.id!=null?`<button class="pin-del-btn" onclick="window.delPin(${i.id})">ピンを削除</button>`:''}</div></div>`);
-  infoWindow.open(map,m);
+  openInfo(m,`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest" onclick="window.routeTo(${i.lat},${i.lng},'${e}')">ルートに追加</button>${circleIsoBtns(i.lat,i.lng,i.name)}${i.id!=null?`<button class="pin-del-btn" onclick="window.delPin(${i.id})">ピンを削除</button>`:''}</div></div>`);
 }
 window.delPin=function(id){infoWindow.close();removeSavedPin(id);showStatus('ピンを削除しました',false);hideStatusLater();};
 // ルートタブで地図上のピン情報を 出発地/経由地/目的地 に割り当てる（ポップアップ内に表示）
