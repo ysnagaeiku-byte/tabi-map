@@ -3178,7 +3178,7 @@ async function exportMapImage(){
       cv.toBlob(blob=>{if(!blob)throw new Error('blob');const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tabimap_'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'_'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0')+'.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);showStatus('画像を保存しました',false);hideStatusLater();},'image/png');
     }catch(e){showStatus('画像合成に失敗（キーのStatic Maps API有効化・リファラー設定をご確認ください）。地図を新規タブで開きます',false);hideStatusLater();window.open(url,'_blank','noopener');}
   };
-  img.onerror=()=>{showStatus('地図画像の取得に失敗。設定でStatic Maps APIの有効化・リファラー許可をご確認ください',false);hideStatusLater();};
+  img.onerror=()=>{showStatus('画像を取得できませんでした。APIキーの「APIの制限」に Maps Static API を追加（有効化だけでなくキー側の許可が必要）し、数分後に再試行してください',false);hideStatusLater();};
   img.src=url;
 }
 document.getElementById('imgBtn').onclick=exportMapImage;
