@@ -1191,25 +1191,45 @@ function addPointMap(lat,lng){
     addPoint(lat,lng,null);
   });
 }
+// 同一地点判定（連結点の重複除去・帰宅判定に使用）
+function samePlace(a,b){return a&&b&&Math.abs(a.lat-b.lat)<3e-4&&Math.abs(a.lng-b.lng)<3e-4;}
+// 各地点のロール表記：出発／経由地N／目的地N／帰宅。role未設定は既定(中間=経由・末尾=目的)。目的地・経由地はそれぞれ通し番号
+function computePointRoles(){
+  const n=points.length,roles=[];let via=0,dest=0;
+  for(let i=0;i<n;i++){
+    if(i===0){roles.push('出発');continue;}
+    if(i===n-1&&n>2&&samePlace(points[i],points[0])){roles.push('帰宅');continue;}
+    const r=points[i].role;
+    if(r==='via'){via++;roles.push('経由地'+via);}
+    else if(r==='dest'){dest++;roles.push('目的地'+dest);}
+    else if(i===n-1){dest++;roles.push('目的地'+dest);}
+    else{via++;roles.push('経由地'+via);}
+  }
+  return roles;
+}
+function roleColor(label){if(label==='出発'||label==='帰宅')return '#2f9e44';if(label.indexOf('目的')===0)return '#e03131';return cssvar('--accent');}
+function roleShort(label){return label==='出発'?'出':label==='帰宅'?'帰':label.indexOf('目的')===0?'的':label.replace('経由地','');}
 function renderPoints(){
   clearArr(routeMarkers);updateSegExport();renderFavs();
+  const roles=computePointRoles();
   const list=document.getElementById('ptList');
   if(points.length===0){list.innerHTML='<div class="pt-empty">地点未設定 — 検索・地図ダブルタップ・現在地で追加</div>';return;}
   list.innerHTML='';
   points.forEach((p,i)=>{
     const isLast=(i===points.length-1&&points.length>1);
-    const role=i===0?'出発':(isLast?'目的':String(i));
-    const color=i===0?'#2f9e44':(isLast?'#e03131':cssvar('--accent'));
-    const m=new google.maps.Marker({position:{lat:p.lat,lng:p.lng},map,draggable:!IS_TOUCH,icon:pinIcon(color,1.7),label:{text:(i===0?'出':isLast?'着':String(i)),fontSize:'11px',color:'#fff',fontWeight:'700'},title:IS_TOUCH?'':'ドラッグで移動'}); // タッチ端末は誤操作防止でドラッグ無効
-    if(!IS_TOUCH)m.addListener('dragend',ev=>{points[i]={lat:+ev.latLng.lat().toFixed(6),lng:+ev.latLng.lng().toFixed(6),label:p.label,stay:p.stay||0};renderPoints();computeRoute();});
+    const label=roles[i],color=roleColor(label),badge=label.replace('経由地','経由').replace('目的地','目的');
+    const m=new google.maps.Marker({position:{lat:p.lat,lng:p.lng},map,draggable:!IS_TOUCH,icon:pinIcon(color,1.7),label:{text:roleShort(label),fontSize:'11px',color:'#fff',fontWeight:'700'},title:IS_TOUCH?'':'ドラッグで移動'}); // タッチ端末は誤操作防止でドラッグ無効
+    if(!IS_TOUCH)m.addListener('dragend',ev=>{points[i]={lat:+ev.latLng.lat().toFixed(6),lng:+ev.latLng.lng().toFixed(6),label:p.label,stay:p.stay||0,role:p.role};renderPoints();computeRoute();});
     m.addListener('click',()=>openRoutePointPopup(i,m)); // 出発/経由/目的ピンをクリック→情報・距離円・到達圏
     routeMarkers.push(m);
-    const isWaypoint=(i>0&&!isLast); // 経由地のみ滞在時間を設定可
+    const isMid=(i>0&&!isLast); // 中間地点＝滞在時間＋経由/目的の切替が可能
+    const isDest=label.indexOf('目的')===0;
     const row=document.createElement('div');row.className='pt-row';
-    row.innerHTML=`<span class="pt-badge" style="background:${color}">${role}</span><span class="pt-label">${escapeHtml(p.label||(p.lat+', '+p.lng))}</span>${isWaypoint?`<span class="pt-stay">滞在<input type="number" min="0" max="600" class="pt-stay-in" data-i="${i}" value="${p.stay||0}">分</span>`:''}<button class="pt-mv" data-i="${i}" data-d="-1" ${i===0?'disabled':''}>▲</button><button class="pt-mv" data-i="${i}" data-d="1" ${i===points.length-1?'disabled':''}>▼</button><button class="pt-del" data-i="${i}">✕</button>`;
+    row.innerHTML=`<span class="pt-badge" style="background:${color}">${badge}</span><span class="pt-label">${escapeHtml(p.label||(p.lat+', '+p.lng))}</span>${isMid?`<button class="pt-role" data-i="${i}" title="経由地⇄目的地を切替" style="border:1px solid ${color};color:${color};background:none;border-radius:999px;font-size:10.5px;font-weight:800;padding:2px 8px;cursor:pointer;flex:none;">${isDest?'目的':'経由'}</button>`:''}${isMid?`<span class="pt-stay">滞在<input type="number" min="0" max="600" class="pt-stay-in" data-i="${i}" value="${p.stay||0}">分</span>`:''}<button class="pt-mv" data-i="${i}" data-d="-1" ${i===0?'disabled':''}>▲</button><button class="pt-mv" data-i="${i}" data-d="1" ${i===points.length-1?'disabled':''}>▼</button><button class="pt-del" data-i="${i}">✕</button>`;
     list.appendChild(row);
   });
   list.querySelectorAll('.pt-del').forEach(b=>b.onclick=()=>{points.splice(+b.dataset.i,1);renderPoints();computeRoute();});
+  list.querySelectorAll('.pt-role').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(!points[i])return;const cur=computePointRoles()[i];points[i].role=(cur.indexOf('目的')===0)?'via':'dest';renderPoints();renderItinerary();updateCost();persistState();});
   list.querySelectorAll('.pt-mv').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,dr=+b.dataset.d,j=i+dr;if(j<0||j>=points.length)return;const t=points[i];points[i]=points[j];points[j]=t;renderPoints();computeRoute();});
   list.querySelectorAll('.pt-stay-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(points[i]){points[i].stay=Math.max(0,Math.min(600,parseInt(inp.value)||0));renderItinerary();updateCost();}});
   persistState();
@@ -1217,10 +1237,9 @@ function renderPoints(){
 // ルート地点（出発/経由/目的）ピンのポップアップ：場所情報＋距離円＋到達圏＋削除
 function openRoutePointPopup(i,m){
   const p=points[i];if(!p)return;
-  const isLast=(i===points.length-1&&points.length>1);
-  const role=i===0?'出発地':(isLast?'目的地':'経由地'+i);
+  const role=computePointRoles()[i]||'地点';
   const nm=p.label||(p.lat.toFixed(4)+', '+p.lng.toFixed(4));
-  const color=i===0?'#2f9e44':(isLast?'#e03131':cssvar('--accent'));
+  const color=roleColor(role);
   const html=`<div class="popup"><h3>${escapeHtml(nm)}</h3><div class="meta"><span style="display:inline-block;background:${color};color:#fff;font-weight:800;font-size:10px;border-radius:4px;padding:1px 6px;margin-right:4px;">${role}</span> ${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</div><div class="links">${circleIsoBtns(p.lat,p.lng,p.label||role)}<button class="pin-del-btn" onclick="window.delRoutePoint(${i})">この地点を削除</button></div></div>`;
   openInfo(m,html);
 }
@@ -1298,7 +1317,7 @@ function saveCurrentRoute(){
   const gas=(eff>0&&price>0)?Math.round(lastDistanceKm/eff*price):0;
   const other=parseFloat(document.getElementById('otherCost').value)||0,toll=calcToll().toll;
   const people=ev?ev.people:Math.max(1,parseInt(document.getElementById('splitN').value)||1);
-  const pts=points.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0})); // 再編集用に地点を保存
+  const pts=points.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null})); // 再編集用に地点を保存
   const path=(d.fullPath||[]).map(pt=>(typeof pt.lat==='function')?{lat:pt.lat(),lng:pt.lng()}:{lat:pt.lat,lng:pt.lng}); // 再描画用にポリライン座標を保存
   savedRoutes.push({id:ev?ev.id:Date.now(),label,name:ev?ev.name:label,polys,markers,color,distKm:d.distKm,trafSec:d.trafSec+totalDwellSec(),toll,gas,other,total:gas+toll+other,people,visible:true,pts,path});
   window.editingVehicle=null;
@@ -1311,7 +1330,7 @@ function editSavedRoute(i){const r=savedRoutes[i];if(!r)return;
   r.polys.forEach(p=>p.setMap(null));r.markers.forEach(m=>m.setMap(null));
   window.editingVehicle={id:r.id,name:r.name||r.label,people:r.people||1,color:r.color};
   savedRoutes.splice(i,1);
-  points=r.pts.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0}));
+  points=r.pts.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null}));
   const sn=document.getElementById('splitN');if(sn)sn.value=window.editingVehicle.people;
   if(activeTab!=='route')selectTab('route');routeSheet.classList.remove('collapsed');
   renderPoints();computeRoute();renderLayerPanel();renderSettlePanel();
@@ -1325,7 +1344,7 @@ function persistState(){
   try{
     const g=id=>{const e=document.getElementById(id);return e?e.value:'';};
     const slim=savedRoutes.map(r=>({id:r.id,label:r.label,name:r.name||r.label,color:r.color,distKm:r.distKm,trafSec:r.trafSec,toll:r.toll,gas:r.gas,other:r.other,total:r.total,people:r.people,manual:!!r.manual,visible:r.visible!==false,pts:r.pts||null,path:r.path||null}));
-    const st={v:1,points:(points||[]).map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0})),depTime:g('depTime'),fuelType,price:g('price'),eff:g('eff'),vehType,otherCost:g('otherCost'),splitN:g('splitN'),applyDisc:!!(document.getElementById('applyDisc')||{}).checked,depTimeManual,routePref,restMin,restStay,saved:slim};
+    const st={v:1,points:(points||[]).map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null})),depTime:g('depTime'),fuelType,price:g('price'),eff:g('eff'),vehType,otherCost:g('otherCost'),splitN:g('splitN'),applyDisc:!!(document.getElementById('applyDisc')||{}).checked,depTimeManual,routePref,restMin,restStay,saved:slim};
     localStorage.setItem('tabi_state',JSON.stringify(st));
   }catch(e){}
 }
@@ -1355,13 +1374,25 @@ function restoreState(){
     });
     restorePins();
     renderLayerPanel();renderSettlePanel();
-    if(st.points&&st.points.length){points=st.points.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0}));renderPoints();}
+    if(st.points&&st.points.length){points=st.points.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null}));renderPoints();}
   }catch(e){console.warn('状態の復元に失敗',e);}
   restoring=false;
   if(points.length>=2)computeRoute();
 }
 function toggleOnsenLayer(){onsenLayerOn=!onsenLayerOn;if(onsenLayerOn)renderOnsenGo();else clearArr(onsengoMarkers);renderLayerPanel();}
 function toggleSavedRoute(i){const r=savedRoutes[i];if(!r)return;r.visible=!r.visible;r.polys.forEach(p=>p.setMap(r.visible?map:null));r.markers.forEach(m=>m.setMap(r.visible?map:null));renderLayerPanel();}
+// 保存ルートの地点を現在の行程の末尾に連結（複数ルートを1つの行程表にまとめる）
+function appendSavedRoute(i){
+  const r=savedRoutes[i];if(!r||!r.pts||!r.pts.length){showStatus('この車両には連結できる地点データがありません（費用のみの手動車両）',false);hideStatusLater();return;}
+  if(activeTab!=='route')selectTab('route');routeSheet.classList.remove('collapsed');
+  const add=r.pts.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null}));
+  if(points.length&&add.length&&samePlace(points[points.length-1],add[0]))add.shift(); // 連結点の重複を除去
+  if(!add.length){showStatus('連結する新しい地点がありません',false);hideStatusLater();return;}
+  points=points.concat(add);
+  document.getElementById('layerPanel').classList.remove('open');
+  renderPoints();if(points.length>=2)computeRoute();
+  showStatus(`「${escapeHtml(r.name||r.label)}」の${add.length}地点を行程に連結しました`,false);hideStatusLater();
+}
 function deleteSavedRoute(i){const r=savedRoutes[i];if(!r)return;r.polys.forEach(p=>p.setMap(null));r.markers.forEach(m=>m.setMap(null));savedRoutes.splice(i,1);renderLayerPanel();renderSettlePanel();persistState();}
 // ===== 複数車両モード：全車両の費用合計を全同行者で均等割り勘 =====
 function addManualVehicle(){savedRoutes.push({id:Date.now(),label:'手動入力の車両',name:'手動入力の車両',polys:[],markers:[],color:ROUTE_COLORS[savedRoutes.length%ROUTE_COLORS.length],distKm:0,trafSec:0,toll:0,gas:0,other:0,total:0,people:1,manual:true,visible:true});renderSettlePanel();renderLayerPanel();persistState();}
@@ -1393,7 +1424,7 @@ function renderLayerPanel(){
   if(isoShapes.length)h+=`<div class="ly-item"><span class="ly-sw ly-iso-sw" style="background:${isoVisible?'#1a73e8':'var(--surface-2)'};border:1px solid #1a73e8;"></span><span class="ly-name">到達圏</span><button class="ly-del" id="lyIsoDel"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
   bufferLayers.forEach(bf=>{const col=cssvar('--accent');h+=`<div class="ly-item"><span class="ly-sw buf-sw" data-id="${bf.id}" style="background:${bf.visible?col:'var(--surface-2)'};border:1px solid ${col};"></span><span class="ly-name">距離円：${escapeHtml(bf.name)}</span><button class="ly-del buf-del" data-id="${bf.id}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   savedPins.forEach((p,i)=>{h+=`<div class="ly-item"><span class="ly-sw pin-lysw" data-id="${p.id}" style="background:${p.visible!==false?'#e64980':'var(--surface-2)'};border:1px solid #e64980;"></span><span class="ly-name">ピン${i+1}：${escapeHtml(p.name)}${p.sub?`<br><small style="color:var(--muted);font-weight:500;">${escapeHtml(p.sub)}</small>`:''}</span><button class="ly-del pin-lydel" data-id="${p.id}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
-  savedRoutes.forEach((r,i)=>{h+=`<div class="ly-item"><span class="ly-sw ly-rt" data-i="${i}" style="background:${r.visible?r.color:'var(--surface-2)'};border:1px solid ${r.color};"></span><span class="ly-name" style="color:${r.color}">${escapeHtml(r.name||r.label)}<br><small style="color:var(--muted);font-weight:500;">${r.distKm.toFixed(0)}km・${fmtDuration(r.trafSec)}・¥${r.toll.toLocaleString()}</small></span><button class="ly-edit" data-e="${i}" title="名前を変更">✎</button>${(r.pts&&r.pts.length)?`<button class="ly-edit" data-ed="${i}" title="工程を再編集">✎</button>`:''}<button class="ly-del" data-d="${i}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
+  savedRoutes.forEach((r,i)=>{h+=`<div class="ly-item"><span class="ly-sw ly-rt" data-i="${i}" style="background:${r.visible?r.color:'var(--surface-2)'};border:1px solid ${r.color};"></span><span class="ly-name" style="color:${r.color}">${escapeHtml(r.name||r.label)}<br><small style="color:var(--muted);font-weight:500;">${r.distKm.toFixed(0)}km・${fmtDuration(r.trafSec)}・¥${r.toll.toLocaleString()}</small></span><button class="ly-edit" data-e="${i}" title="名前を変更">✎</button>${(r.pts&&r.pts.length)?`<button class="ly-edit" data-ap="${i}" title="現在の行程に連結" style="font-size:10.5px;font-weight:800;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 7px;">＋連結</button><button class="ly-edit" data-ed="${i}" title="工程を再編集">✎</button>`:''}<button class="ly-del" data-d="${i}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   if(!savedRoutes.length&&!isoShapes.length&&!onsenLayerOn&&!poiCats.length&&!lineKeys.length&&!savedPins.length&&!bufferLayers.length)h+='<div class="ly-empty">レイヤーは空です。カスタムタブでPOI・高速/鉄道の全国強調を表示、温泉郷タブ、到達圏、検索して「ピンを残す」、ピンの「距離円」、ルートの「保存」などで要素を地図に重ねられます（タブを切り替えても残ります）。</div>';
   list.innerHTML=h;
   const lyOnsen=document.getElementById('lyOnsen');if(lyOnsen)lyOnsen.onclick=toggleOnsenLayer;
@@ -1411,6 +1442,7 @@ function renderLayerPanel(){
   list.querySelectorAll('.ly-rt').forEach(s=>s.onclick=()=>toggleSavedRoute(+s.dataset.i));
   list.querySelectorAll('.ly-edit[data-e]').forEach(b=>b.onclick=()=>renameSavedRoute(+b.dataset.e));
   list.querySelectorAll('.ly-edit[data-ed]').forEach(b=>b.onclick=()=>editSavedRoute(+b.dataset.ed));
+  list.querySelectorAll('.ly-edit[data-ap]').forEach(b=>b.onclick=()=>appendSavedRoute(+b.dataset.ap));
   list.querySelectorAll('.ly-del[data-d]').forEach(b=>b.onclick=()=>deleteSavedRoute(+b.dataset.d));
 }
 const ROUTES_API_FIELDS=['routes.duration','routes.staticDuration','routes.distanceMeters','routes.polyline.encodedPolyline','routes.legs.distanceMeters','routes.legs.duration','routes.legs.staticDuration','routes.legs.steps.navigationInstruction','routes.legs.steps.distanceMeters','routes.legs.steps.staticDuration','routes.legs.steps.polyline.encodedPolyline','routes.travelAdvisory.speedReadingIntervals','routes.optimizedIntermediateWaypointIndex'].join(',');
@@ -2754,11 +2786,11 @@ function renderItinerary(){
   if(!lastLegs||!lastLegs.length||points.length<2){sec.style.display='none';box.innerHTML='';return;}
   const dv=document.getElementById('depTime').value;const dep=dv?new Date(dv):new Date();
   const pT=(lastPointT&&lastPointT.length===points.length)?lastPointT:null;
+  const roles=computePointRoles();
   const nodes=[];
   for(let i=0;i<points.length;i++){
     const t=pT?pT[i]:lastLegs.slice(0,i).reduce((a,l)=>a+(l.sec||0),0);
-    const role=i===0?'出発':(i===points.length-1?'目的':'経由'+i);
-    nodes.push({t,kind:'point',role,stay:(i>0&&i<points.length-1)?(points[i].stay||0):0,label:points[i].label||(points[i].lat.toFixed(3)+', '+points[i].lng.toFixed(3))});
+    nodes.push({t,kind:'point',role:roles[i],stay:(i>0&&i<points.length-1)?(points[i].stay||0):0,label:points[i].label||(points[i].lat.toFixed(3)+', '+points[i].lng.toFixed(3))});
   }
   (lastEvents||[]).filter(e=>e.type!=='jct').forEach(e=>nodes.push({t:e.t,kind:e.type,label:e.name,ic:e.ic})); // JCTは工程に表示しない
   (lastRests||[]).forEach((r,idx)=>nodes.push({t:r.t,kind:'rest',label:r.name,sub:r.kind,stay:r.stay,idx,data:r.data}));
@@ -2767,7 +2799,7 @@ function renderItinerary(){
   nodes.forEach(nd=>{
     const arrSec=nd.t+restAccum;
     if(nd.kind==='point'){
-      const color=nd.role==='出発'?'#2f9e44':(nd.role==='目的'?'#e03131':cssvar('--accent'));
+      const color=roleColor(nd.role);
       if(nd.stay>0){const depSec=arrSec+nd.stay*60;restAccum+=nd.stay*60;html+=`<div class="sch-row rest"><span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発${fmtClockAdd(dep,depSec)}</small></span><span class="sch-badge" style="background:${color}">${nd.role}</span><span class="sch-label">${escapeHtml(nd.label)}<small> 滞在${nd.stay}分</small></span></div>`;}
       else html+=`<div class="sch-row"><span class="sch-t">${fmtClockAdd(dep,arrSec)}</span><span class="sch-badge" style="background:${color}">${nd.role}</span><span class="sch-label">${escapeHtml(nd.label)}</span></div>`;
     }else if(nd.kind==='rest'){
@@ -2802,14 +2834,16 @@ function exportSchedule(){
     if(nd.kind==='point')stay=(nd.i>0&&nd.i<points.length-1)?(points[nd.i].stay||0):0;else stay=(lastRests[nd.idx].stay||0);
     const depC=new Date(arr.getTime()+stay*60000);acc+=stay*60;
     if(nd.kind==='point')ptClock[nd.i]={arr,dep:depC,stay};else restClock[nd.idx]={arr,dep:depC,stay};});
-  const roleOf=i=>i===0?'出発':(i===points.length-1?'目的':'経由'+i);
+  const schedRoles=computePointRoles();
+  const roleOf=i=>schedRoles[i];
   const placeOf=i=>points[i].label||(points[i].lat.toFixed(3)+', '+points[i].lng.toFixed(3));
   // 行（stop→segment→rest→...）
   let rows='';
   for(let i=0;i<points.length;i++){
-    const c=ptClock[i]||{arr:dep,dep:dep,stay:0},isEnd=i===points.length-1,isStart=i===0;
+    const c=ptClock[i]||{arr:dep,dep:dep,stay:0},isEnd=i===points.length-1,isStart=i===0,lbl=roleOf(i),isDest=lbl.indexOf('目的')===0;
+    const cls=(isStart||lbl==='帰宅')?'s-start':((isDest||isEnd)?'s-end':'s-via');
     const timeHtml=isStart?('<b>'+fmtClock(c.arr)+'</b>'):('着<b>'+fmtClock(c.arr)+'</b>'+(c.stay?'<small>発 '+fmtClock(c.dep)+'</small>':''));
-    rows+='<div class="stop '+(isStart?'s-start':(isEnd?'s-end':'s-via'))+'"><span class="badge">'+roleOf(i)+'</span><span class="times">'+timeHtml+'</span><span class="place">'+escapeHtml(placeOf(i))+(c.stay?'<span class="stay">滞在'+c.stay+'分</span>':'')+'</span><span class="pnote" contenteditable="true"></span></div>';
+    rows+='<div class="stop '+cls+'"><span class="badge">'+lbl+'</span><span class="times">'+timeHtml+'</span><span class="place">'+escapeHtml(placeOf(i))+(c.stay?'<span class="stay">滞在'+c.stay+'分</span>':'')+'</span><span class="pnote" contenteditable="true"></span></div>';
     if(!isEnd){
       const leg=lastLegs[i]||{km:0,sec:0};
       rows+='<div class="seg"><span class="seg-ar">↓</span><span class="seg-info"><b>'+fmtDuration(leg.sec||0)+'</b> ・ '+(leg.km||0).toFixed(1)+' km</span><span class="seg-note" contenteditable="true"></span></div>';
@@ -2956,8 +2990,15 @@ function openTempPopup(m){const i=m._info,e=encodeURIComponent(i.name||''),es=i.
   openInfo(m,`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}<div class="meta" style="color:var(--muted);font-size:11px;">仮表示・地図には残りません（必要なら「ピンを残す」）</div>${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest" onclick="window.keepPin(${i.lat},${i.lng},'${e}','${es}')">ピンを残す</button>${circleIsoBtns(i.lat,i.lng,i.name)}<button onclick="window.addFav2('${e}',${i.lat},${i.lng})">★ 保存</button></div></div>`);
 }
 // ===== 常設ピン（保存ピン）：友達の最寄り駅などを地図に残し、レイヤータブに個別表示・カスタムタブで一括保存/描画 =====
-// 保存ピン＝休憩(茶円)と区別したピンクの小円（コンパクト表示）
-function makePinMarker(o){const m=new google.maps.Marker({position:{lat:o.lat,lng:o.lng},map:(o.visible!==false)?map:null,icon:dotIcon('#e64980',8),zIndex:65,title:o.name||''});m._info={lat:o.lat,lng:o.lng,name:o.name,sub:o.sub,id:o.id};m.addListener('click',()=>openKeptPopup(m));return m;}
+// 保存ピン＝休憩(茶円)と区別したピンクの円。ハロー(外周の淡い輪)＋白フチ＋濃い縁で明暗どちらの地図でも埋もれず目立つ
+function pinHaloIcon(color){
+  const svg='<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34">'
+    +'<circle cx="17" cy="17" r="15" fill="'+color+'" fill-opacity="0.28"/>'
+    +'<circle cx="17" cy="17" r="9" fill="'+color+'" stroke="#ffffff" stroke-width="3"/>'
+    +'<circle cx="17" cy="17" r="10.5" fill="none" stroke="'+color+'" stroke-width="1.4" stroke-opacity="0.9"/></svg>';
+  return {url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),scaledSize:new google.maps.Size(34,34),anchor:new google.maps.Point(17,17)};
+}
+function makePinMarker(o){const m=new google.maps.Marker({position:{lat:o.lat,lng:o.lng},map:(o.visible!==false)?map:null,icon:pinHaloIcon('#e6197a'),zIndex:66,title:o.name||''});m._info={lat:o.lat,lng:o.lng,name:o.name,sub:o.sub,id:o.id};m.addListener('click',()=>openKeptPopup(m));return m;}
 function addSavedPin(o){ // {name,lat,lng,sub} → 常設ピンを追加（同座標の重複は無視）
   if(savedPins.some(p=>Math.abs(p.lat-o.lat)<1e-6&&Math.abs(p.lng-o.lng)<1e-6))return savedPins.find(p=>Math.abs(p.lat-o.lat)<1e-6&&Math.abs(p.lng-o.lng)<1e-6);
   const pin={id:Date.now()+Math.floor(Math.random()*1000),name:o.name||'地点',lat:o.lat,lng:o.lng,sub:o.sub||'',visible:true};
