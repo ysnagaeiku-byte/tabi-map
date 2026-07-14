@@ -870,7 +870,7 @@ function toggleIsoVisible(){isoVisible=!isoVisible;isoShapes.forEach(s=>s.setMap
 // どの画面からでも押せる「全消去」：レイヤー・ピン・到達圏・距離円・保存車両・ルートをまとめて消去
 function clearAllObjects(){
   if(!confirm('地図上のレイヤー・ピン・到達圏・距離円・ルートをすべて消去します。よろしいですか？'))return;
-  clearArr(bufferShapes);document.getElementById('bufClear').style.display='none';
+  clearAllBuffers();
   removeTempPin();
   stopLiveLoc();liveMarker=liveCircle=null; // リアルタイム追跡も停止
   clearIso();
@@ -1040,7 +1040,7 @@ function placePopup(place,cat){
   html+='<div class="links">';
   html+=`<button class="dest" onclick="window.setDest(${lat},${lng},'${encodeURIComponent(name)}')">ここへ</button>`;
   html+=`<a class="nav" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}${place.place_id?('&destination_place_id='+place.place_id):''}">ナビ</a>`;
-  html+=`<button onclick="window.buffer(${lat},${lng})">距離円</button>`;
+  html+=circleIsoBtns(lat,lng,name);
   html+=`<a class="official" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${q}${place.place_id?('&query_place_id='+place.place_id):''}">Google</a>`;
   if(cat==='hotel')html+=`<a class="rakuten" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+楽天トラベル">楽天</a>`;
   html+='</div></div>';return html;
@@ -1060,7 +1060,7 @@ function placePopupFull(d,place,cat){
   html+='<div class="links">';
   html+=`<button class="dest" onclick="window.setDest(${lat},${lng},'${encodeURIComponent(d.name||place.name)}')">ここへ</button>`;
   html+=`<a class="nav" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}${place.place_id?('&destination_place_id='+place.place_id):''}">ナビ</a>`;
-  html+=`<button onclick="window.buffer(${lat},${lng})">距離円</button>`;
+  html+=circleIsoBtns(lat,lng,d.name||place.name);
   if(d.website)html+=`<a class="official" target="_blank" rel="noopener" href="${d.website}">公式</a>`;
   if(d.url)html+=`<a class="official" target="_blank" rel="noopener" href="${d.url}">Google</a>`;
   if(cat==='hotel')html+=`<a class="rakuten" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+楽天トラベル">楽天</a>`;
@@ -1102,7 +1102,7 @@ function popupHtml(tags,lat,lon,cat){
   html+='<div class="links">';
   html+=`<button class="dest" onclick="window.setDest(${lat},${lon},'${encodeURIComponent(name)}')">ここへ</button>`;
   html+=`<a class="nav" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}">ナビ</a>`;
-  html+=`<button onclick="window.buffer(${lat},${lon})">距離円</button>`;
+  html+=circleIsoBtns(lat,lon,name);
   if(cat==='hotel'){html+=`<a class="official" target="_blank" rel="noopener" href="${website||('https://www.google.com/search?q='+q+'+公式サイト')}">公式</a>`;if(!appId)html+=`<a class="rakuten" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+楽天トラベル">楽天</a>`;}
   else if(website){html+=`<a class="official" target="_blank" rel="noopener" href="${website}">サイト</a>`;}
   html+='</div></div>';return html;
@@ -1140,13 +1140,26 @@ function renderOnsenGo(){clearArr(onsengoMarkers);
   [...ONSEN_GO].sort((a,b)=>(a.s||2)-(b.s||2)).forEach(o=>{const sc=onsenScale(o);
     const m=new google.maps.Marker({position:{lat:o.lat,lng:o.lng},map,icon:pinIcon(sc.c,sc.sz),label:{text:'♨',fontSize:Math.round(9+sc.sz*1.6)+'px',color:'#fff',fontWeight:'700'},title:o.name+'（'+sc.l+'）',zIndex:(o.s||2)});
     m.addListener('click',()=>{infoWindow.setContent(onsengoPopup(o));infoWindow.open(map,m);});onsengoMarkers.push(m);});}
-function onsengoPopup(o){const q=encodeURIComponent(o.name);const sc=onsenScale(o);const taxTxt=o.tax?`入湯税 ${taxOku(o.tax)}/年（2023年度・全国上位）`:'入湯税データ非公表';return `<div class="popup"><h3>♨ ${escapeHtml(o.name)}</h3><div class="meta">${escapeHtml(o.area)}${o.note?(' ・ '+escapeHtml(o.note)):''}</div><div class="meta" style="margin-top:3px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${sc.c};margin-right:5px;vertical-align:middle;"></span><b>規模：${sc.l}</b>・${taxTxt}</div>${routeActionsHtml(o.lat,o.lng,o.name)}<div class="links"><button class="dest" onclick="window.setDest(${o.lat},${o.lng},'${encodeURIComponent(o.name)}')">ここへ</button><button onclick="window.ogNearby(${o.lat},${o.lng})">周辺の温泉</button><button onclick="window.buffer(${o.lat},${o.lng})">距離円</button><a class="rakuten" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+楽天トラベル">宿(楽天)</a><a class="official" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+ゆこゆこ">♨ ゆこゆこ</a><a class="official" target="_blank" rel="noopener" href="https://ja.wikipedia.org/wiki/${q}">詳細</a></div></div>`;}
+function onsengoPopup(o){const q=encodeURIComponent(o.name);const sc=onsenScale(o);const taxTxt=o.tax?`入湯税 ${taxOku(o.tax)}/年（2023年度・全国上位）`:'入湯税データ非公表';return `<div class="popup"><h3>♨ ${escapeHtml(o.name)}</h3><div class="meta">${escapeHtml(o.area)}${o.note?(' ・ '+escapeHtml(o.note)):''}</div><div class="meta" style="margin-top:3px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${sc.c};margin-right:5px;vertical-align:middle;"></span><b>規模：${sc.l}</b>・${taxTxt}</div>${routeActionsHtml(o.lat,o.lng,o.name)}<div class="links"><button class="dest" onclick="window.setDest(${o.lat},${o.lng},'${encodeURIComponent(o.name)}')">ここへ</button><button onclick="window.ogNearby(${o.lat},${o.lng})">周辺の温泉</button>${circleIsoBtns(o.lat,o.lng,o.name)}<a class="rakuten" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+楽天トラベル">宿(楽天)</a><a class="official" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+ゆこゆこ">♨ ゆこゆこ</a><a class="official" target="_blank" rel="noopener" href="https://ja.wikipedia.org/wiki/${q}">詳細</a></div></div>`;}
 window.ogNearby=function(lat,lng){infoWindow.close();map.setCenter({lat,lng});map.setZoom(14);selectTab('onsen');};
 
-// ===== 距離円バッファ =====
-function drawBuffer(lat,lng){clearArr(bufferShapes);[5,10,15,20,25].forEach(km=>{const c=new google.maps.Circle({center:{lat,lng},radius:km*1000,strokeColor:cssvar('--accent'),strokeWeight:1.5,strokeOpacity:.7,fillOpacity:0,map,clickable:false});bufferShapes.push(c);const lbl=new google.maps.Marker({position:{lat:lat+km/111,lng},map,clickable:false,icon:{path:google.maps.SymbolPath.CIRCLE,scale:0.01,fillOpacity:0,strokeOpacity:0},label:{text:km+'km',fontSize:'10px',fontWeight:'700',color:cssvar('--accent')}});bufferShapes.push(lbl);});document.getElementById('bufClear').style.display='block';}
-window.buffer=function(lat,lng){drawBuffer(lat,lng);infoWindow.close();};
-document.getElementById('bufClear').onclick=function(){clearArr(bufferShapes);this.style.display='none';};
+// ===== 距離円バッファ（レイヤー管理・複数同時描画・5〜30km） =====
+let bufferLayers=[]; // {id,name,center,shapes[],visible}
+function drawBuffer(lat,lng,name){
+  const id=Date.now()+Math.floor(Math.random()*1000);const shapes=[];
+  [5,10,15,20,25,30].forEach(km=>{
+    shapes.push(new google.maps.Circle({center:{lat,lng},radius:km*1000,strokeColor:cssvar('--accent'),strokeWeight:1.5,strokeOpacity:.7,fillOpacity:0,map,clickable:false,zIndex:1}));
+    shapes.push(new google.maps.Marker({position:{lat:lat+km/111,lng},map,clickable:false,icon:{path:google.maps.SymbolPath.CIRCLE,scale:0.01,fillOpacity:0,strokeOpacity:0},label:{text:km+'km',fontSize:'10px',fontWeight:'700',color:cssvar('--accent')}}));
+  });
+  bufferLayers.push({id,name:name||'地点',center:{lat,lng},shapes,visible:true});
+  document.getElementById('bufClear').style.display='block';renderLayerPanel();
+}
+function toggleBufferVisible(id){const b=bufferLayers.find(x=>x.id===id);if(!b)return;b.visible=!b.visible;b.shapes.forEach(s=>s.setMap(b.visible?map:null));renderLayerPanel();}
+function removeBuffer(id){const i=bufferLayers.findIndex(x=>x.id===id);if(i<0)return;bufferLayers[i].shapes.forEach(s=>s.setMap(null));bufferLayers.splice(i,1);if(!bufferLayers.length)document.getElementById('bufClear').style.display='none';renderLayerPanel();}
+function clearAllBuffers(){bufferLayers.forEach(b=>b.shapes.forEach(s=>s.setMap(null)));bufferLayers.length=0;document.getElementById('bufClear').style.display='none';renderLayerPanel();}
+window.buffer=function(lat,lng,encName){drawBuffer(lat,lng,encName?decodeURIComponent(encName):'');infoWindow.close();};
+window.isoAt=function(lat,lng){infoWindow.close();map.panTo({lat,lng});if(map.getZoom()<10)map.setZoom(10);setIsoCenter(lat,lng);showStatus('到達圏を描画します（到達圏タブで時間帯を調整可）',false);hideStatusLater();};
+document.getElementById('bufClear').onclick=clearAllBuffers;
 document.getElementById('isoClearFab').onclick=clearIso;
 
 // ===== ルート =====
@@ -1175,6 +1188,7 @@ function renderPoints(){
     const color=i===0?'#2f9e44':(isLast?'#e03131':cssvar('--accent'));
     const m=new google.maps.Marker({position:{lat:p.lat,lng:p.lng},map,draggable:!IS_TOUCH,icon:pinIcon(color,1.7),label:{text:(i===0?'出':isLast?'着':String(i)),fontSize:'11px',color:'#fff',fontWeight:'700'},title:IS_TOUCH?'':'ドラッグで移動'}); // タッチ端末は誤操作防止でドラッグ無効
     if(!IS_TOUCH)m.addListener('dragend',ev=>{points[i]={lat:+ev.latLng.lat().toFixed(6),lng:+ev.latLng.lng().toFixed(6),label:p.label,stay:p.stay||0};renderPoints();computeRoute();});
+    m.addListener('click',()=>openRoutePointPopup(i,m)); // 出発/経由/目的ピンをクリック→情報・距離円・到達圏
     routeMarkers.push(m);
     const isWaypoint=(i>0&&!isLast); // 経由地のみ滞在時間を設定可
     const row=document.createElement('div');row.className='pt-row';
@@ -1186,6 +1200,17 @@ function renderPoints(){
   list.querySelectorAll('.pt-stay-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(points[i]){points[i].stay=Math.max(0,Math.min(600,parseInt(inp.value)||0));renderItinerary();updateCost();}});
   persistState();
 }
+// ルート地点（出発/経由/目的）ピンのポップアップ：場所情報＋距離円＋到達圏＋削除
+function openRoutePointPopup(i,m){
+  const p=points[i];if(!p)return;
+  const isLast=(i===points.length-1&&points.length>1);
+  const role=i===0?'出発地':(isLast?'目的地':'経由地'+i);
+  const nm=p.label||(p.lat.toFixed(4)+', '+p.lng.toFixed(4));
+  const color=i===0?'#2f9e44':(isLast?'#e03131':cssvar('--accent'));
+  const html=`<div class="popup"><h3>${escapeHtml(nm)}</h3><div class="meta"><span style="display:inline-block;background:${color};color:#fff;font-weight:800;font-size:10px;border-radius:4px;padding:1px 6px;margin-right:4px;">${role}</span> ${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</div><div class="links">${circleIsoBtns(p.lat,p.lng,p.label||role)}<button class="pin-del-btn" onclick="window.delRoutePoint(${i})">この地点を削除</button></div></div>`;
+  infoWindow.setContent(html);infoWindow.open(map,m);
+}
+window.delRoutePoint=function(i){infoWindow.close();points.splice(i,1);renderPoints();if(points.length>=2)computeRoute();else{clearRouteLine();lastDistanceKm=lastDurationSec=null;document.getElementById('rsResult').classList.remove('show');document.getElementById('rsPeek').classList.remove('show');}};
 function clearRouteLine(){if(routeLine){routeLine.setMap(null);routeLine=null;}if(routeCasing){routeCasing.setMap(null);routeCasing=null;}clearArr(routeSegs);}
 function stepClass(s){const n=s.name||'',r=s.ref||'';if(/首都高/.test(n)||/\bC[12]\b/.test(r))return 'shutoko';if(/(高速道路|自動車道|有料道路|スカイライン)/.test(n)||/\bE\d/.test(r)||/\bC\d/.test(r))return 'nexco';return null;}
 async function routeOSRM(pts){const path=pts.map(p=>`${p.lng},${p.lat}`).join(';');const d=await (await fetch(`https://router.project-osrm.org/route/v1/driving/${path}?overview=full&geometries=geojson&steps=true`)).json();if(d.code!=='Ok')throw new Error(d.message||'OSRM');const r=d.routes[0];let nexco=0,shu=0;const legs=[];(r.legs||[]).forEach(lg=>{let ln=0,ls=0;(lg.steps||[]).forEach(s=>{const c=stepClass(s);if(c==='nexco')ln+=s.distance;else if(c==='shutoko')ls+=s.distance;});nexco+=ln;shu+=ls;legs.push({km:lg.distance/1000,sec:lg.duration,nexcoKm:ln/1000,shutokoKm:ls/1000});});return{km:r.distance/1000,sec:r.duration,line:r.geometry.coordinates.map(c=>({lat:c[1],lng:c[0]})),nexcoKm:nexco/1000,shutokoKm:shu/1000,legs};}
@@ -1352,9 +1377,10 @@ function renderLayerPanel(){
   const lineKeys=Object.keys(lineLayers);
   lineKeys.forEach(key=>{const L=lineLayers[key];const sub=L.overpass?(L.loading?'取得中…':((L.lines?L.lines.length:0)+'本・この範囲')):'全国強調';h+=`<div class="ly-item"><span class="ly-sw ln-sw" data-k="${key}" style="background:${L.visible?L.def.swatch:'var(--surface-2)'};border:1px solid ${L.def.swatch};"></span><span class="ly-name">${L.label} <small style="color:var(--muted);font-weight:500;">${sub}</small></span><button class="ly-del ln-del" data-k="${key}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   if(isoShapes.length)h+=`<div class="ly-item"><span class="ly-sw ly-iso-sw" style="background:${isoVisible?'#1a73e8':'var(--surface-2)'};border:1px solid #1a73e8;"></span><span class="ly-name">到達圏</span><button class="ly-del" id="lyIsoDel"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
+  bufferLayers.forEach(bf=>{const col=cssvar('--accent');h+=`<div class="ly-item"><span class="ly-sw buf-sw" data-id="${bf.id}" style="background:${bf.visible?col:'var(--surface-2)'};border:1px solid ${col};"></span><span class="ly-name">距離円：${escapeHtml(bf.name)}</span><button class="ly-del buf-del" data-id="${bf.id}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   savedPins.forEach((p,i)=>{h+=`<div class="ly-item"><span class="ly-sw pin-lysw" data-id="${p.id}" style="background:${p.visible!==false?'#e64980':'var(--surface-2)'};border:1px solid #e64980;"></span><span class="ly-name">ピン${i+1}：${escapeHtml(p.name)}${p.sub?`<br><small style="color:var(--muted);font-weight:500;">${escapeHtml(p.sub)}</small>`:''}</span><button class="ly-del pin-lydel" data-id="${p.id}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   savedRoutes.forEach((r,i)=>{h+=`<div class="ly-item"><span class="ly-sw ly-rt" data-i="${i}" style="background:${r.visible?r.color:'var(--surface-2)'};border:1px solid ${r.color};"></span><span class="ly-name" style="color:${r.color}">${escapeHtml(r.name||r.label)}<br><small style="color:var(--muted);font-weight:500;">${r.distKm.toFixed(0)}km・${fmtDuration(r.trafSec)}・¥${r.toll.toLocaleString()}</small></span><button class="ly-edit" data-e="${i}" title="名前を変更">✎</button>${(r.pts&&r.pts.length)?`<button class="ly-edit" data-ed="${i}" title="工程を再編集">✎</button>`:''}<button class="ly-del" data-d="${i}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
-  if(!savedRoutes.length&&!isoShapes.length&&!onsenLayerOn&&!poiCats.length&&!lineKeys.length&&!savedPins.length)h+='<div class="ly-empty">レイヤーは空です。カスタムタブでPOI・高速/鉄道の全国強調を表示、温泉郷タブ、到達圏、検索して「ピンを残す」、ルートの「保存」などで要素を地図に重ねられます（タブを切り替えても残ります）。</div>';
+  if(!savedRoutes.length&&!isoShapes.length&&!onsenLayerOn&&!poiCats.length&&!lineKeys.length&&!savedPins.length&&!bufferLayers.length)h+='<div class="ly-empty">レイヤーは空です。カスタムタブでPOI・高速/鉄道の全国強調を表示、温泉郷タブ、到達圏、検索して「ピンを残す」、ピンの「距離円」、ルートの「保存」などで要素を地図に重ねられます（タブを切り替えても残ります）。</div>';
   list.innerHTML=h;
   const lyOnsen=document.getElementById('lyOnsen');if(lyOnsen)lyOnsen.onclick=toggleOnsenLayer;
   const lyOnsenDel=document.getElementById('lyOnsenDel');if(lyOnsenDel)lyOnsenDel.onclick=toggleOnsenLayer;
@@ -1366,6 +1392,8 @@ function renderLayerPanel(){
   list.querySelectorAll('.ln-del').forEach(b=>b.onclick=()=>{lineLayerClear(b.dataset.k);renderLayerPanel();if(activeTab==='custom')buildCustomPanel();});
   list.querySelectorAll('.pin-lysw').forEach(s=>s.onclick=()=>toggleSavedPinVisible(+s.dataset.id));
   list.querySelectorAll('.pin-lydel').forEach(b=>b.onclick=()=>removeSavedPin(+b.dataset.id));
+  list.querySelectorAll('.buf-sw').forEach(s=>s.onclick=()=>toggleBufferVisible(+s.dataset.id));
+  list.querySelectorAll('.buf-del').forEach(b=>b.onclick=()=>removeBuffer(+b.dataset.id));
   list.querySelectorAll('.ly-rt').forEach(s=>s.onclick=()=>toggleSavedRoute(+s.dataset.i));
   list.querySelectorAll('.ly-edit[data-e]').forEach(b=>b.onclick=()=>renameSavedRoute(+b.dataset.e));
   list.querySelectorAll('.ly-edit[data-ed]').forEach(b=>b.onclick=()=>editSavedRoute(+b.dataset.ed));
@@ -2809,7 +2837,7 @@ function exportSchedule(){
     +'.pnote{flex:0 0 88px;border-bottom:1px dotted #ccc;min-height:16px;}'
     +'.seg{display:flex;align-items:center;gap:8px;padding:3px 0 3px 8px;color:#555;font-size:11.5px;} .seg-ar{color:#999;font-weight:800;} .seg-info b{color:#111;} .seg-hw{color:#1a7a37;font-weight:800;} .seg-note{flex:1;border-bottom:1px dotted #ddd;min-height:14px;}'
     +'.rest{display:flex;align-items:center;gap:7px;padding:2px 0 2px 22px;font-size:11px;color:#444;} .r-ic{background:#8a5a2b;color:#fff;font-weight:800;border-radius:4px;padding:0 5px;font-size:10px;} .r-t{color:#666;font-variant-numeric:tabular-nums;} .r-scale{background:#0ca678;color:#fff;border-radius:4px;padding:0 5px;font-weight:800;} .r-fac{color:#555;}'
-    +'.cost{margin-top:12px;} .cost table{width:100%;border-collapse:collapse;font-size:12px;} .cost td{border:1px solid #999;padding:5px 8px;} .cost .k{background:#f2f2f2;font-weight:800;white-space:nowrap;width:1%;} .cost .big{font-size:15px;font-weight:800;}'
+    +'.cost{margin-top:10px;color:#555;} .cost table{width:100%;border-collapse:collapse;font-size:9px;} .cost td{border:1px solid #d5d5d5;padding:1.5px 5px;line-height:1.35;} .cost .k{background:#f7f7f7;font-weight:700;white-space:nowrap;width:1%;color:#777;} .cost .big{font-size:10px;font-weight:800;color:#333;}'
     +'.toolbar{position:fixed;top:10px;right:12px;display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.9);padding:5px;border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.15);} .toolbar .tlab{font-size:11px;font-weight:800;color:#555;padding-left:4px;} .toolbar button{font-size:13px;font-weight:800;padding:8px 13px;border:none;border-radius:8px;background:#0ca678;color:#fff;cursor:pointer;}'
     +'.hint{font-size:10.5px;color:#999;margin-top:8px;}'
     +'@media print{.toolbar,.hint{display:none;} body{padding:11mm 12mm;}}';
@@ -2911,11 +2939,12 @@ function placeTempPin(lat,lng,name,sub){
   map.panTo({lat,lng});if(map.getZoom()<14)map.setZoom(15);openTempPopup(m);
 }
 function openTempPopup(m){const i=m._info,e=encodeURIComponent(i.name||''),es=i.sub?encodeURIComponent(i.sub):'';
-  infoWindow.setContent(`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}<div class="meta" style="color:var(--muted);font-size:11px;">仮表示・地図には残りません（必要なら「ピンを残す」）</div>${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest" onclick="window.keepPin(${i.lat},${i.lng},'${e}','${es}')">ピンを残す</button><button onclick="window.buffer(${i.lat},${i.lng})">距離円</button><button onclick="window.addFav2('${e}',${i.lat},${i.lng})">★ 保存</button><a class="nav" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${i.lat},${i.lng}">ナビ</a></div></div>`);
+  infoWindow.setContent(`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}<div class="meta" style="color:var(--muted);font-size:11px;">仮表示・地図には残りません（必要なら「ピンを残す」）</div>${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest" onclick="window.keepPin(${i.lat},${i.lng},'${e}','${es}')">ピンを残す</button>${circleIsoBtns(i.lat,i.lng,i.name)}<button onclick="window.addFav2('${e}',${i.lat},${i.lng})">★ 保存</button></div></div>`);
   infoWindow.open(map,m);
 }
 // ===== 常設ピン（保存ピン）：友達の最寄り駅などを地図に残し、レイヤータブに個別表示・カスタムタブで一括保存/描画 =====
-function makePinMarker(o){const m=new google.maps.Marker({position:{lat:o.lat,lng:o.lng},map:(o.visible!==false)?map:null,icon:pinIcon('#e64980',1.7),label:{text:'●',fontSize:'11px',color:'#fff'},zIndex:65,title:o.name||''});m._info={lat:o.lat,lng:o.lng,name:o.name,sub:o.sub,id:o.id};m.addListener('click',()=>openKeptPopup(m));return m;}
+// 保存ピン＝休憩(茶円)と区別したピンクの小円（コンパクト表示）
+function makePinMarker(o){const m=new google.maps.Marker({position:{lat:o.lat,lng:o.lng},map:(o.visible!==false)?map:null,icon:dotIcon('#e64980',8),zIndex:65,title:o.name||''});m._info={lat:o.lat,lng:o.lng,name:o.name,sub:o.sub,id:o.id};m.addListener('click',()=>openKeptPopup(m));return m;}
 function addSavedPin(o){ // {name,lat,lng,sub} → 常設ピンを追加（同座標の重複は無視）
   if(savedPins.some(p=>Math.abs(p.lat-o.lat)<1e-6&&Math.abs(p.lng-o.lng)<1e-6))return savedPins.find(p=>Math.abs(p.lat-o.lat)<1e-6&&Math.abs(p.lng-o.lng)<1e-6);
   const pin={id:Date.now()+Math.floor(Math.random()*1000),name:o.name||'地点',lat:o.lat,lng:o.lng,sub:o.sub||'',visible:true};
@@ -2944,12 +2973,14 @@ function drawPinGroup(idx){const g=getPinGroups()[idx];if(!g)return;let n=0;g.pi
 function deletePinGroup(idx){const g=getPinGroups();if(!g[idx])return;if(!confirm(`保存済みピン「${g[idx].name}」を削除します（地図上のピンは消えません）`))return;g.splice(idx,1);savePinGroups(g);if(activeTab==='custom')buildCustomPanel();}
 window.keepPin=function(lat,lng,enc,encSub){const name=enc?decodeURIComponent(enc):'',sub=encSub?decodeURIComponent(encSub):'';removeTempPin();const pin=addSavedPin({name,lat,lng,sub});if(pin&&pin.marker){openKeptPopup(pin.marker);}showStatus('ピンを残しました（レイヤータブに表示・カスタムタブで一括保存できます）',false);hideStatusLater();};
 function openKeptPopup(m){const i=m._info,e=encodeURIComponent(i.name||'');
-  infoWindow.setContent(`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest" onclick="window.routeTo(${i.lat},${i.lng},'${e}')">ルートに追加</button><button onclick="window.buffer(${i.lat},${i.lng})">距離円</button><a class="nav" target="_blank" rel="noopener" href="https://www.google.com/maps/dir/?api=1&destination=${i.lat},${i.lng}">ナビ</a>${i.id!=null?`<button class="pin-del-btn" onclick="window.delPin(${i.id})">ピンを削除</button>`:''}</div></div>`);
+  infoWindow.setContent(`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest" onclick="window.routeTo(${i.lat},${i.lng},'${e}')">ルートに追加</button>${circleIsoBtns(i.lat,i.lng,i.name)}${i.id!=null?`<button class="pin-del-btn" onclick="window.delPin(${i.id})">ピンを削除</button>`:''}</div></div>`);
   infoWindow.open(map,m);
 }
 window.delPin=function(id){infoWindow.close();removeSavedPin(id);showStatus('ピンを削除しました',false);hideStatusLater();};
 // ルートタブで地図上のピン情報を 出発地/経由地/目的地 に割り当てる（ポップアップ内に表示）
 function routeActionsHtml(lat,lng,name){const e=encodeURIComponent(name||'');return `<div class="route-act"><span class="ra-lab">このピンをルートに：</span><button onclick="window.routeUse(${lat},${lng},'${e}','start')">出発地</button><button onclick="window.routeUse(${lat},${lng},'${e}','via')">経由地</button><button onclick="window.routeUse(${lat},${lng},'${e}','end')">目的地</button></div>`;}
+// 距離円＋到達圏 ボタン（各ポップアップ共通。距離円はレイヤー名に施設名を使うので name を渡す）
+function circleIsoBtns(lat,lng,name){const e=encodeURIComponent(name||'');return `<button onclick="window.buffer(${lat},${lng},'${e}')">距離円</button><button onclick="window.isoAt(${lat},${lng})">到達圏</button>`;}
 window.routeUse=function(lat,lng,enc,role){if(activeTab!=='route')selectTab('route');routeSheet.classList.remove('collapsed');const p={lat:+(+lat).toFixed(6),lng:+(+lng).toFixed(6),label:enc?decodeURIComponent(enc):null,stay:0};if(role==='start')points.unshift(p);else if(role==='via'){if(points.length===0)points.push(p);else points.splice(points.length-1,0,p);}else points.push(p);infoWindow.close();removeTempPin();renderPoints();if(points.length>=2)computeRoute();else map.panTo({lat:p.lat,lng:p.lng});const rn={start:'出発地',via:'経由地',end:'目的地'}[role];showStatus((p.label||'地点')+' を'+rn+'に設定',false);hideStatusLater();};
 window.routeTo=function(lat,lng,enc){if(activeTab!=='route')selectTab('route');routeSheet.classList.remove('collapsed');addPoint(lat,lng,enc?decodeURIComponent(enc):null);infoWindow.close();};
 window.addFav2=function(enc,lat,lng){addFav(decodeURIComponent(enc),lat,lng);};
