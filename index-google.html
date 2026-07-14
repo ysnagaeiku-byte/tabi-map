@@ -122,8 +122,10 @@
   #routeSheet{display:none;position:fixed;left:0;right:0;bottom:0;z-index:1050;background:var(--panel);border-top:1px solid var(--line);border-radius:18px 18px 0 0;box-shadow:0 -8px 30px var(--shadow);padding:14px 14px calc(12px + env(safe-area-inset-bottom));max-height:54dvh;overflow-y:auto;}
   #routeSheet.open{display:block;} #routeSheet.collapsed{max-height:none;}
   #routeSheet.collapsed #rsBody{display:none;}
-  .rs-grab{width:38px;height:4px;border-radius:99px;background:var(--line);margin:0 auto 10px;cursor:pointer;}
-  .rs-peek{display:none;align-items:center;gap:10px;cursor:pointer;padding:0 2px 4px;}
+  .rs-grab{width:44px;height:5px;border-radius:99px;background:var(--line);margin:0 auto 10px;cursor:pointer;padding:6px 0;background-clip:content-box;}
+  #routeSheet.collapsed{cursor:pointer;} /* 収納中はシート全体をタップで開ける（判定を広く） */
+  #routeSheet.collapsed .rs-grab{margin-bottom:4px;}
+  .rs-peek{display:none;align-items:center;gap:10px;cursor:pointer;padding:6px 2px 8px;min-height:40px;}
   .rs-peek.show{display:flex;}
   .rs-peek .pk-main{flex:1;font-weight:800;font-size:15px;display:flex;flex-direction:column;gap:1px;}
   .rs-peek .pk-main small{font-weight:600;color:var(--muted);font-size:11.5px;}
@@ -237,6 +239,7 @@
   body:has(#routeSheet.open:not(.collapsed)) #trackFab{bottom:calc(54dvh + 78px);}
   body:has(#routeSheet.open:not(.collapsed)) #layerBtn{bottom:calc(54dvh + 140px);}
   body:has(#routeSheet.open:not(.collapsed)) #settleBtn{bottom:calc(54dvh + 202px);}
+  body:has(#routeSheet.open:not(.collapsed)) #imgBtn{bottom:calc(54dvh + 264px);}
   body:has(#routeSheet.open:not(.collapsed)) #bufClear{bottom:calc(54dvh + 16px);}
   body:has(#routeSheet.open:not(.collapsed)) #isoClearFab{bottom:calc(54dvh + 64px);}
   body:has(#routeSheet.open:not(.collapsed)) #layerPanel,body:has(#routeSheet.open:not(.collapsed)) #settlePanel{bottom:calc(54dvh + 20px);max-height:calc(44dvh - 40px);}
@@ -303,6 +306,8 @@
   /* レイヤーパネル */
   #layerBtn{position:fixed;right:12px;bottom:calc(222px + env(safe-area-inset-bottom));z-index:1040;width:54px;height:54px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:18px;box-shadow:0 4px 16px var(--shadow);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;}
   #settleBtn{position:fixed;right:12px;bottom:calc(284px + env(safe-area-inset-bottom));z-index:1040;width:54px;height:54px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:18px;box-shadow:0 4px 16px var(--shadow);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;}
+  #imgBtn{position:fixed;right:12px;bottom:calc(346px + env(safe-area-inset-bottom));z-index:1040;width:54px;height:54px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:18px;box-shadow:0 4px 16px var(--shadow);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;}
+  #imgBtn small{font-size:8px;font-weight:800;color:var(--muted);letter-spacing:0;line-height:1;}
   #layerPanel,#settlePanel{display:none;position:fixed;right:12px;bottom:calc(214px + env(safe-area-inset-bottom));z-index:1090;width:min(320px,88vw);max-height:56vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px var(--shadow);padding:12px 14px;}
   #layerPanel.open,#settlePanel.open{display:block;}
   .stl-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
@@ -345,16 +350,18 @@
     .tabs{max-width:calc(100% - 126px);padding:8px 10px 4px;}
     .tab{padding:7px 12px;font-size:12.5px;min-height:34px;}
     /* 右下FAB：小型の円＋ラベル無し（アイコンのみ）でスリムに */
-    #myLocFab,#trackFab,#layerBtn,#settleBtn{width:46px;height:46px;border-radius:50%;font-size:19px;bottom:auto;}
-    #myLocFab small,#trackFab small,#layerBtn small,#settleBtn small{display:none;}
+    #myLocFab,#trackFab,#layerBtn,#settleBtn,#imgBtn{width:46px;height:46px;border-radius:50%;font-size:19px;bottom:auto;}
+    #myLocFab small,#trackFab small,#layerBtn small,#settleBtn small,#imgBtn small{display:none;}
     #myLocFab{bottom:calc(92px + env(safe-area-inset-bottom));}
     #trackFab{bottom:calc(146px + env(safe-area-inset-bottom));}
     #layerBtn{bottom:calc(200px + env(safe-area-inset-bottom));}
     #settleBtn{bottom:calc(254px + env(safe-area-inset-bottom));}
+    #imgBtn{bottom:calc(308px + env(safe-area-inset-bottom));}
     body:has(#routeSheet.open:not(.collapsed)) #myLocFab{bottom:calc(54dvh + 14px);}
     body:has(#routeSheet.open:not(.collapsed)) #trackFab{bottom:calc(54dvh + 68px);}
     body:has(#routeSheet.open:not(.collapsed)) #layerBtn{bottom:calc(54dvh + 122px);}
     body:has(#routeSheet.open:not(.collapsed)) #settleBtn{bottom:calc(54dvh + 176px);}
+    body:has(#routeSheet.open:not(.collapsed)) #imgBtn{bottom:calc(54dvh + 230px);}
     #bufClear,#isoClearFab{font-size:11.5px;padding:8px 12px;}
   }
 </style>
@@ -393,6 +400,7 @@
 <button id="trackFab" title="リアルタイム追跡の開始/停止" aria-label="リアルタイム追跡"><svg class="svgi" viewBox="0 0 24 24"><path d="M3.5 11.5 21 4l-7.2 17-2.4-7.3z"/></svg><small>追跡</small></button>
 <button id="layerBtn" title="レイヤー（温泉郷・圏域・保存ルート）" aria-label="レイヤー管理"><svg class="svgi" viewBox="0 0 24 24"><path d="M12 2 22 7.5 12 13 2 7.5 12 2z"/><path d="m2 12.2 10 5.5 10-5.5"/><path d="m2 16.7 10 5.5 10-5.5"/></svg><small>レイヤー</small></button>
 <button id="settleBtn" title="複数車両の割り勘決算" aria-label="複数車両の割り勘決算"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.6 7.6 3.4 4.3 3.4-4.3M12 11.9V17M9.4 13.4h5.2M9.4 15.6h5.2"/></svg><small>割り勘</small></button>
+<button id="imgBtn" title="表示中の地図・レイヤーを画像で保存" aria-label="画像出力"><svg class="svgi" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="m4 17 5-5 4 4 3-3 4 4"/></svg><small>画像出力</small></button>
 <div id="layerPanel"><div class="ly-head"><span>レイヤー</span><button id="layerClose">✕</button></div><div id="layerList"></div></div>
 <div id="settlePanel"><div class="ly-head"><span>複数車両 割り勘決算</span><button id="settleClose">✕</button></div><div id="settleList"></div></div>
 
@@ -789,6 +797,7 @@ function selectTab(key){
   customPanel.classList.toggle('open',key==='custom');
   document.getElementById('isoPanel').classList.toggle('open',isoMode);
   routeSheet.classList.toggle('open',routeMode);
+  if(routeMode)routeSheet.classList.remove('collapsed'); // 「ルート・費用」を押したら常に展開（前回の収納状態を引きずらない）
   document.getElementById('controls').style.display=(routeMode||isoMode||key==='onsengo')?'none':'flex';
   if(!onsenLayerOn)clearArr(onsengoMarkers); // 温泉郷レイヤー/到達圏はタブを切り替えても保持
   if(key==='onsengo'){onsenLayerOn=true;renderOnsenGo();map.fitBounds(llBounds(ONSEN_GO),40);showStatus('温泉郷 '+ONSEN_GO.length+'件・ピンの大きさ/色＝規模（青:小→赤:最大級／入湯税ベース）。タップで詳細',false);hideStatusLater();}
@@ -2841,14 +2850,19 @@ function exportSchedule(){
   let rows='';
   for(let i=0;i<points.length;i++){
     const c=ptClock[i]||{arr:dep,dep:dep,stay:0},isEnd=i===points.length-1,isStart=i===0,lbl=roleOf(i),isDest=lbl.indexOf('目的')===0;
-    const cls=(isStart||lbl==='帰宅')?'s-start':((isDest||isEnd)?'s-end':'s-via');
-    const timeHtml=isStart?('<b>'+fmtClock(c.arr)+'</b>'):('着<b>'+fmtClock(c.arr)+'</b>'+(c.stay?'<small>発 '+fmtClock(c.dep)+'</small>':''));
-    rows+='<div class="stop '+cls+'"><span class="badge">'+lbl+'</span><span class="times">'+timeHtml+'</span><span class="place">'+escapeHtml(placeOf(i))+(c.stay?'<span class="stay">滞在'+c.stay+'分</span>':'')+'</span><span class="pnote" contenteditable="true"></span></div>';
+    if(isStart||isEnd){ // 出発地・最終到着点は従来のコンパクト表示
+      const cls=(isStart||lbl==='帰宅')?'s-start':'s-end';
+      const timeHtml=isStart?('<b>'+fmtClock(c.arr)+'</b>'):('着<b>'+fmtClock(c.arr)+'</b>'+(c.stay?'<small>発 '+fmtClock(c.dep)+'</small>':''));
+      rows+='<div class="stop '+cls+'"><span class="badge">'+lbl+'</span><span class="times">'+timeHtml+'</span><span class="place">'+escapeHtml(placeOf(i))+(c.stay?'<span class="stay">滞在'+c.stay+'分</span>':'')+'</span></div>';
+    }else{ // 経由地・目的地は上下罫線のボックス（着/発を2行・地名を大きく）
+      const vcls=isDest?'sb-dest':'sb-via';
+      rows+='<div class="stop-box '+vcls+'"><span class="sb-badge">'+lbl+'</span><span class="sb-times">着'+fmtClock(c.arr)+'<br>発'+fmtClock(c.dep)+'</span><span class="sb-place">'+escapeHtml(placeOf(i))+(c.stay?'<span class="sb-stay">滞在'+c.stay+'分</span>':'')+'</span></div>';
+    }
     if(!isEnd){
       const leg=lastLegs[i]||{km:0,sec:0};
       rows+='<div class="seg"><span class="seg-ar">↓</span><span class="seg-info"><b>'+fmtDuration(leg.sec||0)+'</b> ・ '+(leg.km||0).toFixed(1)+' km</span><span class="seg-note" contenteditable="true"></span></div>';
       (lastRests||[]).forEach((r,idx)=>{ if(r.t>=pT[i]&&(i+1>=points.length||r.t<pT[i+1])){const rc=restClock[idx]||{arr:dep,dep:dep};
-        rows+='<div class="rest"><span class="r-ic">休</span><span class="r-t">着'+fmtClock(rc.arr)+(r.stay?' 発'+fmtClock(rc.dep):'')+'</span><span class="r-name">'+escapeHtml(r.name)+' <small>'+escapeHtml(r.kind)+'</small>'+(r.data?' <span class="r-scale" style="background:'+lvColor(r.data.score)+'">Lv.'+r.data.score+'</span> <span class="r-fac">基礎Lv.'+r.data.base+'・'+schedFacText(r.data)+'</span>':'')+'</span></div>';
+        rows+='<div class="rest"><span class="r-ic">休</span><span class="r-t">着'+fmtClock(rc.arr)+'<br>発'+fmtClock(rc.dep)+'</span><span class="r-name">'+escapeHtml(r.name)+'</span></div>';
       }});
     }
   }
@@ -2864,7 +2878,7 @@ function exportSchedule(){
   const cost='<table>'
     +'<tr><td class="k">レンタカー代等</td><td contenteditable="true"></td><td class="k">有料道路(ETC)</td><td class="big">¥'+t.toll.toLocaleString()+'</td></tr>'
     +'<tr><td class="k">パーキング等</td><td contenteditable="true"></td><td class="k">任意保険等</td><td>'+(other>0?('¥'+other.toLocaleString()):'')+'</td></tr>'
-    +'<tr><td class="k">燃料</td><td>'+(price||'-')+'円/L・'+(eff||'-')+'km/L → ¥'+gas.toLocaleString()+'（'+liters.toFixed(1)+'L）</td><td class="k">その他</td><td contenteditable="true"></td></tr>'
+    +'<tr><td class="k">燃料予算</td><td><span class="big">¥'+gas.toLocaleString()+'</span><br><span class="fuel-sub">'+(price||'-')+'円/L・'+(eff||'-')+'km/L（'+liters.toFixed(1)+'L）</span></td><td class="k">その他</td><td contenteditable="true"></td></tr>'
     +'<tr><td class="k">合計</td><td class="big">¥'+total.toLocaleString()+'</td><td class="k">キロ程</td><td class="big">'+lastDistanceKm.toFixed(1)+' km</td></tr>'
     +'<tr><td class="k">予算</td><td contenteditable="true"></td><td class="k">1人あたり（'+splitN+'人）</td><td class="big">'+perPerson.toLocaleString()+'円/人</td></tr>'
     +'</table>';
@@ -2873,8 +2887,7 @@ function exportSchedule(){
     +'.hdr{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #111;padding-bottom:6px;gap:12px;}'
     +'.ttl{font-size:20px;font-weight:800;} .ed{border-bottom:1px dashed #999;padding:0 6px;display:inline-block;min-width:60px;}'
     +'.period{font-size:13px;font-weight:700;white-space:nowrap;}'
-    +'.subttl{font-size:13px;font-weight:700;margin:7px 0 10px;color:#333;}'
-    +'.main{display:grid;grid-template-columns:2fr 1fr;gap:0;}'  /* 右1/3はメモ用の白紙 */
+    +'.main{display:grid;grid-template-columns:2fr 1fr;gap:0;margin-top:10px;}'  /* 右1/3はメモ用の白紙 */
     +'.col-left{padding-right:10px;} .col-right{border-left:1px solid #ddd;}'
     +'.szbtn{background:#fff !important;color:#0ca678 !important;border:1px solid #0ca678 !important;} .szbtn.on{background:#0ca678 !important;color:#fff !important;}'
     +'.stop{display:flex;align-items:stretch;gap:8px;padding:5px 0;border-bottom:1px solid #eee;}'
@@ -2882,10 +2895,15 @@ function exportSchedule(){
     +'.s-start .badge{background:#e9f5ee;border-color:#2f9e44;color:#1a7a37;} .s-end .badge{background:#fdecec;border-color:#e03131;color:#c92a2a;}'
     +'.times{flex:0 0 78px;font-size:13px;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;justify-content:center;} .times small{font-weight:600;color:#666;font-size:10px;}'
     +'.place{flex:1;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;} .place .stay{font-size:10px;font-weight:700;color:#e8590c;background:#fff3e6;border-radius:4px;padding:1px 5px;}'
-    +'.pnote{flex:0 0 88px;border-bottom:1px dotted #ccc;min-height:16px;}'
-    +'.seg{display:flex;align-items:center;gap:8px;padding:3px 0 3px 8px;color:#555;font-size:11.5px;} .seg-ar{color:#999;font-weight:800;} .seg-info b{color:#111;} .seg-hw{color:#1a7a37;font-weight:800;} .seg-note{flex:1;border-bottom:1px dotted #ddd;min-height:14px;}'
-    +'.rest{display:flex;align-items:center;gap:7px;padding:2px 0 2px 22px;font-size:11px;color:#444;} .r-ic{background:#8a5a2b;color:#fff;font-weight:800;border-radius:4px;padding:0 5px;font-size:10px;} .r-t{color:#666;font-variant-numeric:tabular-nums;} .r-scale{background:#0ca678;color:#fff;border-radius:4px;padding:0 5px;font-weight:800;} .r-fac{color:#555;}'
-    +'.cost{margin-top:10px;color:#555;} .cost table{width:100%;border-collapse:collapse;font-size:9px;} .cost td{border:1px solid #d5d5d5;padding:1.5px 5px;line-height:1.35;} .cost .k{background:#f7f7f7;font-weight:700;white-space:nowrap;width:1%;color:#777;} .cost .big{font-size:10px;font-weight:800;color:#333;}'
+    /* 経由地・目的地＝上下罫線のボックス。着/発2行・地名を大きく（約2倍） */
+    +'.stop-box{display:flex;align-items:center;gap:12px;border-top:1px solid #222;border-bottom:1px solid #222;padding:7px 4px;margin:6px 0;}'
+    +'.sb-badge{flex:0 0 54px;text-align:center;font-weight:800;font-size:12px;border:1.5px solid #333;border-radius:4px;padding:5px 2px;line-height:1.15;}'
+    +'.sb-dest .sb-badge{border-color:#e03131;color:#c92a2a;} .sb-via .sb-badge{border-color:#555;color:#333;}'
+    +'.sb-times{flex:0 0 62px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:#333;line-height:1.5;}'
+    +'.sb-place{flex:1;font-size:27px;font-weight:800;line-height:1.15;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;} .sb-place .sb-stay{font-size:11px;font-weight:700;color:#e8590c;background:#fff3e6;border-radius:4px;padding:1px 6px;}'
+    +'.seg{display:flex;align-items:center;gap:8px;padding:3px 0 3px 8px;color:#555;font-size:11.5px;} .seg-ar{color:#999;font-weight:800;} .seg-info b{color:#111;} .seg-note{flex:1;border-bottom:1px dotted #ddd;min-height:14px;}'
+    +'.rest{display:flex;align-items:center;gap:9px;padding:2px 0 2px 22px;font-size:12px;color:#444;} .r-ic{background:#8a5a2b;color:#fff;font-weight:800;border-radius:4px;padding:2px 5px;font-size:10px;} .r-t{color:#666;font-variant-numeric:tabular-nums;font-size:11px;line-height:1.3;flex:0 0 auto;} .r-name{font-weight:700;}'
+    +'.cost{margin-top:10px;color:#555;} .cost table{width:100%;border-collapse:collapse;font-size:9px;} .cost td{border:1px solid #d5d5d5;padding:1.5px 5px;line-height:1.35;} .cost .k{background:#f7f7f7;font-weight:700;white-space:nowrap;width:1%;color:#777;} .cost .big{font-size:10px;font-weight:800;color:#333;} .cost .fuel-sub{font-size:8px;color:#999;}'
     +'.toolbar{position:fixed;top:10px;right:12px;display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.9);padding:5px;border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.15);} .toolbar .tlab{font-size:11px;font-weight:800;color:#555;padding-left:4px;} .toolbar button{font-size:13px;font-weight:800;padding:8px 13px;border:none;border-radius:8px;background:#0ca678;color:#fff;cursor:pointer;}'
     +'.hint{font-size:10.5px;color:#999;margin-top:8px;}'
     +'@media print{.toolbar,.hint{display:none;} body{padding:11mm 12mm;}}';
@@ -2893,15 +2911,14 @@ function exportSchedule(){
   const html='<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>行程表 '+escapeHtml(title)+'</title><style>'+css+'</style><style id="pg">@page{size:A4 portrait;margin:0;}</style></head><body>'
     +'<div class="toolbar"><span class="tlab">用紙</span><button class="szbtn" data-s="A4" onclick="setSize(\'A4\')">A4</button><button class="szbtn" data-s="B5" onclick="setSize(\'B5\')">B5</button><button onclick="window.print()">印刷 / PDF保存</button></div>'
     +'<div class="hdr"><div class="ttl">行程表【<span class="ed" contenteditable="true">'+escapeHtml(title)+'</span>】</div><div class="period">期間 <span class="ed" contenteditable="true">'+period+'</span></div></div>'
-    +'<div class="subttl">〈<span class="ed" contenteditable="true">　　　　　　　</span>〉</div>'
     +'<div class="main"><div class="col-left">'+rows+'<div class="cost">'+cost+'</div></div><div class="col-right"></div></div>'
-    +'<div class="hint">タイトル・期間・〈テーマ〉・各行の点線部・費用の空欄はクリックして直接記入できます。右の1/3は手書きメモ用の白紙です。用紙(A4/B5)を選んで「印刷 / PDF保存」してください。</div>'
+    +'<div class="hint">タイトル・期間・費用の空欄はクリックして直接記入できます。右の1/3は手書きメモ用の白紙です。用紙(A4/B5)を選んで「印刷 / PDF保存」してください。</div>'
     +'<script>function setSize(s){document.getElementById("pg").textContent="@page{size:"+s+" portrait;margin:0;}";document.body.style.maxWidth=(s==="B5"?"182mm":"210mm");document.querySelectorAll(".szbtn").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-s")===s);});}setSize("A4");<\/script>'
     +'</body></html>';
   const w=window.open('','_blank');
   if(!w){showStatus('ポップアップがブロックされました。ブラウザで許可してください',false);hideStatusLater();return;}
   w.document.open();w.document.write(html);w.document.close();
-  showStatus('工程表を新しいタブに作成しました（印刷/PDF保存・直接記入可）',false);hideStatusLater();
+  showStatus('行程表を新しいタブに作成しました（印刷/PDF保存・直接記入可）',false);hideStatusLater();
 }
 // Google渋滞ETA
 function gDeparture(){const dv=document.getElementById('depTime').value;let d=dv?new Date(dv):new Date();const now=new Date();return d.getTime()<now.getTime()?now:d;}
@@ -3080,6 +3097,8 @@ function toggleRouteSheet(){routeSheet.classList.toggle('collapsed');if(lastDist
 function maybeCollapse(){if(points.length>=2&&!routeSheet.contains(document.activeElement)){routeSheet.classList.add('collapsed');if(lastDistanceKm!=null)updateCost();}}
 document.getElementById('rsGrab').onclick=toggleRouteSheet;
 document.getElementById('rsPeek').onclick=toggleRouteSheet;
+// 収納中はシートのどこをタップしても開く（グラブ/ピークだけでなく余白も。判定を広く）
+routeSheet.addEventListener('click',e=>{if(routeSheet.classList.contains('collapsed')&&!e.target.closest('button,input,a')){routeSheet.classList.remove('collapsed');if(lastDistanceKm!=null)updateCost();}});
 document.getElementById('rsClear').onclick=()=>{if(points.length>=2&&!confirm('ルートの地点と計算結果をクリアします。よろしいですか？'))return;points=[];lastDistanceKm=lastDurationSec=null;lastFlatYen=0;lastFlatNames=[];lastLegSteps=[];lastRouteTimeline=[];lastRests=[];lastEvents=[];lastPointT=[];lastNexRuns=[];lastShuRuns=[];routeAlts=[];renderAltSelector();tollKmAuto=true;document.getElementById('tollKm').value='';document.getElementById('kinkoKm').value='0';clearArr(routeMarkers);clearArr(restMarkers);clearRouteLine();document.getElementById('rsResult').classList.remove('show');document.getElementById('restSec').style.display='none';document.getElementById('rsPeek').classList.remove('show');document.getElementById('rsDetails').style.display='none';routeSheet.classList.remove('collapsed');const lg=document.getElementById('routeLegend');if(lg)lg.style.display='none';renderPoints();};
 document.getElementById('rainBtn').onclick=toggleRain;
 // 現在地：1回だけ現在地へ移動して表示（追跡はしない）
@@ -3108,6 +3127,61 @@ document.getElementById('clearAllBtn').onclick=clearAllObjects;
   tick();setInterval(tick,1000);sync();setInterval(sync,600000);})();
 document.getElementById('layerBtn').onclick=()=>{const p=document.getElementById('layerPanel');document.getElementById('settlePanel').classList.remove('open');const o=p.classList.toggle('open');if(o)renderLayerPanel();};
 document.getElementById('settleBtn').onclick=()=>{const p=document.getElementById('settlePanel');document.getElementById('layerPanel').classList.remove('open');const o=p.classList.toggle('open');if(o)renderSettlePanel();};
+// ===== 画像出力：表示中の地図＋選択中レイヤーをStatic Maps APIで画像化し、上下に黒帯（たびマップ/日時・距離/時間/費用）を合成して保存 =====
+function encPath(pts){return google.maps.geometry.encoding.encodePath(pts.map(p=>new google.maps.LatLng(p.lat,p.lng)));}
+function circlePts(lat,lng,km,n){const pts=[],R=6371,d=km/R,latR=lat*Math.PI/180,lngR=lng*Math.PI/180;for(let i=0;i<=n;i++){const b=2*Math.PI*i/n;const la=Math.asin(Math.sin(latR)*Math.cos(d)+Math.cos(latR)*Math.sin(d)*Math.cos(b));const ln=lngR+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(latR),Math.cos(d)-Math.sin(latR)*Math.sin(la));pts.push({lat:la*180/Math.PI,lng:ln*180/Math.PI});}return pts;}
+async function exportMapImage(){
+  const key=cfgKey('gmap');
+  if(!key){showStatus('画像出力にはGoogle Maps APIキーが必要です（設定で登録）',false);hideStatusLater();return;}
+  if(!(google.maps.geometry&&google.maps.geometry.encoding)){showStatus('geometryライブラリ未ロード',false);hideStatusLater();return;}
+  showStatus('地図画像を生成中…',true);
+  const c=map.getCenter(),z=Math.round(map.getZoom());
+  const W=640,H=560;
+  let params=['center='+c.lat().toFixed(6)+','+c.lng().toFixed(6),'zoom='+z,'size='+W+'x'+H,'scale=2','format=png','language=ja','region=JP'];
+  if(currentTheme==='dark'){['feature:all|element:geometry|color:0x1f2733','feature:all|element:labels.text.fill|color:0x9aa4b2','feature:all|element:labels.text.stroke|color:0x1f2733','feature:water|element:geometry|color:0x11161f','feature:road|element:geometry|color:0x2a3340','feature:poi|element:labels|visibility:off'].forEach(s=>params.push('style='+encodeURIComponent(s)));}
+  const budget=7600,parts=[];
+  const curLen=()=>('https://maps.googleapis.com/maps/api/staticmap?'+params.concat(parts).join('&')).length;
+  const tryAdd=s=>{parts.push(s);if(curLen()>budget){parts.pop();return false;}return true;};
+  bufferLayers.filter(b=>b.visible).forEach(b=>{[5,10,15,20,25,30].forEach(km=>tryAdd('path='+encodeURIComponent('weight:1|color:0x1a73e880|enc:'+encPath(circlePts(b.center.lat,b.center.lng,km,40)))));});
+  if(isoShapes.length&&isoVisible)isoShapes.forEach(s=>{if(s.getPaths)s.getPaths().forEach(pa=>{const arr=pa.getArray().map(ll=>({lat:ll.lat(),lng:ll.lng()}));const step=Math.max(1,Math.floor(arr.length/60)),sm=arr.filter((_,i)=>i%step===0);if(sm.length>2)tryAdd('path='+encodeURIComponent('fillcolor:0x1a73e820|color:0x1a73e8aa|weight:1|enc:'+encPath(sm)));});else if(s.getRadius){const ct=s.getCenter();tryAdd('path='+encodeURIComponent('color:0x1a73e8aa|weight:1|enc:'+encPath(circlePts(ct.lat(),ct.lng(),s.getRadius()/1000,40))));}});
+  savedRoutes.filter(r=>r.visible&&r.path&&r.path.length).forEach(r=>tryAdd('path='+encodeURIComponent('weight:3|color:0x'+String(r.color||'#888888').replace('#','')+'cc|enc:'+encPath(r.path))));
+  if(lastFullPath&&lastFullPath.length)parts.push('path='+encodeURIComponent('weight:5|color:0x1e8e3ecc|enc:'+encPath(lastFullPath)));
+  const roles=(points.length>=2)?computePointRoles():[];
+  points.forEach((p,i)=>{const lbl=roles[i]||'';const col=(lbl==='出発'||lbl==='帰宅')?'0x2f9e44':(lbl.indexOf('目的')===0?'0xe03131':'0x1a73e8');const ch=lbl==='出発'?'S':(lbl==='帰宅'?'G':(lbl.indexOf('目的')===0?'D':(i<10?String(i):'')));tryAdd('markers='+encodeURIComponent('size:mid|color:'+col+(ch?('|label:'+ch):'')+'|'+p.lat.toFixed(5)+','+p.lng.toFixed(5)));});
+  savedPins.filter(p=>p.visible!==false).forEach(p=>tryAdd('markers='+encodeURIComponent('size:small|color:0xe6197a|'+p.lat.toFixed(5)+','+p.lng.toFixed(5))));
+  (lastRests||[]).forEach(r=>tryAdd('markers='+encodeURIComponent('size:tiny|color:0x8a5a2b|'+r.lat.toFixed(5)+','+r.lng.toFixed(5))));
+  Object.keys(poiLayers).forEach(cat=>{const L=poiLayers[cat];if(!L.visible)return;L.markers.forEach(m=>{const pos=m.getPosition&&m.getPosition();if(pos)tryAdd('markers='+encodeURIComponent('size:tiny|color:0xf59f00|'+pos.lat().toFixed(5)+','+pos.lng().toFixed(5)));});});
+  if(onsenLayerOn)onsengoMarkers.forEach(m=>{const pos=m.getPosition&&m.getPosition();if(pos)tryAdd('markers='+encodeURIComponent('size:tiny|color:0xe64980|'+pos.lat().toFixed(5)+','+pos.lng().toFixed(5)));});
+  const url='https://maps.googleapis.com/maps/api/staticmap?'+params.concat(parts).join('&')+'&key='+key;
+  const now=new Date();
+  const img=new Image();img.crossOrigin='anonymous';
+  img.onload=()=>{
+    try{
+      const iw=img.naturalWidth,ih=img.naturalHeight;
+      const cv=document.createElement('canvas');cv.width=iw;cv.height=ih;const x=cv.getContext('2d');
+      x.drawImage(img,0,0,iw,ih);
+      const bh=Math.round(ih*0.064),pad=Math.round(iw*0.024);
+      x.fillStyle='rgba(0,0,0,0.86)';x.fillRect(0,0,iw,bh);x.fillRect(0,ih-bh,iw,bh);
+      x.textBaseline='middle';
+      const iconR=bh*0.24,icx=pad+iconR,icy=bh/2;
+      x.beginPath();x.arc(icx,icy,iconR,0,Math.PI*2);x.fillStyle='#e6197a';x.fill();
+      x.beginPath();x.arc(icx,icy,iconR*0.42,0,Math.PI*2);x.fillStyle='#fff';x.fill();
+      x.fillStyle='#fff';x.textAlign='left';x.font='bold '+Math.round(bh*0.4)+'px -apple-system,\"Hiragino Kaku Gothic ProN\",sans-serif';
+      x.fillText('たびマップ',icx+iconR+pad*0.5,icy);
+      const dt=now.getFullYear()+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+String(now.getDate()).padStart(2,'0')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+      x.textAlign='right';x.font=Math.round(bh*0.32)+'px -apple-system,sans-serif';x.fillText(dt,iw-pad,icy);
+      const by=ih-bh/2;
+      const distTxt=(lastDistanceKm!=null)?(lastDistanceKm.toFixed(0)+'km ・ '+fmtDuration((lastTrafficSec!=null?lastTrafficSec:lastDurationSec||0)+totalDwellSec())):'';
+      let total='';if(lastDistanceKm!=null){const price=parseFloat(document.getElementById('price').value)||0,eff=parseFloat(document.getElementById('eff').value)||0;const gas=(eff>0&&price>0)?Math.round(lastDistanceKm/eff*price):0;const t=calcToll(),other=parseFloat(document.getElementById('otherCost').value)||0;total='¥'+(gas+t.toll+other).toLocaleString();}
+      x.fillStyle='#fff';x.textAlign='left';x.font='bold '+Math.round(bh*0.4)+'px -apple-system,\"Hiragino Kaku Gothic ProN\",sans-serif';if(distTxt)x.fillText(distTxt,pad,by);
+      x.textAlign='right';x.font='bold '+Math.round(bh*0.46)+'px -apple-system,sans-serif';if(total)x.fillText(total,iw-pad,by);
+      cv.toBlob(blob=>{if(!blob)throw new Error('blob');const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tabimap_'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'_'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0')+'.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);showStatus('画像を保存しました',false);hideStatusLater();},'image/png');
+    }catch(e){showStatus('画像合成に失敗（キーのStatic Maps API有効化・リファラー設定をご確認ください）。地図を新規タブで開きます',false);hideStatusLater();window.open(url,'_blank','noopener');}
+  };
+  img.onerror=()=>{showStatus('地図画像の取得に失敗。設定でStatic Maps APIの有効化・リファラー許可をご確認ください',false);hideStatusLater();};
+  img.src=url;
+}
+document.getElementById('imgBtn').onclick=exportMapImage;
 document.getElementById('settleClose').onclick=()=>document.getElementById('settlePanel').classList.remove('open');
 document.getElementById('layerClose').onclick=()=>document.getElementById('layerPanel').classList.remove('open');
 document.getElementById('useLoc').onclick=()=>{if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}showStatus('現在地を取得中…',true);navigator.geolocation.getCurrentPosition(pos=>{statusEl.classList.remove('show');showCurrentLoc(pos.coords.latitude,pos.coords.longitude,pos.coords.accuracy);addPoint(pos.coords.latitude,pos.coords.longitude,'現在地');},err=>{showStatus('現在地を取得できませんでした',false);hideStatusLater();},{enableHighAccuracy:true,timeout:8000});};
