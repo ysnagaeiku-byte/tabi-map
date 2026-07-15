@@ -3149,29 +3149,33 @@ document.getElementById('settleBtn').onclick=()=>{const p=document.getElementByI
 // ===== 画像出力：表示中の地図＋選択中レイヤーをStatic Maps APIで画像化し、上下に黒帯（たびマップ/日時・距離/時間/費用）を合成して保存 =====
 function encPath(pts){return google.maps.geometry.encoding.encodePath(pts.map(p=>new google.maps.LatLng(p.lat,p.lng)));}
 function circlePts(lat,lng,km,n){const pts=[],R=6371,d=km/R,latR=lat*Math.PI/180,lngR=lng*Math.PI/180;for(let i=0;i<=n;i++){const b=2*Math.PI*i/n;const la=Math.asin(Math.sin(latR)*Math.cos(d)+Math.cos(latR)*Math.sin(d)*Math.cos(b));const ln=lngR+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(latR),Math.cos(d)-Math.sin(latR)*Math.sin(la));pts.push({lat:la*180/Math.PI,lng:ln*180/Math.PI});}return pts;}
+function simplifyPts(arr,max){if(!arr||arr.length<=max)return arr||[];const step=Math.ceil(arr.length/max);return arr.filter((_,i)=>i%step===0||i===arr.length-1);}
+// 画像出力：CORS対応の Mapbox Static Images API で地図＋選択レイヤーを描画→canvasで上下に黒帯を合成しPNG保存（到達圏と同じMapboxトークン）
 async function exportMapImage(){
-  const key=cfgKey('gmap');
-  if(!key){showStatus('画像出力にはGoogle Maps APIキーが必要です（設定で登録）',false);hideStatusLater();return;}
+  const tok=cfgKey('mapbox');
+  if(!tok){showStatus('画像出力には Mapbox トークンが必要です。設定 →「到達圏マップ（Mapbox）」に登録してください（到達圏と同じもの）',false);hideStatusLater();return;}
   if(!(google.maps.geometry&&google.maps.geometry.encoding)){showStatus('geometryライブラリ未ロード',false);hideStatusLater();return;}
   showStatus('地図画像を生成中…',true);
-  const c=map.getCenter(),z=Math.round(map.getZoom());
-  const W=640,H=560;
-  let params=['center='+c.lat().toFixed(6)+','+c.lng().toFixed(6),'zoom='+z,'size='+W+'x'+H,'scale=2','format=png','language=ja','region=JP'];
-  if(currentTheme==='dark'){['feature:all|element:geometry|color:0x1f2733','feature:all|element:labels.text.fill|color:0x9aa4b2','feature:all|element:labels.text.stroke|color:0x1f2733','feature:water|element:geometry|color:0x11161f','feature:road|element:geometry|color:0x2a3340','feature:poi|element:labels|visibility:off'].forEach(s=>params.push('style='+encodeURIComponent(s)));}
-  const budget=7600,parts=[];
-  const curLen=()=>('https://maps.googleapis.com/maps/api/staticmap?'+params.concat(parts).join('&')).length;
-  const tryAdd=s=>{parts.push(s);if(curLen()>budget){parts.pop();return false;}return true;};
-  bufferLayers.filter(b=>b.visible).forEach(b=>{[5,10,15,20,25,30].forEach(km=>tryAdd('path='+encodeURIComponent('weight:1|color:0x1a73e880|enc:'+encPath(circlePts(b.center.lat,b.center.lng,km,40)))));});
-  if(isoShapes.length&&isoVisible)isoShapes.forEach(s=>{if(s.getPaths)s.getPaths().forEach(pa=>{const arr=pa.getArray().map(ll=>({lat:ll.lat(),lng:ll.lng()}));const step=Math.max(1,Math.floor(arr.length/60)),sm=arr.filter((_,i)=>i%step===0);if(sm.length>2)tryAdd('path='+encodeURIComponent('fillcolor:0x1a73e820|color:0x1a73e8aa|weight:1|enc:'+encPath(sm)));});else if(s.getRadius){const ct=s.getCenter();tryAdd('path='+encodeURIComponent('color:0x1a73e8aa|weight:1|enc:'+encPath(circlePts(ct.lat(),ct.lng(),s.getRadius()/1000,40))));}});
-  savedRoutes.filter(r=>r.visible&&r.path&&r.path.length).forEach(r=>tryAdd('path='+encodeURIComponent('weight:3|color:0x'+String(r.color||'#888888').replace('#','')+'cc|enc:'+encPath(r.path))));
-  if(lastFullPath&&lastFullPath.length)parts.push('path='+encodeURIComponent('weight:5|color:0x1e8e3ecc|enc:'+encPath(lastFullPath)));
+  const style=(currentTheme==='dark')?'dark-v11':'light-v11';
+  const W=1000,H=760,BASE='https://api.mapbox.com/styles/v1/mapbox/'+style+'/static/';
+  const ov=[],budget=7000;
+  const enc=pts=>encodeURIComponent(encPath(pts));
+  const curLen=()=>(BASE+ov.join(',')+'/auto/'+W+'x'+H+'@2x').length;
+  const tryAdd=s=>{ov.push(s);if(curLen()>budget){ov.pop();return false;}return true;};
+  bufferLayers.filter(b=>b.visible).forEach(b=>{[5,10,15,20,25,30].forEach(km=>tryAdd('path-1+1a73e8-0.55('+enc(circlePts(b.center.lat,b.center.lng,km,36))+')'));});
+  if(isoShapes.length&&isoVisible)isoShapes.forEach(s=>{if(s.getPaths)s.getPaths().forEach(pa=>{const arr=simplifyPts(pa.getArray().map(ll=>({lat:ll.lat(),lng:ll.lng()})),80);if(arr.length>2)tryAdd('path-1+1a73e8-0.8+1a73e8-0.12('+enc(arr)+')');});else if(s.getRadius){const ct=s.getCenter();tryAdd('path-1+1a73e8-0.8('+enc(circlePts(ct.lat(),ct.lng(),s.getRadius()/1000,36))+')');}});
+  savedRoutes.filter(r=>r.visible&&r.path&&r.path.length).forEach(r=>tryAdd('path-3+'+String(r.color||'#888888').replace('#','')+'-0.85('+enc(simplifyPts(r.path,220))+')'));
+  if(lastFullPath&&lastFullPath.length)ov.push('path-5+1e8e3e-0.9('+enc(simplifyPts(lastFullPath,260))+')'); // メインルート（必ず描画）
   const roles=(points.length>=2)?computePointRoles():[];
-  points.forEach((p,i)=>{const lbl=roles[i]||'';const col=(lbl==='出発'||lbl==='帰宅')?'0x2f9e44':(lbl.indexOf('目的')===0?'0xe03131':'0x1a73e8');const ch=lbl==='出発'?'S':(lbl==='帰宅'?'G':(lbl.indexOf('目的')===0?'D':(i<10?String(i):'')));tryAdd('markers='+encodeURIComponent('size:mid|color:'+col+(ch?('|label:'+ch):'')+'|'+p.lat.toFixed(5)+','+p.lng.toFixed(5)));});
-  savedPins.filter(p=>p.visible!==false).forEach(p=>tryAdd('markers='+encodeURIComponent('size:small|color:0xe6197a|'+p.lat.toFixed(5)+','+p.lng.toFixed(5))));
-  (lastRests||[]).forEach(r=>tryAdd('markers='+encodeURIComponent('size:tiny|color:0x8a5a2b|'+r.lat.toFixed(5)+','+r.lng.toFixed(5))));
-  Object.keys(poiLayers).forEach(cat=>{const L=poiLayers[cat];if(!L.visible)return;L.markers.forEach(m=>{const pos=m.getPosition&&m.getPosition();if(pos)tryAdd('markers='+encodeURIComponent('size:tiny|color:0xf59f00|'+pos.lat().toFixed(5)+','+pos.lng().toFixed(5)));});});
-  if(onsenLayerOn)onsengoMarkers.forEach(m=>{const pos=m.getPosition&&m.getPosition();if(pos)tryAdd('markers='+encodeURIComponent('size:tiny|color:0xe64980|'+pos.lat().toFixed(5)+','+pos.lng().toFixed(5)));});
-  const url='https://maps.googleapis.com/maps/api/staticmap?'+params.concat(parts).join('&')+'&key='+key;
+  points.forEach((p,i)=>{const lbl=roles[i]||'';const col=(lbl==='出発'||lbl==='帰宅')?'2f9e44':(lbl.indexOf('目的')===0?'e03131':'1a73e8');const ch=lbl==='出発'?'s':(lbl==='帰宅'?'g':(lbl.indexOf('目的')===0?'d':(i<10?String(i):'')));tryAdd('pin-l'+(ch?('-'+ch):'')+'+'+col+'('+p.lng.toFixed(5)+','+p.lat.toFixed(5)+')');});
+  savedPins.filter(p=>p.visible!==false).forEach(p=>tryAdd('pin-s+e6197a('+p.lng.toFixed(5)+','+p.lat.toFixed(5)+')'));
+  (lastRests||[]).forEach(r=>tryAdd('pin-s+8a5a2b('+r.lng.toFixed(5)+','+r.lat.toFixed(5)+')'));
+  Object.keys(poiLayers).forEach(cat=>{const L=poiLayers[cat];if(!L.visible)return;L.markers.forEach(m=>{const pos=m.getPosition&&m.getPosition();if(pos)tryAdd('pin-s+f59f00('+pos.lng().toFixed(5)+','+pos.lat().toFixed(5)+')');});});
+  if(onsenLayerOn)onsengoMarkers.forEach(m=>{const pos=m.getPosition&&m.getPosition();if(pos)tryAdd('pin-s+e64980('+pos.lng().toFixed(5)+','+pos.lat().toFixed(5)+')');});
+  let pos,extra='';
+  if(ov.length){pos='auto';extra='&padding=60';}
+  else{const c=map.getCenter();pos=c.lng().toFixed(5)+','+c.lat().toFixed(5)+','+Math.round(map.getZoom());}
+  const url=BASE+(ov.length?ov.join(',')+'/':'')+pos+'/'+W+'x'+H+'@2x?access_token='+encodeURIComponent(tok)+extra;
   const now=new Date();
   const img=new Image();img.crossOrigin='anonymous';
   img.onload=()=>{
@@ -3195,9 +3199,9 @@ async function exportMapImage(){
       x.fillStyle='#fff';x.textAlign='left';x.font='bold '+Math.round(bh*0.4)+'px -apple-system,\"Hiragino Kaku Gothic ProN\",sans-serif';if(distTxt)x.fillText(distTxt,pad,by);
       x.textAlign='right';x.font='bold '+Math.round(bh*0.46)+'px -apple-system,sans-serif';if(total)x.fillText(total,iw-pad,by);
       cv.toBlob(blob=>{if(!blob)throw new Error('blob');const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tabimap_'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'_'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0')+'.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);showStatus('画像を保存しました',false);hideStatusLater();},'image/png');
-    }catch(e){showStatus('画像合成に失敗（キーのStatic Maps API有効化・リファラー設定をご確認ください）。地図を新規タブで開きます',false);hideStatusLater();window.open(url,'_blank','noopener');}
+    }catch(e){showStatus('画像の合成に失敗しました（Mapboxトークンをご確認ください）',false);hideStatusLater();}
   };
-  img.onerror=()=>{showStatus('画像を取得できませんでした。APIキーの「APIの制限」に Maps Static API を追加（有効化だけでなくキー側の許可が必要）し、数分後に再試行してください',false);hideStatusLater();};
+  img.onerror=()=>{showStatus('地図画像を取得できませんでした。Mapboxトークンが有効か、URL制限にこのサイトが許可されているかをご確認ください',false);hideStatusLater();};
   img.src=url;
 }
 document.getElementById('imgBtn').onclick=exportMapImage;
