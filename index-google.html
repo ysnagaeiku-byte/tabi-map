@@ -215,6 +215,9 @@
   .modal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
   .modal-h b{font-size:16px;} .modal-h button{border:none;background:none;font-size:18px;color:var(--muted);cursor:pointer;}
   .set-sec{margin-bottom:18px;}
+  .adv-toggle{width:100%;padding:11px 12px;border:1px solid var(--accent);background:var(--surface);color:var(--accent);border-radius:11px;font-size:14px;font-weight:800;cursor:pointer;}
+  .adv-toggle.on{background:var(--accent);color:#fff;}
+  .detail-btn{border:1px solid var(--accent) !important;color:var(--accent) !important;background:var(--surface) !important;font-weight:800;}
   .set-label{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:7px;text-transform:uppercase;}
   .set-sec input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;font-size:14px;background:var(--surface);color:var(--fg);}
   .set-help{font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.55;} .set-help a{color:var(--accent);}
@@ -464,6 +467,7 @@
 <div class="overlay" id="overlay"><div class="modal">
   <div class="modal-h"><b>設定</b><button id="setClose">✕</button></div>
   <div class="set-sec"><div class="set-label">バージョン切替</div><div class="ver-switch"><a href="index.html">無料版</a><a href="index-google.html" class="on">Google版</a><a href="track.html">研究版</a></div></div>
+  <div class="set-sec"><div class="set-label">高度な検索</div><button class="adv-toggle" id="advSearchBtn">高度な検索を有効化</button><div class="set-help">オンにすると、ピンをタップした時に<b>営業時間・電話・ウェブサイト・写真</b>などの詳細情報を自動取得します（Google Placesの課金項目 Atmosphere/Contact Data が増えます）。<b>オフ（既定）</b>では基本情報のみ表示し、必要な時だけポップアップの<b>「＋詳細を取得」</b>ボタンで取得します。</div></div>
   <div class="set-sec"><div class="set-label">Google Maps APIキー（この版に必須）</div><input id="gmapInput" placeholder="Google Maps APIキー" autocomplete="off" /><div class="set-help">この版は地図表示・渋滞ETAにGoogleを使用（課金あり）。「Maps JavaScript API」＋「Directions API」＋<b>「Routes API」</b>（区間ごとの実渋滞表示に必須）を有効化し<b>HTTPリファラー制限</b>を設定。キーは端末内のみ保存。</div><button class="set-save" id="gmapSave">保存して再読込</button><div class="set-msg" id="gmapMsg"></div></div>
   <div class="set-sec"><div class="set-label">到達圏マップ（Mapbox アクセストークン）</div><input id="mbxInput" placeholder="Mapbox public token (pk.xxx)" autocomplete="off" /><div class="set-help">「到達圏」タブで、任意地点から ○分で行ける範囲（アイソクロン）を描画します。<b>URL（リファラー）制限</b>の設定を推奨。トークンは端末内のみ保存。</div><button class="set-save" id="mbxSave">保存</button><div class="set-msg" id="mbxMsg"></div></div>
   <div class="set-sec"><div class="set-label">楽天トラベル連携</div><input id="rakInput" placeholder="楽天 applicationId" autocomplete="off" /><button class="set-save" id="rakSave">保存</button><div class="set-msg" id="rakMsg"></div></div>
@@ -733,6 +737,8 @@ const FUEL_AVG={regular:169.7,premium:180.3,diesel:158.8}, FUEL_AVG_DATE='2026/6
 const fuelPrices={regular:FUEL_AVG.regular,premium:FUEL_AVG.premium,diesel:FUEL_AVG.diesel};
 function applyNationalAvg(){priceManual=false;fuelPrices[fuelType]=FUEL_AVG[fuelType];const el=document.getElementById('price');if(el)el.value=FUEL_AVG[fuelType];updateGasNote();}
 let vehType='normal', tollKmAuto=true, currentTheme='light', routePref='fast';
+let advSearch=(localStorage.getItem('tabi_advsearch')==='1'); // 高度な検索：ピンタップ時に詳細(営業時間/電話/サイト/写真=課金増)を自動取得。既定オフ
+const _placeReg={}; // place_id -> {place,cat}（オンデマンド詳細取得用）
 
 function clearArr(a){a.forEach(m=>m.setMap(null));a.length=0;}
 function llBounds(arr){const b=new google.maps.LatLngBounds();arr.forEach(p=>b.extend({lat:p.lat,lng:p.lng}));return b;}
@@ -1046,8 +1052,10 @@ function addPlaceMarker(place,cat){
   const c=CATS[cat]||{emoji:''},color=catColor(cat);
   const m=new google.maps.Marker({position:loc,map,icon:pinIcon(color),label:{text:c.emoji||'・',fontSize:(String(c.emoji).length>1?'8.5px':'11px'),color:'#fff',fontWeight:'700'},title:place.name});
   m.addListener('click',()=>{
+    if(place.place_id)_placeReg[place.place_id]={place,cat};
     if(!openInfo(m,placePopup(place,cat)))return; // 再クリックで閉じたら詳細は取得しない
-    if(place.place_id)placesSvc.getDetails({placeId:place.place_id,fields:['name','rating','user_ratings_total','formatted_phone_number','website','opening_hours','photos','url','formatted_address']},(d,st)=>{if(st===google.maps.places.PlacesServiceStatus.OK&&d&&curInfoMarker===m)infoWindow.setContent(placePopupFull(d,place,cat));});
+    // 詳細(営業時間/電話/サイト/写真)は課金対象。高度な検索ONの時だけ自動取得。OFFはポップアップの「詳細を取得」で必要時のみ
+    if(advSearch&&place.place_id)placesSvc.getDetails({placeId:place.place_id,fields:['name','rating','user_ratings_total','formatted_phone_number','website','opening_hours','photos','url','formatted_address']},(d,st)=>{if(st===google.maps.places.PlacesServiceStatus.OK&&d&&curInfoMarker===m)infoWindow.setContent(placePopupFull(d,place,cat));});
   });
   poiAdd(cat,m);
 }
@@ -1066,6 +1074,7 @@ function placePopup(place,cat){
   html+=circleIsoBtns(lat,lng,name);
   html+=`<a class="official" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${q}${place.place_id?('&query_place_id='+place.place_id):''}">Google</a>`;
   if(cat==='hotel')html+=`<a class="rakuten" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+楽天トラベル">楽天</a>`;
+  if(!advSearch&&place.place_id)html+=`<button class="detail-btn" onclick="window.fetchDetail('${place.place_id}')">＋詳細を取得</button>`; // 必要な時だけ営業時間/電話/サイト/写真を取得
   html+='</div></div>';return html;
 }
 function placePopupFull(d,place,cat){
@@ -1089,6 +1098,16 @@ function placePopupFull(d,place,cat){
   if(cat==='hotel')html+=`<a class="rakuten" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+楽天トラベル">楽天</a>`;
   html+='</div></div>';return html;
 }
+// 必要な時だけ詳細（営業時間/電話/サイト/写真＝課金対象）を取得してポップアップを更新
+window.fetchDetail=function(pid){
+  const e=_placeReg[pid];if(!e||!placesSvc)return;
+  showStatus('詳細を取得中…',true);
+  placesSvc.getDetails({placeId:pid,fields:['name','rating','user_ratings_total','formatted_phone_number','website','opening_hours','photos','url','formatted_address']},(d,st)=>{
+    statusEl.classList.remove('show');
+    if(st===google.maps.places.PlacesServiceStatus.OK&&d)infoWindow.setContent(placePopupFull(d,e.place,e.cat));
+    else{showStatus('詳細を取得できませんでした',false);hideStatusLater();}
+  });
+};
 function runSearch(){
   if(activeTab==='onsengo'||activeTab==='route')return;
   touchDepTime(); // 検索などの操作時に出発日時を現在時刻へ自動更新（手動指定時を除く）
@@ -3208,6 +3227,9 @@ document.getElementById('setBtn').onclick=()=>{document.getElementById('gmapInpu
   document.getElementById('mbxInput').placeholder=mbInj?'共有トークン設定済み（上書きする場合のみ入力）':'Mapbox public token (pk.xxx)';
   overlay.classList.add('open');};
 document.getElementById('setClose').onclick=()=>overlay.classList.remove('open');
+function updateAdvBtn(){const b=document.getElementById('advSearchBtn');if(!b)return;b.textContent=advSearch?'高度な検索：有効（タップで無効化）':'高度な検索を有効化';b.classList.toggle('on',advSearch);}
+document.getElementById('advSearchBtn').onclick=()=>{advSearch=!advSearch;localStorage.setItem('tabi_advsearch',advSearch?'1':'0');updateAdvBtn();showStatus(advSearch?'高度な検索を有効にしました（詳細を自動取得）':'高度な検索を無効にしました（詳細は必要な時だけ取得）',false);hideStatusLater();};
+updateAdvBtn();
 overlay.addEventListener('click',e=>{if(e.target===overlay)overlay.classList.remove('open');});
 document.getElementById('gmapSave').onclick=()=>{const v=document.getElementById('gmapInput').value.trim();v?localStorage.setItem('tabi_gmap_key',v):localStorage.removeItem('tabi_gmap_key');document.getElementById('gmapMsg').textContent='保存しました。再読込します…';setTimeout(()=>location.reload(),700);};
 document.getElementById('rakSave').onclick=()=>{const v=document.getElementById('rakInput').value.trim();v?localStorage.setItem('tabi_rakuten_id',v):localStorage.removeItem('tabi_rakuten_id');document.getElementById('rakMsg').textContent=v?'保存しました':'解除しました';};
