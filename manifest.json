@@ -1,7 +1,7 @@
 {
-  "name": "たびマップ（ドライブ・旅行）",
+  "name": "たびマップ（ドライブサポートツール）",
   "short_name": "たびマップ",
-  "description": "ドライブ・旅行プランを一画面で。温泉郷・到達圏・ルート費用・割り勘・複数車両決算。",
+  "description": "ドライブの計画をまとめて。ルート・費用・休憩・行程表を作れる地図ツール。",
   "start_url": "./index-google.html",
   "scope": "./",
   "display": "standalone",
