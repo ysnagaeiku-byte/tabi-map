@@ -190,11 +190,13 @@
   .dep-row{display:flex;align-items:center;gap:8px;margin:10px 0 4px;}
   .dep-lab{flex:none;font-size:12px;font-weight:800;color:var(--muted);}
   .dep-row input{flex:1;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:10px;font-size:14px;background:var(--surface);color:var(--fg);}
-  #costDetails{border:1px solid var(--line);border-radius:12px;margin-top:4px;background:var(--surface);}
-  #costDetails>.cd-header{padding:11px 12px 2px;font-size:13px;font-weight:800;display:flex;align-items:center;gap:8px;}
-  #cdChip{font-size:10.5px;font-weight:700;color:var(--muted);margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62%;text-align:right;}
-  #costDetails .cd-body{padding:0 12px 12px;}
+  #costDetails,#otherCostDetails{border:1px solid var(--line);border-radius:12px;margin-top:4px;background:var(--surface);}
+  #otherCostDetails{margin-top:8px;}
+  #costDetails>.cd-header,#otherCostDetails>.cd-header{padding:11px 12px 2px;font-size:13px;font-weight:800;display:flex;align-items:center;gap:8px;}
+  #cdChip,#ocdChip{font-size:10.5px;font-weight:700;color:var(--muted);margin-left:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:62%;text-align:right;}
+  #costDetails .cd-body,#otherCostDetails .cd-body{padding:0 12px 12px;}
   #costDetails .cd-body .rs-section:first-child{border-top:none;margin-top:0;padding-top:0;}
+  #otherCostDetails .cd-body{padding-top:10px;}
   .ver-switch{display:flex;gap:6px;}
   .ver-switch a{flex:1;text-align:center;padding:9px 4px;border:1px solid var(--line);border-radius:9px;text-decoration:none;color:var(--fg);font-weight:800;font-size:12px;background:var(--surface);}
   .ver-switch a.on{background:var(--accent);color:#fff;border-color:var(--accent);}
@@ -286,6 +288,7 @@
   .sch-row:last-child{border-bottom:none;}
   .sch-t{flex:none;width:62px;font-weight:800;font-variant-numeric:tabular-nums;color:var(--fg);display:flex;flex-direction:column;line-height:1.25;}
   .sch-t small{font-weight:600;color:var(--muted);font-size:10.5px;}
+  .sch-t .dep-in{width:68px;padding:1px 2px;margin-left:2px;border:1px solid var(--accent);border-radius:5px;background:var(--surface);color:var(--accent);font-size:11px;font-weight:800;font-variant-numeric:tabular-nums;}
   .sch-badge{flex:none;min-width:34px;padding:1px 7px;border-radius:6px;color:#fff;font-size:11px;font-weight:800;text-align:center;}
   .sch-ic{flex:none;font-size:15px;width:20px;text-align:center;}
   .sch-label{flex:1;min-width:0;line-height:1.35;} .sch-label small{color:var(--muted);font-size:11px;}
@@ -385,7 +388,7 @@
       <button class="s-clr" id="topClear" title="クリア">✕</button>
     </div>
     <div class="top-actions" id="topActions">
-      <button class="icon-btn" id="clearAllBtn" title="レイヤー・ピン・ルートをすべて消去" aria-label="すべて消去"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg><span class="ib-lab">全消去</span></button>
+      <button class="icon-btn" id="clearAllBtn" title="レイヤー・検索ピン・到達圏・距離円・ルートを消去（保存ピン・お気に入りは残す）" aria-label="すべて消去"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg><span class="ib-lab">全消去</span></button>
       <button class="icon-btn" id="rainBtn" title="雨雲レーダー（気象庁ナウキャスト）" aria-label="雨雲レーダー"><svg class="svgi" viewBox="0 0 24 24"><path d="M7 15a5 5 0 0 1-.6-9.97A6 6 0 0 1 18 7.5 4 4 0 0 1 17.5 15H7z"/><path d="M9 17.5l-1 3M13 17.5l-1 3M17 17.5l-1 3"/></svg><span class="ib-lab">雨雲</span></button>
       <button class="icon-btn" id="themeBtn" title="テーマ切替" aria-label="テーマ切替"><span class="ib-ic" id="themeIcon"><svg class="svgi" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg></span><span class="ib-lab">テーマ</span></button>
       <button class="icon-btn" id="setBtn" title="設定" aria-label="設定"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 5.5h7M15.5 5.5H20M4 12h3M11.5 12H20M4 18.5h9M17.5 18.5H20"/><circle cx="13" cy="5.5" r="2.1"/><circle cx="9" cy="12" r="2.1"/><circle cx="15" cy="18.5" r="2.1"/></svg><span class="ib-lab">設定</span></button>
@@ -433,7 +436,8 @@
   <div class="dep-row"><span class="dep-lab">出発日時</span><input id="depTime" type="datetime-local"><button type="button" id="depNowBtn" class="dep-now" title="現在時刻にする">現在</button></div>
   <div class="rs-result" id="rsResult">
     <div class="rs-grid"><div class="rs-card"><div class="k">実走行距離</div><div class="val" id="rDist">–</div></div><div class="rs-card"><div class="k">所要時間(目安)</div><div class="val" id="rTime">–</div></div></div>
-    <div class="rs-grid"><div class="rs-card"><div class="k" id="rGasLabel">ガソリン代</div><div class="val" id="rGas">–</div></div><div class="rs-card"><div class="k">高速(概算)</div><div class="val" id="rToll">–</div></div><div class="rs-card cost"><div class="k">総費用</div><div class="val" id="rTotal">–</div></div></div>
+    <div class="rs-grid"><div class="rs-card"><div class="k" id="rGasLabel">ガソリン代</div><div class="val" id="rGas">–</div></div><div class="rs-card"><div class="k">高速(概算)</div><div class="val" id="rToll">–</div></div></div>
+    <div class="rs-grid"><div class="rs-card cost"><div class="k">車両費用計</div><div class="val" id="rTotal">–</div></div><div class="rs-card cost"><div class="k">総予算<small id="rGrandSub" style="display:block;font-weight:700;font-size:9.5px;color:var(--muted);"></small></div><div class="val" id="rGrand">–</div></div></div>
     <div class="rs-grid" id="splitRow" style="display:none;"><div class="rs-card cost" style="background:var(--accent-weak);"><div class="k">1人あたり（割り勘）</div><div class="val" id="rPerPerson" style="color:var(--accent);">–</div></div></div>
     <div class="rs-note" id="rNote"></div>
     <div id="routeLegend"><span><i style="background:#1e8e3e"></i>高速(順調)</span><span><i style="background:#1a73e8"></i>一般道</span><span><i style="background:#f9a825"></i>やや混雑</span><span><i style="background:#d93025"></i>渋滞</span></div>
@@ -471,7 +475,17 @@
     <label class="opt" style="margin-top:8px;"><input type="checkbox" id="applyDisc" checked> 割引を自動適用（深夜/休日/首都高深夜）</label>
     <div class="rs-hint" id="tollHint" style="margin-top:8px;"></div>
   </div>
-  <div class="rs-section"><div class="rs-label">その他費用・割り勘</div><div class="rs-inputs"><label>車両保険・その他 (円)<input id="otherCost" type="number" inputmode="decimal" placeholder="例: 1日保険 800"></label><label>人数（割り勘）<input id="splitN" type="number" inputmode="numeric" min="1" value="1"></label></div></div>
+  <div class="rs-section"><div class="rs-label">車両費用・割り勘</div><div class="rs-inputs"><label>車両保険・その他 (円)<input id="otherCost" type="number" inputmode="decimal" placeholder="例: 1日保険 800"></label><label>人数（割り勘）<input id="splitN" type="number" inputmode="numeric" min="1" value="1"></label></div></div>
+    </div>
+  </div>
+  <div id="otherCostDetails">
+    <div class="cd-header">車両以外の費用設定<span id="ocdChip"></span></div>
+    <div class="cd-body">
+      <div class="rs-hint" style="margin:0 0 8px;">食費・宿泊費・観光費などの旅費を入力すると<b>総予算</b>と<b>行程表</b>に反映されます（人数で割り勘）。</div>
+      <div class="rs-inputs"><label>食費（円/食）<input id="ocFood" type="number" inputmode="decimal" placeholder="例: 1000"></label><label>食事回数（回）<input id="ocFoodN" type="number" inputmode="numeric" min="0" placeholder="例: 3"></label></div>
+      <div class="rs-inputs" style="margin-top:8px;"><label>宿泊費（円）<input id="ocLodge" type="number" inputmode="decimal" placeholder="例: 8000"></label><label>観光費（円）<input id="ocSight" type="number" inputmode="decimal" placeholder="入場料など"></label></div>
+      <div class="rs-inputs" style="margin-top:8px;"><label>予備費・駐車代金（円）<input id="ocReserve" type="number" inputmode="decimal" placeholder="例: 2000"></label><label>その他移動費（円）<input id="ocTrans" type="number" inputmode="decimal" placeholder="電車・フェリー等"></label></div>
+      <div class="rs-hint" id="ocHint" style="margin-top:8px;"></div>
     </div>
   </div>
   <div class="rs-section" id="restSec" style="display:none;"><div id="restBox"></div></div>
@@ -933,7 +947,7 @@ function clearIso(){clearArr(isoShapes);isoCenter=null;document.getElementById('
 function toggleIsoVisible(){isoVisible=!isoVisible;isoShapes.forEach(s=>s.setMap(isoVisible?map:null));renderLayerPanel();}
 // どの画面からでも押せる「全消去」：レイヤー・ピン・到達圏・距離円・保存車両・ルートをまとめて消去
 function clearAllObjects(){
-  if(!confirm('地図上のレイヤー・ピン・到達圏・距離円・ルートをすべて消去します。よろしいですか？'))return;
+  if(!confirm('地図上のレイヤー・到達圏・距離円・検索ピン・ルート（ルートタブの行程と割り勘の車両）をすべて消去します。\n※「保存済みのピン集合」と「お気に入り登録された施設」は残ります。よろしいですか？'))return;
   clearAllBuffers();
   removeTempPin();
   stopLiveLoc();liveMarker=liveCircle=null; // リアルタイム追跡も停止
@@ -942,16 +956,20 @@ function clearAllObjects(){
   Object.keys(lineLayers).forEach(lineLayerClear);
   onsenLayerOn=false;clearArr(onsengoMarkers);
   clearArr(searchMarkers);clearArr(customSearchPins);clearArr(poiMarkers);clearArr(locShapes);
-  clearSavedPins();
-  savedRoutes.forEach(r=>{r.polys.forEach(p=>p.setMap(null));r.markers.forEach(m=>m.setMap(null));});savedRoutes.length=0;
-  points=[];lastDistanceKm=lastDurationSec=null;routeAlts=[];if(document.getElementById('altSel'))renderAltSelector();
+  // 保存済みのピン集合(savedPins)・お気に入り(tabi_favs)は保持する（消去対象外）
+  savedRoutes.forEach(r=>{r.polys.forEach(p=>p.setMap(null));r.markers.forEach(m=>m.setMap(null));});savedRoutes.length=0; // 割り勘の車両（保存ルート）
+  // ルートタブの行程を完全リセット（rsClear と同等）
+  points=[];lastDistanceKm=lastDurationSec=null;lastFlatYen=0;lastFlatNames=[];lastLegSteps=[];lastRouteTimeline=[];lastRests=[];lastEvents=[];lastPointT=[];lastNexRuns=[];lastShuRuns=[];routeAlts=[];window.editingVehicle=null;
+  if(document.getElementById('altSel'))renderAltSelector();
   tollKmAuto=true;document.getElementById('tollKm').value='';document.getElementById('kinkoKm').value='0';
   clearArr(routeMarkers);clearArr(restMarkers);clearRouteLine();renderPoints();
   document.getElementById('rsResult').classList.remove('show');document.getElementById('rsPeek').classList.remove('show');
+  document.getElementById('restSec').style.display='none';document.getElementById('itinSec').style.display='none';document.getElementById('rsDetails').style.display='none';
+  routeSheet.classList.remove('collapsed');const _lg=document.getElementById('routeLegend');if(_lg)_lg.style.display='none';
   const tr=document.getElementById('topResults');if(tr)tr.classList.remove('show');
   document.getElementById('layerPanel').classList.remove('open');document.getElementById('settlePanel').classList.remove('open');
   renderLayerPanel();renderSettlePanel();
-  showStatus('すべて消去しました',false);hideStatusLater();persistState();
+  showStatus('消去しました（保存ピン・お気に入りは保持）',false);hideStatusLater();persistState();
 }
 function buildCustomPanel(){
   customPanel.innerHTML='';
@@ -1377,12 +1395,17 @@ function saveCurrentRoute(){
   const ev=window.editingVehicle||null;
   const label=(points[0].label||'出発').split(',')[0]+'→'+(points[points.length-1].label||'目的').split(',')[0];
   const eff=parseFloat(document.getElementById('eff').value)||0,price=parseFloat(document.getElementById('price').value)||0;
-  const gas=(eff>0&&price>0)?Math.round(lastDistanceKm/eff*price):0;
-  const other=parseFloat(document.getElementById('otherCost').value)||0,toll=calcToll().toll;
+  const toll=calcToll().toll;
+  // 車両ごとに「保存した時点のモード」で費用を確定（タイムズ車＝レンタカー+高速+保険¥500／自家用車＝ガソリン+高速+その他）。
+  // これにより1台をタイムズ、別の1台を一般で登録しても各車の費用が独立し、割り勘でモードが統合されない。
+  let gas=0,rental=0,other,total;
+  const isTimes=!!timesOn;
+  if(isTimes){rental=timesRentalCost();other=TIMES_INSURANCE;total=rental+toll+other;}
+  else{gas=(eff>0&&price>0)?Math.round(lastDistanceKm/eff*price):0;other=parseFloat(document.getElementById('otherCost').value)||0;total=gas+toll+other;}
   const people=ev?ev.people:Math.max(1,parseInt(document.getElementById('splitN').value)||1);
   const pts=points.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null})); // 再編集用に地点を保存
   const path=(d.fullPath||[]).map(pt=>(typeof pt.lat==='function')?{lat:pt.lat(),lng:pt.lng()}:{lat:pt.lat,lng:pt.lng}); // 再描画用にポリライン座標を保存
-  savedRoutes.push({id:ev?ev.id:Date.now(),label,name:ev?ev.name:label,polys,markers,color,distKm:d.distKm,trafSec:d.trafSec+totalDwellSec(),toll,gas,other,total:gas+toll+other,people,visible:true,pts,path});
+  savedRoutes.push({id:ev?ev.id:Date.now(),label,name:ev?ev.name:label,polys,markers,color,distKm:d.distKm,trafSec:d.trafSec+totalDwellSec(),toll,gas,rental,other,total,times:isTimes,timesRank:isTimes?timesRank:null,timesHours:isTimes?timesHours:null,timesNight:isTimes?timesNight:null,people,visible:true,pts,path});
   window.editingVehicle=null;
   showStatus(ev?('工程「'+(ev.name||label)+'」を更新しました'):'車両として保存しました（レイヤー／割り勘決算で管理）',false);hideStatusLater();
   renderLayerPanel();renderSettlePanel();persistState();
@@ -1406,8 +1429,8 @@ function persistState(){
   if(restoring)return;
   try{
     const g=id=>{const e=document.getElementById(id);return e?e.value:'';};
-    const slim=savedRoutes.map(r=>({id:r.id,label:r.label,name:r.name||r.label,color:r.color,distKm:r.distKm,trafSec:r.trafSec,toll:r.toll,gas:r.gas,other:r.other,total:r.total,people:r.people,manual:!!r.manual,visible:r.visible!==false,pts:r.pts||null,path:r.path||null}));
-    const st={v:1,points:(points||[]).map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null})),depTime:g('depTime'),fuelType,price:g('price'),eff:g('eff'),vehType,otherCost:g('otherCost'),splitN:g('splitN'),applyDisc:!!(document.getElementById('applyDisc')||{}).checked,depTimeManual,routePref,restMin,restStay,timesOn,timesRank,timesHours,timesNight,saved:slim};
+    const slim=savedRoutes.map(r=>({id:r.id,label:r.label,name:r.name||r.label,color:r.color,distKm:r.distKm,trafSec:r.trafSec,toll:r.toll,gas:r.gas,rental:r.rental||0,other:r.other,total:r.total,times:!!r.times,timesRank:r.timesRank||null,timesHours:(r.timesHours!=null?r.timesHours:null),timesNight:!!r.timesNight,people:r.people,manual:!!r.manual,visible:r.visible!==false,pts:r.pts||null,path:r.path||null}));
+    const st={v:1,points:(points||[]).map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null})),depTime:g('depTime'),fuelType,price:g('price'),eff:g('eff'),vehType,otherCost:g('otherCost'),splitN:g('splitN'),applyDisc:!!(document.getElementById('applyDisc')||{}).checked,depTimeManual,routePref,restMin,restStay,timesOn,timesRank,timesHours,timesNight,oc:{food:g('ocFood'),foodN:g('ocFoodN'),lodge:g('ocLodge'),sight:g('ocSight'),reserve:g('ocReserve'),trans:g('ocTrans')},saved:slim};
     localStorage.setItem('tabi_state',JSON.stringify(st));
   }catch(e){}
 }
@@ -1417,6 +1440,7 @@ function restoreState(){
   try{
     const sv=(id,v)=>{const e=document.getElementById(id);if(e&&v!=null&&v!=='')e.value=v;};
     sv('depTime',st.depTime);sv('price',st.price);sv('eff',st.eff);sv('otherCost',st.otherCost);sv('splitN',st.splitN);
+    if(st.oc){sv('ocFood',st.oc.food);sv('ocFoodN',st.oc.foodN);sv('ocLodge',st.oc.lodge);sv('ocSight',st.oc.sight);sv('ocReserve',st.oc.reserve);sv('ocTrans',st.oc.trans);}
     if(typeof st.applyDisc==='boolean'){const e=document.getElementById('applyDisc');if(e)e.checked=st.applyDisc;}
     if(typeof st.depTimeManual==='boolean')depTimeManual=st.depTimeManual;
     if(st.fuelType){fuelType=st.fuelType;document.querySelectorAll('#fuelSeg button').forEach(b=>b.classList.toggle('on',b.dataset.f===fuelType));}
@@ -1470,7 +1494,8 @@ function renderSettlePanel(){
   let sumCost=0,sumPpl=0,h='';
   savedRoutes.forEach((r,i)=>{sumCost+=(r.total||0);sumPpl+=(r.people||1);
     h+=`<div class="stl-item"><span class="ly-sw" style="background:${r.color};border:1px solid ${r.color};flex:none;"></span><span class="stl-name"><input class="stl-lbl" data-i="${i}" value="${escapeHtml(r.name||r.label)}" placeholder="1号車など" style="width:100%;border:none;border-bottom:1px dashed var(--line);background:none;color:var(--fg);font-weight:700;font-size:12.5px;"></span>`;
-    h+=`<span class="stl-ppl">${r.manual?`¥<input class="stl-cost-in" data-i="${i}" type="number" value="${r.total||0}" style="width:64px;">`:`<b class="stl-cost">¥${(r.total||0).toLocaleString()}</b>`} ／ <input class="stl-ppl-in" data-i="${i}" type="number" min="1" value="${r.people||1}">人</span><button class="stl-del" data-i="${i}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
+    const vtag=r.manual?'':`<small style="color:${r.times?'#ff7a00':'var(--muted)'};font-size:9.5px;font-weight:800;margin-right:4px;">${r.times?'タイムズ':'自家用'}</small>`;
+    h+=`<span class="stl-ppl">${vtag}${r.manual?`¥<input class="stl-cost-in" data-i="${i}" type="number" value="${r.total||0}" style="width:64px;">`:`<b class="stl-cost">¥${(r.total||0).toLocaleString()}</b>`} ／ <input class="stl-ppl-in" data-i="${i}" type="number" min="1" value="${r.people||1}">人</span><button class="stl-del" data-i="${i}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   sumPpl=Math.max(1,sumPpl);
   h+=`<div class="stl-sum"><div class="stl-row"><span>車両数</span><b>${savedRoutes.length}台</b></div><div class="stl-row"><span>合計費用</span><b>¥${sumCost.toLocaleString()}</b></div><div class="stl-row"><span>合計人数（運転手含む）</span><b>${sumPpl}人</b></div><div class="stl-total"><span>1人あたり</span><span>¥${Math.ceil(sumCost/sumPpl).toLocaleString()}</span></div></div>`;
   h+='<button class="stl-add" id="stlAdd">＋ 費用を手動で車両を追加</button>';
@@ -2580,7 +2605,7 @@ function buildRestPath(){
 }
 function posAtTime(t){const rp=buildRestPath()||lastRouteTimeline;for(const p of rp){if(p.t>=t)return {lat:p.lat,lng:p.lng};}return rp.length?{lat:rp[rp.length-1].lat,lng:rp[rp.length-1].lng}:null;}
 function nearestPlace(res,pt){let best=res[0],bd=1e18;res.forEach(p=>{const la=p.geometry.location.lat(),ln=p.geometry.location.lng();const d=(la-pt.lat)*(la-pt.lat)+(ln-pt.lng)*(ln-pt.lng);if(d<bd){bd=d;best=p;}});return best;}
-function restHead(){return `<div class="rs-label">休憩の設定</div><div class="seg" id="restSeg" style="margin-bottom:8px;"><button data-r="90"${restMin===90?' class="on"':''}>1.5時間ごと</button><button data-r="120"${restMin===120?' class="on"':''}>2時間ごと</button><button data-r="180"${restMin===180?' class="on"':''}>3時間ごと</button></div><label class="opt" style="width:100%;justify-content:space-between;">1回の休憩時間（既定）<span><input type="number" min="0" max="180" id="restStayIn" value="${restStay}" style="width:60px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);font-size:14px;text-align:right;">分</span></label>`;}
+function restHead(){const noRest=!(restMin>0);return `<div class="rs-label">休憩の設定</div><div class="seg" id="restSeg" style="margin-bottom:8px;"><button data-r="0"${noRest?' class="on"':''}>休憩なし</button><button data-r="90"${restMin===90?' class="on"':''}>1.5時間ごと</button><button data-r="120"${restMin===120?' class="on"':''}>2時間ごと</button><button data-r="180"${restMin===180?' class="on"':''}>3時間ごと</button></div><label class="opt" style="width:100%;justify-content:space-between;${noRest?'opacity:.4;':''}">1回の休憩時間（既定）<span><input type="number" min="0" max="180" id="restStayIn" value="${restStay}"${noRest?' disabled':''} style="width:60px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);font-size:14px;text-align:right;">分</span></label>`;}
 function wireRestCtl(){
   const seg=document.getElementById('restSeg');if(seg)seg.onclick=(e)=>{const b=e.target.closest('button');if(!b)return;restMin=+b.dataset.r;[...seg.children].forEach(x=>x.classList.toggle('on',x===b));suggestRests();};
   const si=document.getElementById('restStayIn');if(si)si.onchange=()=>{restStay=Math.max(0,Math.min(180,parseInt(si.value)||0));lastRests.forEach(r=>r.stay=restStay);renderItinerary();updateCost();};
@@ -2647,8 +2672,10 @@ async function suggestRests(){
   const sec=document.getElementById('restSec'),box=document.getElementById('restBox');
   clearArr(restMarkers);lastRests=[];
   if(!placesSvc||!lastRouteTimeline||!lastRouteTimeline.length){sec.style.display='none';renderItinerary();return;}
-  const total=lastDurationSec||0,interval=restMin*60;
   sec.style.display='block';
+  // 「休憩なし」：休憩を提案せず、休憩時間も計算（到着時刻・費用）に含めない
+  if(!(restMin>0)){restReqId++;clearArr(restMarkers);lastRests=[];lastRestSkipped=0;box.innerHTML=restHead()+'<div class="rest-note">休憩なし。休憩スポットの提案を行わず、休憩時間も所要時間・到着時刻の計算に含めません。</div>';wireRestCtl();renderItinerary();updateCost();return;}
+  const total=lastDurationSec||0,interval=restMin*60;
   if(total<interval){box.innerHTML=restHead()+`<div class="rest-note">所要 ${fmtDuration(total)}。${isoLabel(restMin)}未満のため休憩提案はありません。</div>`;wireRestCtl();renderItinerary();return;}
   box.innerHTML=restHead()+'<div class="rest-note">ルート沿いの休憩スポット（高速はSA/PAの規模を評価）を検索中…</div>';wireRestCtl();
   // 休憩候補時刻（drive秒）を生成し、経由地/目的地の前後30分以内に重なるものは「立寄りで休憩済み」として除外。
@@ -2808,6 +2835,9 @@ function calcToll(){
 function fmtDuration(sec){const m=Math.round(sec/60);return m<60?(m+'分'):(Math.floor(m/60)+'時間'+(m%60)+'分');}
 function fuelLabel(f){return{regular:'レギュラー',premium:'ハイオク',diesel:'軽油'}[f];}
 function fmtClock(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+function ocNum(id){const e=document.getElementById(id);return e?(parseFloat(e.value)||0):0;}
+// 車両以外の費用（食費＝円/食×回数、宿泊費、観光費、予備費・駐車代金、その他移動費）の合計
+function nonVehicleCost(){return ocNum('ocFood')*ocNum('ocFoodN')+ocNum('ocLodge')+ocNum('ocSight')+ocNum('ocReserve')+ocNum('ocTrans');}
 function updateCost(){
   const result=document.getElementById('rsResult');if(lastDistanceKm==null){result.classList.remove('show');document.getElementById('rsPeek').classList.remove('show');document.getElementById('rsDetails').style.display='none';return;}
   document.getElementById('rsDetails').style.display='block';
@@ -2823,14 +2853,18 @@ function updateCost(){
     const th=document.getElementById('timesHint');if(th)th.textContent=`${TIMES_RANK_LBL[timesRank]}・${timesNight?'ナイトパック':(timesHours+'時間')}／${Math.round(lastDistanceKm||0)}km → レンタカー¥${rental.toLocaleString()}（燃料・基本保険込。車両保険¥${TIMES_INSURANCE}別）`;}
   else{if(gl)gl.textContent='ガソリン代';if(eff>0&&price>0){liters=lastDistanceKm/eff;gas=Math.round(liters*price);document.getElementById('rGas').textContent='¥'+gas.toLocaleString();}else document.getElementById('rGas').textContent='–';}
   const other=timesOn?TIMES_INSURANCE:(parseFloat(document.getElementById('otherCost').value)||0);const t=calcToll();const nk=parseFloat(document.getElementById('tollKm').value)||0;
-  const total=(timesOn?rental:gas)+t.toll+other;
+  const vehicleTotal=(timesOn?rental:gas)+t.toll+other;                  // 車両費用計（燃料/レンタカー＋高速＋保険/その他）
+  const nonVeh=nonVehicleCost();                                         // 車両以外の費用（食費・宿泊・観光…）
+  const grand=vehicleTotal+nonVeh;                                       // 総予算
   const totalDisc=(t.longDisc||0)+(t.timeDisc||0)+(t.shuDisc||0);const listPrice=t.toll+totalDisc;
   document.getElementById('rToll').innerHTML='¥'+t.toll.toLocaleString()+(totalDisc>0?`<div style="font-size:10.5px;font-weight:800;margin-top:1px;color:var(--muted)">定価¥${listPrice.toLocaleString()} <span style="color:#2f9e44">−¥${totalDisc.toLocaleString()}(${Math.round(totalDisc/listPrice*100)}%off)</span></div>`:'');
-  document.getElementById('rTotal').textContent='¥'+total.toLocaleString();
+  document.getElementById('rTotal').textContent='¥'+vehicleTotal.toLocaleString();
+  document.getElementById('rGrand').textContent='¥'+grand.toLocaleString();
+  const gsub=document.getElementById('rGrandSub');if(gsub)gsub.textContent=nonVeh>0?('車両¥'+vehicleTotal.toLocaleString()+'＋旅費¥'+nonVeh.toLocaleString()):'';
   const splitN=Math.max(1,parseInt(document.getElementById('splitN').value)||1);const splitRow=document.getElementById('splitRow');
-  if(splitN>1){document.getElementById('rPerPerson').textContent='¥'+Math.ceil(total/splitN).toLocaleString();document.querySelector('#splitRow .k').textContent='1人あたり（'+splitN+'人で割り勘）';splitRow.style.display='flex';}else splitRow.style.display='none';
+  if(splitN>1){document.getElementById('rPerPerson').textContent='¥'+Math.ceil(grand/splitN).toLocaleString();document.querySelector('#splitRow .k').textContent='1人あたり（'+splitN+'人で割り勘・総予算）';splitRow.style.display='flex';}else splitRow.style.display='none';
   const peek=document.getElementById('rsPeek');
-  if(points.length>=2){const tsec=(lastTrafficSec!=null?lastTrafficSec:lastDurationSec)+totalDwellSec();const col=routeSheet.classList.contains('collapsed');peek.innerHTML=`<span class="pk-main">${lastDistanceKm.toFixed(0)}km・${fmtDuration(tsec)}<small>タップで${col?'詳細を開く':'地図を見る'}</small></span><span class="pk-cost">¥${total.toLocaleString()}</span><span class="pk-x">${col?'▲':'▼'}</span>`;peek.classList.add('show');}
+  if(points.length>=2){const tsec=(lastTrafficSec!=null?lastTrafficSec:lastDurationSec)+totalDwellSec();const col=routeSheet.classList.contains('collapsed');peek.innerHTML=`<span class="pk-main">${lastDistanceKm.toFixed(0)}km・${fmtDuration(tsec)}<small>タップで${col?'詳細を開く':'地図を見る'}</small></span><span class="pk-cost">¥${grand.toLocaleString()}</span><span class="pk-x">${col?'▲':'▼'}</span>`;peek.classList.add('show');}
   else peek.classList.remove('show');
   const dParts=[];
   if(t.longDisc>0)dParts.push(`長距離割引 -¥${t.longDisc.toLocaleString()}`);
@@ -2845,6 +2879,8 @@ function updateCost(){
   // 折りたたみ中でも現在の設定が一目で分かるチップ
   const chip=document.getElementById('cdChip');
   if(chip){const vl={kei:'軽',normal:'普通',mid:'中型',large:'大型',xl:'特大'}[vehType]||'';chip.textContent=`（${vl}車・${fuelLabel(fuelType)}¥${price||'-'}/L・${eff||'-'}km/L${splitN>1?('・'+splitN+'人割り勘'):''}）`;}
+  const ocdChip=document.getElementById('ocdChip');if(ocdChip)ocdChip.textContent=nonVeh>0?('旅費 ¥'+nonVeh.toLocaleString()):'未入力';
+  const ocHint=document.getElementById('ocHint');if(ocHint)ocHint.textContent=nonVeh>0?('車両以外の費用 合計 ¥'+nonVeh.toLocaleString()+' → 総予算に加算・行程表へ反映'):'食費・宿泊費などを入力すると総予算と行程表に反映されます。';
   renderItinerary();result.classList.add('show');
   persistState();
 }
@@ -2861,17 +2897,23 @@ function renderItinerary(){
   const nodes=[];
   for(let i=0;i<points.length;i++){
     const t=pT?pT[i]:lastLegs.slice(0,i).reduce((a,l)=>a+(l.sec||0),0);
-    nodes.push({t,kind:'point',role:roles[i],stay:(i>0&&i<points.length-1)?(points[i].stay||0):0,label:points[i].label||(points[i].lat.toFixed(3)+', '+points[i].lng.toFixed(3))});
+    nodes.push({t,kind:'point',i,role:roles[i],stay:(i>0&&i<points.length-1)?(points[i].stay||0):0,label:points[i].label||(points[i].lat.toFixed(3)+', '+points[i].lng.toFixed(3))});
   }
   (lastEvents||[]).filter(e=>e.type!=='jct').forEach(e=>nodes.push({t:e.t,kind:e.type,label:e.name,ic:e.ic})); // JCTは工程に表示しない
   (lastRests||[]).forEach((r,idx)=>nodes.push({t:r.t,kind:'rest',label:r.name,sub:r.kind,stay:r.stay,idx,data:r.data}));
   nodes.sort((a,b)=>a.t-b.t);
-  let restAccum=0;let html='<div class="rs-label">行程（到着 / 出発）</div>';
+  let restAccum=0;const pointArr={};let html='<div class="rs-label">行程（到着 / 出発）</div>';
   nodes.forEach(nd=>{
     const arrSec=nd.t+restAccum;
     if(nd.kind==='point'){
       const color=roleColor(nd.role);
-      if(nd.stay>0){const depSec=arrSec+nd.stay*60;restAccum+=nd.stay*60;html+=`<div class="sch-row rest"><span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発${fmtClockAdd(dep,depSec)}</small></span><span class="sch-badge" style="background:${color}">${nd.role}</span><span class="sch-label">${escapeHtml(nd.label)}<small> 滞在${nd.stay}分</small></span></div>`;}
+      const isMid=(nd.i>0&&nd.i<points.length-1); // 経由地・最下部でない目的地＝着/発を2行表示（発は編集可）
+      if(isMid){
+        pointArr[nd.i]=arrSec;                    // 到着秒を記録（発時刻編集の逆算に使用）
+        const depSec=arrSec+(nd.stay||0)*60;restAccum+=(nd.stay||0)*60;
+        const stayTxt=nd.stay>0?`<small> 滞在${nd.stay}分</small>`:'';
+        html+=`<div class="sch-row rest"><span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発<input type="time" class="dep-in" data-i="${nd.i}" value="${fmtClockAdd(dep,depSec)}" title="出発（集合）時刻を編集"></small></span><span class="sch-badge" style="background:${color}">${nd.role}</span><span class="sch-label">${escapeHtml(nd.label)}${stayTxt}</span></div>`;
+      }
       else html+=`<div class="sch-row"><span class="sch-t">${fmtClockAdd(dep,arrSec)}</span><span class="sch-badge" style="background:${color}">${nd.role}</span><span class="sch-label">${escapeHtml(nd.label)}</span></div>`;
     }else if(nd.kind==='rest'){
       const depSec=arrSec+(nd.stay||0)*60;restAccum+=(nd.stay||0)*60;
@@ -2888,6 +2930,19 @@ function renderItinerary(){
   html+=`<div class="itin-note">休憩ルール：経由地・目的地の<b>前後30分以内</b>に重なる休憩は、立寄り時に休憩したものとして<b>省略</b>します。ただし<b>経由地の直後</b>でも次の地点まで<b>1時間以上</b>かかる区間は休憩を残します。${lastRestSkipped>0?`<br>今回 ${lastRestSkipped}件 を省略しました。`:''}</div>`;
   box.innerHTML=html;sec.style.display='block';
   box.querySelectorAll('.stay-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(lastRests[i]){lastRests[i].stay=Math.max(0,Math.min(180,parseInt(inp.value)||0));renderItinerary();updateCost();}});
+  // 経由地・目的地の「発（出発/集合）時刻」を手動編集→滞在時間へ反映（着→発の差を滞在分として保存）
+  box.querySelectorAll('.dep-in').forEach(inp=>inp.onchange=()=>{
+    const i=+inp.dataset.i,p=points[i];if(!p)return;
+    const v=inp.value;if(!/^\d{1,2}:\d{2}$/.test(v)){renderItinerary();return;}
+    const arrSec=pointArr[i];if(arrSec==null)return;
+    const [hh,mm]=v.split(':').map(Number);
+    const arr=new Date(dep.getTime()+arrSec*1000);
+    const depDate=new Date(arr.getFullYear(),arr.getMonth(),arr.getDate(),hh,mm,0,0);
+    let stayMin=Math.round((depDate.getTime()-arr.getTime())/60000);
+    if(stayMin<0)stayMin+=1440;                 // 着より前の時刻＝翌日の集合時刻として解釈（日跨ぎ）
+    p.stay=Math.max(0,Math.min(2880,stayMin));  // 最大48時間（車中泊・宿泊にも対応）
+    renderItinerary();updateCost();persistState();
+  });
 }
 // ===== 工程表の出力（手書きフォーマット風・印刷/PDF保存。用紙右側にメモ余白を確保） =====
 function schedFacText(d){const arr=['温泉','コンビニ','GS','レストラン'].filter((_,k)=>[d.bath,d.conv,d.gas,d.rest][k]);return arr.length?arr.join('・'):'施設なし';}
@@ -2914,7 +2969,8 @@ function exportSchedule(){
     const c=ptClock[i]||{arr:dep,dep:dep,stay:0},isEnd=i===points.length-1,isStart=i===0,lbl=roleOf(i),isDest=lbl.indexOf('目的')===0;
     // 全地点を上下罫線のボックスに統一。出発地・最終到着点(帰宅)は文字サイズを現状維持(sb-plain)、経由地/目的地は地名を大きく
     const vcls=(isStart||lbl==='帰宅')?'sb-start sb-plain':(isEnd||isDest)?'sb-dest'+(isEnd?' sb-plain':''):'sb-via';
-    const timeHtml=isStart?('<span class="sb-t1">発'+fmtClock(c.dep)+'</span>'):('着'+fmtClock(c.arr)+(c.stay?'<br>発'+fmtClock(c.dep):''));
+    const isMid=(i>0&&!isEnd); // 経由地・最下部でない目的地＝着/発を必ず2行表示（滞在0でも）
+    const timeHtml=isStart?('<span class="sb-t1">発'+fmtClock(c.dep)+'</span>'):(isMid?('着'+fmtClock(c.arr)+'<br>発'+fmtClock(c.dep)):('着'+fmtClock(c.arr)));
     rows+='<div class="stop-box '+vcls+'"><span class="sb-badge">'+lbl+'</span><span class="sb-times">'+timeHtml+'</span><span class="sb-place">'+escapeHtml(placeOf(i))+(c.stay?'<span class="sb-stay">滞在'+c.stay+'分</span>':'')+'</span></div>';
     if(!isEnd){
       const leg=lastLegs[i]||{km:0,sec:0};
@@ -2929,26 +2985,29 @@ function exportSchedule(){
   const liters=eff>0?lastDistanceKm/eff:0,gas=(eff>0&&price>0)?Math.round(liters*price):0;
   const t=calcToll(),otherIn=parseFloat(document.getElementById('otherCost').value)||0;
   const rental=timesOn?timesRentalCost():0, ins=timesOn?TIMES_INSURANCE:otherIn;
-  const travelCost=(timesOn?rental:gas)+t.toll+ins;
+  // 車両以外の費用（「車両以外の費用設定」の入力を行程表へ反映）
+  const foodUnit=ocNum('ocFood'),foodN=ocNum('ocFoodN'),foodTot=foodUnit*foodN,lodge=ocNum('ocLodge'),sight=ocNum('ocSight'),reserve=ocNum('ocReserve'),transMisc=ocNum('ocTrans');
+  const nonVeh=foodTot+lodge+sight+reserve+transMisc;
+  const travelCost=(timesOn?rental:gas)+t.toll+ins+nonVeh;
   const splitN=Math.max(1,parseInt(document.getElementById('splitN').value)||1);
   const endClock=(ptClock[points.length-1]||{}).arr||dep;
   const wd='日月火水木金土',fmtDate=d=>(d.getMonth()+1)+'/'+d.getDate()+'('+wd[d.getDay()]+')';
   const period=fmtDate(dep)+(endClock.toDateString()!==dep.toDateString()?(' 〜 '+fmtDate(endClock)):'');
   const title=placeOf(0).split(',')[0]+' → '+placeOf(points.length-1).split(',')[0];
   const yen=v=>'¥'+Math.round(v).toLocaleString();
-  const editTd='<td class="ce cst" contenteditable="true"></td>';
+  const ecell=v=>'<td class="ce cst" contenteditable="true">'+(v>0?yen(v):'')+'</td>'; // 車両以外の費用セル（値があれば表示・空欄は手入力可）
   const fuelVal=timesOn?'ー':('<span class="big cst">'+yen(gas)+'</span><br><span class="cost-sub">'+(price||'-')+'円/L・'+(eff||'-')+'km/L（'+liters.toFixed(1)+'L）</span>');
   const rentalVal=timesOn?('<span class="big cst">'+yen(rental)+'</span><br><span class="cost-sub">'+TIMES_RANK_LBL[timesRank]+'・'+(timesNight?'ナイトパック':(timesHours+'時間'))+'</span>'):'ー';
   const insVal=timesOn?'<span class="cst">¥500</span>':'<span class="ce cst" contenteditable="true">'+(otherIn>0?yen(otherIn):'')+'</span>';
   const fuelG=timesOn?' grey':'', insG=timesOn?' grey':'', rentG=timesOn?'':' grey';
-  const foodTd='<td><div class="ce cst" contenteditable="true"></div><div class="cost-sub">【<span class="ce" contenteditable="true">　</span>円/食　<span class="ce" contenteditable="true">　</span>回分】</div></td>';
+  const foodTd='<td><div class="ce cst" contenteditable="true">'+(foodTot>0?yen(foodTot):'')+'</div><div class="cost-sub">【<span class="ce" contenteditable="true">'+(foodUnit>0?foodUnit:'　')+'</span>円/食　<span class="ce" contenteditable="true">'+(foodN>0?foodN:'　')+'</span>回分】</div></td>';
   const cost='<table class="ctbl">'
     +'<tr><td class="k'+fuelG+'">燃料予算</td><td class="'+fuelG.trim()+'">'+fuelVal+'</td><td class="k">キロ程</td><td class="km">'+lastDistanceKm.toFixed(1)+' km</td></tr>'
     +'<tr><td class="k">有料道路(ETC)予算</td><td><span class="cst">'+yen(t.toll)+'</span></td><td class="k">食費</td>'+foodTd+'</tr>'
-    +'<tr><td class="k'+insG+'">保険料金</td><td class="'+insG.trim()+'">'+insVal+'</td><td class="k">宿泊費</td>'+editTd+'</tr>'
-    +'<tr><td class="k">予備費・駐車代金</td>'+editTd+'<td class="k">観光費</td>'+editTd+'</tr>'
+    +'<tr><td class="k'+insG+'">保険料金</td><td class="'+insG.trim()+'">'+insVal+'</td><td class="k">宿泊費</td>'+ecell(lodge)+'</tr>'
+    +'<tr><td class="k">予備費・駐車代金</td>'+ecell(reserve)+'<td class="k">観光費</td>'+ecell(sight)+'</tr>'
     +'<tr><td class="k'+rentG+'">レンタカー予算</td><td class="'+rentG.trim()+'">'+rentalVal+'</td><td class="k emptyk"></td><td class="emptyk"></td></tr>'
-    +'<tr><td class="k">その他移動費</td>'+editTd+'<td class="k emptyk"></td><td class="emptyk"></td></tr>'
+    +'<tr><td class="k">その他移動費</td>'+ecell(transMisc)+'<td class="k emptyk"></td><td class="emptyk"></td></tr>'
     +'</table>'
     +'<table class="ctbl sumtbl"><tr><td class="k">予算総額</td><td class="sum" id="budgetTotal">'+yen(travelCost)+'</td></tr>'
     +'<tr><td class="k">1人当たり予算（'+splitN+'人）</td><td class="sum" id="budgetPer">'+yen(Math.ceil(travelCost/splitN))+'/人</td></tr></table>';
@@ -3252,7 +3311,7 @@ async function exportMapImage(){
       x.textAlign='right';x.font=Math.round(bh*0.32)+'px -apple-system,sans-serif';x.fillText(dt,iw-pad,icy);
       const by=ih-bh/2;
       const distTxt=(lastDistanceKm!=null)?(lastDistanceKm.toFixed(0)+'km ・ '+fmtDuration((lastTrafficSec!=null?lastTrafficSec:lastDurationSec||0)+totalDwellSec())):'';
-      let total='';if(lastDistanceKm!=null){const price=parseFloat(document.getElementById('price').value)||0,eff=parseFloat(document.getElementById('eff').value)||0;const gas=(eff>0&&price>0)?Math.round(lastDistanceKm/eff*price):0;const t=calcToll(),other=parseFloat(document.getElementById('otherCost').value)||0;total='¥'+(gas+t.toll+other).toLocaleString();}
+      let total='';if(lastDistanceKm!=null){const price=parseFloat(document.getElementById('price').value)||0,eff=parseFloat(document.getElementById('eff').value)||0;const gas=(eff>0&&price>0)?Math.round(lastDistanceKm/eff*price):0;const t=calcToll();const veh=(timesOn?timesRentalCost():gas)+t.toll+(timesOn?TIMES_INSURANCE:(parseFloat(document.getElementById('otherCost').value)||0));total='¥'+(veh+nonVehicleCost()).toLocaleString();}
       x.fillStyle='#fff';x.textAlign='left';x.font='bold '+Math.round(bh*0.4)+'px -apple-system,\"Hiragino Kaku Gothic ProN\",sans-serif';if(distTxt)x.fillText(distTxt,pad,by);
       x.textAlign='right';x.font='bold '+Math.round(bh*0.46)+'px -apple-system,sans-serif';if(total)x.fillText(total,iw-pad,by);
       cv.toBlob(blob=>{if(!blob)throw new Error('blob');const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tabimap_'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'_'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0')+'.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);showStatus('画像を保存しました',false);hideStatusLater();},'image/png');
@@ -3289,6 +3348,8 @@ document.getElementById('timesNightChk').addEventListener('change',e=>{timesNigh
 updateTimesUI();
 document.getElementById('otherCost').addEventListener('input',updateCost);
 document.getElementById('splitN').addEventListener('input',updateCost);
+// 車両以外の費用設定（食費・宿泊費・観光費・予備費・その他移動費）→ 総予算・行程表へ反映
+['ocFood','ocFoodN','ocLodge','ocSight','ocReserve','ocTrans'].forEach(id=>{const e=document.getElementById(id);if(e)e.addEventListener('input',()=>{updateCost();persistState();});});
 // 高速距離・近郊区間は自動判定のみ（閲覧専用）。tollKmAuto は常に true を維持
 document.getElementById('depTime').addEventListener('change',()=>{depTimeManual=true;updateCost();});
 document.getElementById('depNowBtn').onclick=setDepNow;
