@@ -284,6 +284,13 @@
   .icon-btn.on{background:var(--accent);color:#fff;}
   .rest-note{font-size:12px;color:var(--muted);line-height:1.6;}
   .itin-note{margin-top:9px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;font-size:10.8px;color:var(--muted);line-height:1.6;}
+  /* 区間ごとの高速/下道 色帯（橙=高速・緑=下道） */
+  .itin-seg{display:flex;align-items:stretch;gap:9px;}
+  .seg-rail{flex:none;width:7px;border:none;border-radius:99px;padding:0;margin:3px 0;cursor:pointer;align-self:stretch;box-shadow:inset 0 0 0 1px rgba(255,255,255,.25);}
+  .seg-rail.fast{background:#f76707;} .seg-rail.avoid{background:#2f9e44;}
+  .seg-rail:active{opacity:.65;}
+  .seg-rows{flex:1;min-width:0;}
+  .pref-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px;vertical-align:middle;}
   .rest-item{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
   .rest-item .rest-t{flex:none;font-weight:800;color:var(--accent);font-variant-numeric:tabular-nums;}
   .rest-item .rest-n{flex:1;font-weight:700;}
@@ -450,7 +457,7 @@
   <div id="rsDetails" style="display:none;">
   <div id="altSel" style="display:none;margin-bottom:10px;"></div>
   <div class="rs-section" style="border-top:none;padding-top:0;margin-top:0;">
-    <div class="seg" id="prefSeg"><button data-p="fast" class="on">高速優先</button><button data-p="avoid">下道（高速・有料を回避）</button></div>
+    <div class="seg" id="prefSeg"><button data-p="fast" class="on"><span class="pref-dot" style="background:#f76707"></span>高速優先</button><button data-p="avoid"><span class="pref-dot" style="background:#2f9e44"></span>下道（高速・有料を回避）</button></div>
     <div class="rs-hint" id="orsHint" style="margin-top:8px;"></div>
   </div>
   <div class="seg" id="timeModeSeg" style="margin:2px 0 8px;"><button data-tm="depart" class="on">出発時刻で計算</button><button data-tm="arrive">到着時刻で計算</button></div>
@@ -1371,7 +1378,7 @@ function computeRoute(opts){
       showStatus('経由地を最も効率の良い順に並べ替えました',false);hideStatusLater();
     }else if(localOpt){showStatus('経由地を並べ替えました（26箇所以上は距離ベースの近似最適化）',false);hideStatusLater();}
     routeAlts=res.routes;altIndex=0;applyRoute(routeAlts[0]);renderAltSelector();
-    if(res.chunked)showStatus(`長距離ルートを${res.chunked}分割で計算・連結しました（経由地${points.length-2}箇所）`,false),hideStatusLater();
+    if(res.chunked)showStatus(`ルートを${res.chunked}区間に分けて計算・連結しました（区間別の高速/下道・長距離分割）`,false),hideStatusLater();
   }).catch(err=>{
     if(points.length-2>MAX_INTERMEDIATES){showStatus('長距離ルートの取得に失敗: '+(err&&err.message||err),false);hideStatusLater();return;} // 分割時は旧API(上限25)へのフォールバック不可
     console.warn('Routes API失敗→Directionsにフォールバック:',err&&err.message);routeAlts=[];renderAltSelector();computeRouteLegacy(true);
@@ -1419,7 +1426,7 @@ function saveCurrentRoute(){
   if(isTimes){rental=timesRentalCost();other=TIMES_INSURANCE;total=rental+toll+other;}
   else{gas=(eff>0&&price>0)?Math.round(lastDistanceKm/eff*price):0;other=parseFloat(document.getElementById('otherCost').value)||0;total=gas+toll+other;}
   const people=ev?ev.people:Math.max(1,parseInt(document.getElementById('splitN').value)||1);
-  const pts=points.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null)})); // 再編集用に地点を保存
+  const pts=points.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null),segPref:(p.segPref||null)})); // 再編集用に地点を保存
   const path=(d.fullPath||[]).map(pt=>(typeof pt.lat==='function')?{lat:pt.lat(),lng:pt.lng()}:{lat:pt.lat,lng:pt.lng}); // 再描画用にポリライン座標を保存
   savedRoutes.push({id:ev?ev.id:Date.now(),label,name:ev?ev.name:label,polys,markers,color,distKm:d.distKm,trafSec:d.trafSec+totalDwellSec(),toll,gas,rental,other,total,times:isTimes,timesRank:isTimes?timesRank:null,timesHours:isTimes?timesHours:null,timesNight:isTimes?timesNight:null,people,visible:true,pts,path});
   window.editingVehicle=null;
@@ -1432,7 +1439,7 @@ function editSavedRoute(i){const r=savedRoutes[i];if(!r)return;
   r.polys.forEach(p=>p.setMap(null));r.markers.forEach(m=>m.setMap(null));
   window.editingVehicle={id:r.id,name:r.name||r.label,people:r.people||1,color:r.color};
   savedRoutes.splice(i,1);
-  points=r.pts.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null)}));
+  points=r.pts.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null),segPref:(p.segPref||null)}));
   const sn=document.getElementById('splitN');if(sn)sn.value=window.editingVehicle.people;
   if(activeTab!=='route')selectTab('route');routeSheet.classList.remove('collapsed');
   renderPoints();computeRoute();renderLayerPanel();renderSettlePanel();
@@ -1446,7 +1453,7 @@ function persistState(){
   try{
     const g=id=>{const e=document.getElementById(id);return e?e.value:'';};
     const slim=savedRoutes.map(r=>({id:r.id,label:r.label,name:r.name||r.label,color:r.color,distKm:r.distKm,trafSec:r.trafSec,toll:r.toll,gas:r.gas,rental:r.rental||0,other:r.other,total:r.total,times:!!r.times,timesRank:r.timesRank||null,timesHours:(r.timesHours!=null?r.timesHours:null),timesNight:!!r.timesNight,people:r.people,manual:!!r.manual,visible:r.visible!==false,pts:r.pts||null,path:r.path||null}));
-    const st={v:1,points:(points||[]).map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null)})),depTime:g('depTime'),fuelType,price:g('price'),eff:g('eff'),vehType,otherCost:g('otherCost'),splitN:g('splitN'),applyDisc:!!(document.getElementById('applyDisc')||{}).checked,depTimeManual,timeMode,routePref,restMin,restStay,timesOn,timesRank,timesHours,timesNight,oc:{food:g('ocFood'),foodN:g('ocFoodN'),lodge:g('ocLodge'),sight:g('ocSight'),reserve:g('ocReserve'),trans:g('ocTrans')},saved:slim};
+    const st={v:1,points:(points||[]).map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null),segPref:(p.segPref||null)})),depTime:g('depTime'),fuelType,price:g('price'),eff:g('eff'),vehType,otherCost:g('otherCost'),splitN:g('splitN'),applyDisc:!!(document.getElementById('applyDisc')||{}).checked,depTimeManual,timeMode,routePref,restMin,restStay,timesOn,timesRank,timesHours,timesNight,oc:{food:g('ocFood'),foodN:g('ocFoodN'),lodge:g('ocLodge'),sight:g('ocSight'),reserve:g('ocReserve'),trans:g('ocTrans')},saved:slim};
     localStorage.setItem('tabi_state',JSON.stringify(st));
   }catch(e){}
 }
@@ -1483,7 +1490,7 @@ function restoreState(){
     });
     restorePins();
     renderLayerPanel();renderSettlePanel();
-    if(st.points&&st.points.length){points=st.points.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null)}));renderPoints();}
+    if(st.points&&st.points.length){points=st.points.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null),segPref:(p.segPref||null)}));renderPoints();}
   }catch(e){console.warn('状態の復元に失敗',e);}
   restoring=false;
   if(points.length>=2)computeRoute();
@@ -1494,7 +1501,7 @@ function toggleSavedRoute(i){const r=savedRoutes[i];if(!r)return;r.visible=!r.vi
 function appendSavedRoute(i){
   const r=savedRoutes[i];if(!r||!r.pts||!r.pts.length){showStatus('この車両には連結できる地点データがありません（費用のみの手動車両）',false);hideStatusLater();return;}
   if(activeTab!=='route')selectTab('route');routeSheet.classList.remove('collapsed');
-  const add=r.pts.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null)}));
+  const add=r.pts.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null),segPref:(p.segPref||null)}));
   if(points.length&&add.length&&samePlace(points[points.length-1],add[0]))add.shift(); // 連結点の重複を除去
   if(!add.length){showStatus('連結する新しい地点がありません',false);hideStatusLater();return;}
   points=points.concat(add);
@@ -1572,8 +1579,24 @@ function renderLayerPanel(){
 }
 const ROUTES_API_FIELDS=['routes.duration','routes.staticDuration','routes.distanceMeters','routes.polyline.encodedPolyline','routes.legs.distanceMeters','routes.legs.duration','routes.legs.staticDuration','routes.legs.steps.navigationInstruction','routes.legs.steps.distanceMeters','routes.legs.steps.staticDuration','routes.legs.steps.polyline.encodedPolyline','routes.travelAdvisory.speedReadingIntervals','routes.optimizedIntermediateWaypointIndex'].join(',');
 const MAX_INTERMEDIATES=25; // Google Routes APIの中間経由地上限（出発+25+目的=27地点/リクエスト）
-function routesApiBody(pts,opts){
-  const b={origin:{location:{latLng:{latitude:pts[0].lat,longitude:pts[0].lng}}},destination:{location:{latLng:{latitude:pts[pts.length-1].lat,longitude:pts[pts.length-1].lng}}},travelMode:'DRIVE',routingPreference:'TRAFFIC_AWARE',polylineQuality:'HIGH_QUALITY',extraComputations:['TRAFFIC_ON_POLYLINE'],routeModifiers:{avoidTolls:routePref==='avoid',avoidHighways:routePref==='avoid'},languageCode:'ja',units:'METRIC'};
+// ===== 区間（出発・目的地・帰宅で分割。経由地は区間内部）ごとの高速/下道優先 =====
+// 区間の分割点＝出発(0)・途中の目的地・最終地点。各区間は「開始地点の segPref」で高速/下道を決める
+function segBoundaries(){const roles=computePointRoles();const b=[0];for(let i=1;i<points.length-1;i++)if(roles[i].indexOf('目的')===0)b.push(i);if(points.length>1)b.push(points.length-1);return b;}
+function segPrefAt(startIdx){return (points[startIdx]&&points[startIdx].segPref)||routePref;}   // その区間の優先（未設定なら全体設定）
+// ルートを「区間ごとの優先」×「経由地25地点上限」でチャンク分割。各chunk={pts,pref}。
+// 隣接区間の優先が同じなら1リクエストに統合（無駄なAPI呼び出しを回避）
+function routePrefChunks(){
+  const b=segBoundaries(),merged=[];
+  for(let k=0;k<b.length-1;k++){const s=b[k],e=b[k+1],pref=segPrefAt(s);const last=merged[merged.length-1];
+    if(last&&last.pref===pref&&last.e===s&&(e-last.s-1)<=MAX_INTERMEDIATES)last.e=e; // 同一優先＆25以内なら結合
+    else merged.push({s,e,pref});}
+  const out=[];
+  merged.forEach(c=>{let ci=c.s;while(ci<c.e){const end=Math.min(ci+MAX_INTERMEDIATES+1,c.e);out.push({pts:points.slice(ci,end+1),pref:c.pref});ci=end;}});
+  return out;
+}
+function routesApiBody(pts,opts,pref){
+  const avoid=((pref||routePref)==='avoid');
+  const b={origin:{location:{latLng:{latitude:pts[0].lat,longitude:pts[0].lng}}},destination:{location:{latLng:{latitude:pts[pts.length-1].lat,longitude:pts[pts.length-1].lng}}},travelMode:'DRIVE',routingPreference:'TRAFFIC_AWARE',polylineQuality:'HIGH_QUALITY',extraComputations:['TRAFFIC_ON_POLYLINE'],routeModifiers:{avoidTolls:avoid,avoidHighways:avoid},languageCode:'ja',units:'METRIC'};
   if(pts.length>2){b.intermediates=pts.slice(1,-1).map(p=>({location:{latLng:{latitude:p.lat,longitude:p.lng}}}));if(opts&&opts.optimize)b.optimizeWaypointOrder=true;}
   else if(opts&&opts.alternatives)b.computeAlternativeRoutes=true;
   return b;
@@ -1589,20 +1612,21 @@ async function routeViaRoutesAPI(opts){
   const key=cfgKey('gmap');if(!key)throw new Error('APIキー未設定');
   if(!(google.maps.geometry&&google.maps.geometry.encoding))throw new Error('geometryライブラリ未ロード');
   const dep=gDeparture();
-  if(points.length-2<=MAX_INTERMEDIATES){
-    const body=routesApiBody(points,{optimize:opts.optimize,alternatives:true});
+  const chunks=routePrefChunks(); // 区間別の高速/下道 ＋ 経由地25上限で分割
+  // 単一区間かつ経由地25以内 → 1リクエスト（候補ルートも取得）。従来の高速パス
+  if(chunks.length===1&&chunks[0].pts.length-2<=MAX_INTERMEDIATES){
+    const seg=chunks[0];
+    const body=routesApiBody(seg.pts,{optimize:opts.optimize,alternatives:true},seg.pref);
     if(dep.getTime()>Date.now()+60000)body.departureTime=new Date(dep).toISOString();
     const j=await routesApiFetch(body,key);
     return {routes:j.routes.slice(0,3).map(parseRoutesAPI), optimizedOrder:(j.routes[0].optimizedIntermediateWaypointIndex||null)};
   }
-  // ===== 経由地26箇所以上：APIの上限(25)を跨いでルートを自動分割→連結（実質無制限） =====
-  const chunks=[];let ci=0;
-  while(ci<points.length-1){const end=Math.min(ci+MAX_INTERMEDIATES+1,points.length-1);chunks.push(points.slice(ci,end+1));ci=end;}
+  // ===== 複数区間（区間ごとに高速/下道）または経由地26箇所以上：区間ごとに計算→連結 =====
   const dec=enc=>google.maps.geometry.encoding.decodePath(enc);
   const combined=[],legsAll=[],intervals=[];let cumSec=0;
   for(let k=0;k<chunks.length;k++){
-    showStatus(`Googleでルート計算中…（長距離分割 ${k+1}/${chunks.length}）`,true);
-    const body=routesApiBody(chunks[k],{}); // 分割時は候補・API最適順なし
+    showStatus(`Googleでルート計算中…（区間 ${k+1}/${chunks.length}${chunks.length>1?'・区間別優先':''}）`,true);
+    const body=routesApiBody(chunks[k].pts,{},chunks[k].pref); // 区間ごとの高速/下道を適用
     const dt=new Date(dep.getTime()+cumSec*1000);if(dt.getTime()>Date.now()+60000)body.departureTime=dt.toISOString();
     const j=await routesApiFetch(body,key);
     const r=j.routes[0];
@@ -2986,8 +3010,19 @@ function renderItinerary(){
   (lastEvents||[]).filter(e=>e.type!=='jct').forEach(e=>nodes.push({t:e.t,kind:e.type,label:e.name,ic:e.ic})); // JCTは工程に表示しない
   (lastRests||[]).forEach((r,idx)=>nodes.push({t:r.t,kind:'rest',label:r.name,sub:r.kind,stay:r.stay,idx,data:r.data}));
   nodes.sort((a,b)=>a.t-b.t);
-  let restAccum=0;const pointArr={},restArr={};let html='<div class="rs-label">行程（到着 / 出発）</div>';
+  // 区間（出発・目的地・帰宅で分割）の色帯：各ノードの所属区間を走行秒から判定（境界の目的地は手前の区間に属する）
+  const bnds=segBoundaries(),segStart=bnds.slice(0,-1);
+  const segT=bnds.map(i=>(pT?pT[i]:lastLegs.slice(0,i).reduce((a,l)=>a+(l.sec||0),0)));
+  const segIdxOf=(t)=>{let k=0;for(let j=0;j<segStart.length;j++)if(segT[j]<t)k=j;return k;};
+  const multiSeg=segStart.length>1;
+  let restAccum=0,curSeg=-1;const pointArr={},restArr={};let html='<div class="rs-label">行程（到着 / 出発）</div>';
   nodes.forEach(nd=>{
+    const sIdx=segIdxOf(nd.t);
+    if(sIdx!==curSeg){                              // 区間が変わったら色帯グループを開き直す
+      if(curSeg!==-1)html+='</div></div>';
+      curSeg=sIdx;const sp=segPrefAt(segStart[sIdx]);
+      html+=`<div class="itin-seg"><button class="seg-rail ${sp==='avoid'?'avoid':'fast'}" data-si="${segStart[sIdx]}" title="この区間を高速/下道で切替（橙=高速・緑=下道）"></button><div class="seg-rows">`;
+    }
     const arrSec=nd.t+restAccum;
     if(nd.kind==='point'){
       const color=roleColor(nd.role);
@@ -3015,8 +3050,11 @@ function renderItinerary(){
       html+=`<div class="sch-row evt"><span class="sch-t">${fmtClockAdd(dep,arrSec)}</span><span class="sch-ic">${ic}</span><span class="sch-label">${evLabel} <span class="sch-tag">${tag}</span></span></div>`;
     }
   });
-  html+=`<div class="itin-note">休憩ルール：経由地・目的地の<b>前後30分以内</b>に重なる休憩は、立寄り時に休憩したものとして<b>省略</b>します。ただし<b>経由地の直後</b>でも次の地点まで<b>1時間以上</b>かかる区間は休憩を残します。${lastRestSkipped>0?`<br>今回 ${lastRestSkipped}件 を省略しました。`:''}</div>`;
+  if(curSeg!==-1)html+='</div></div>';             // 最後の区間グループを閉じる
+  html+=`<div class="itin-note"><b>左の色帯をタップ</b>で区間ごとに高速/下道を切替（<span style="color:#f76707;font-weight:800;">橙＝高速優先</span>・<span style="color:#2f9e44;font-weight:800;">緑＝下道優先</span>${multiSeg?'。区間＝出発／目的地／帰宅で区切り':'。目的地を追加すると区間が増えます'}）。<br>休憩ルール：経由地・目的地の<b>前後30分以内</b>に重なる休憩は立寄り時に休憩したものとして<b>省略</b>します（経由地直後でも次の地点まで1時間以上なら残す）。${lastRestSkipped>0?`今回 ${lastRestSkipped}件 を省略しました。`:''}</div>`;
   box.innerHTML=html;sec.style.display='block';
+  // 区間の色帯タップ→その区間の高速/下道を切替→再計算
+  box.querySelectorAll('.seg-rail').forEach(b=>b.onclick=()=>{const si=+b.dataset.si;if(!points[si])return;const nv=(segPrefAt(si)==='avoid')?'fast':'avoid';points[si].segPref=nv;showStatus('この区間を'+(nv==='avoid'?'下道優先':'高速優先')+'で再計算中…',true);computeRoute();});
   // 出発時刻(HH:MM) → 到着との差を実効滞在秒(depOv)として保存。直接指定は5分切り上げより最優先
   const depToOv=(arrSec,v)=>{
     if(arrSec==null||!/^\d{1,2}:\d{2}$/.test(v))return null;
@@ -3419,7 +3457,7 @@ document.getElementById('imgBtn').onclick=exportMapImage;
 document.getElementById('settleClose').onclick=()=>document.getElementById('settlePanel').classList.remove('open');
 document.getElementById('layerClose').onclick=()=>document.getElementById('layerPanel').classList.remove('open');
 document.getElementById('useLoc').onclick=()=>{if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}showStatus('現在地を取得中…',true);navigator.geolocation.getCurrentPosition(pos=>{statusEl.classList.remove('show');showCurrentLoc(pos.coords.latitude,pos.coords.longitude,pos.coords.accuracy);addPoint(pos.coords.latitude,pos.coords.longitude,'現在地');},err=>{showStatus('現在地を取得できませんでした',false);hideStatusLater();},{enableHighAccuracy:true,timeout:8000});};
-document.getElementById('prefSeg').addEventListener('click',(e)=>{const btn=e.target.closest('button');if(!btn)return;routePref=btn.dataset.p;[...e.currentTarget.children].forEach(b=>b.classList.toggle('on',b===btn));updatePrefHint();if(points.length>=2)computeRoute();});
+document.getElementById('prefSeg').addEventListener('click',(e)=>{const btn=e.target.closest('button');if(!btn)return;routePref=btn.dataset.p;[...e.currentTarget.children].forEach(b=>b.classList.toggle('on',b===btn));points.forEach(p=>{if(p)delete p.segPref;});updatePrefHint();if(points.length>=2)computeRoute();}); // 全体ボタンは区間別の上書きを解除して全区間に適用
 document.getElementById('fuelSeg').addEventListener('click',(e)=>{const btn=e.target.closest('button');if(!btn)return;fuelType=btn.dataset.f;[...e.currentTarget.children].forEach(b=>b.classList.toggle('on',b===btn));const np=priceManual?fuelPrices[fuelType]:FUEL_AVG[fuelType];document.getElementById('price').value=np;fuelPrices[fuelType]=np;updateGasNote();updateCost();});
 document.getElementById('vehSeg').addEventListener('click',(e)=>{const btn=e.target.closest('button');if(!btn)return;vehType=btn.dataset.v;[...e.currentTarget.children].forEach(b=>b.classList.toggle('on',b===btn));updateCost();});
 document.getElementById('price').addEventListener('input',()=>{priceManual=true;fuelPrices[fuelType]=parseFloat(document.getElementById('price').value)||0;updateGasNote();updateCost();});
