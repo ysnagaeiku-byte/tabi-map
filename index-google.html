@@ -453,7 +453,9 @@
     <div class="seg" id="prefSeg"><button data-p="fast" class="on">高速優先</button><button data-p="avoid">下道（高速・有料を回避）</button></div>
     <div class="rs-hint" id="orsHint" style="margin-top:8px;"></div>
   </div>
-  <div class="dep-row"><span class="dep-lab">出発日時</span><input id="depTime" type="datetime-local"><button type="button" id="depNowBtn" class="dep-now" title="現在時刻にする">現在</button></div>
+  <div class="seg" id="timeModeSeg" style="margin:2px 0 8px;"><button data-tm="depart" class="on">出発時刻で計算</button><button data-tm="arrive">到着時刻で計算</button></div>
+  <div class="dep-row"><span class="dep-lab" id="depLab">出発日時</span><input id="depTime" type="datetime-local"><button type="button" id="depNowBtn" class="dep-now" title="現在時刻にする">現在</button></div>
+  <div class="rs-hint" id="timeModeHint" style="margin:6px 0 0;display:none;"></div>
   <div class="rs-result" id="rsResult">
     <div class="rs-grid"><div class="rs-card"><div class="k">実走行距離</div><div class="val" id="rDist">–</div></div><div class="rs-card"><div class="k">所要時間(目安)</div><div class="val" id="rTime">–</div></div></div>
     <div class="rs-grid"><div class="rs-card"><div class="k" id="rGasLabel">ガソリン代</div><div class="val" id="rGas">–</div></div><div class="rs-card"><div class="k">高速(概算)</div><div class="val" id="rToll">–</div></div></div>
@@ -1326,7 +1328,7 @@ function renderPoints(){
   list.querySelectorAll('.pt-del').forEach(b=>b.onclick=()=>{points.splice(+b.dataset.i,1);renderPoints();computeRoute();});
   list.querySelectorAll('.pt-role').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(!points[i])return;const cur=computePointRoles()[i];points[i].role=(cur.indexOf('目的')===0)?'via':'dest';renderPoints();renderItinerary();updateCost();persistState();});
   list.querySelectorAll('.pt-mv').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,dr=+b.dataset.d,j=i+dr;if(j<0||j>=points.length)return;const t=points[i];points[i]=points[j];points[j]=t;renderPoints();computeRoute();});
-  list.querySelectorAll('.pt-stay-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(points[i]){points[i].stay=Math.max(0,Math.min(600,parseInt(inp.value)||0));renderItinerary();updateCost();}});
+  list.querySelectorAll('.pt-stay-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(points[i]){points[i].stay=Math.max(0,Math.min(600,parseInt(inp.value)||0));points[i].depOv=null;renderItinerary();updateCost();persistState();}});
   persistState();
 }
 // ルート地点（出発/経由/目的）ピンのポップアップ：場所情報＋距離円＋到達圏＋削除
@@ -1345,7 +1347,7 @@ async function routeOSRM(pts){const path=pts.map(p=>`${p.lng},${p.lat}`).join(';
 async function routeORS(pts,avoid,key){const body={coordinates:pts.map(p=>[p.lng,p.lat]),extra_info:['waycategory']};if(avoid.length)body.options={avoid_features:avoid};const res=await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson',{method:'POST',headers:{'Authorization':key,'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await res.json();if(!d.features||!d.features.length)throw new Error((d.error&&(d.error.message||d.error))||('ORS HTTP '+res.status));const f=d.features[0];let hwKm=0;const ex=f.properties.extras&&f.properties.extras.waycategory;if(ex&&ex.summary){let m=0;ex.summary.forEach(s=>{if((s.value&3)!==0)m+=s.distance;});hwKm=m/1000;}const legs=(f.properties.segments||[]).map(sg=>({km:sg.distance/1000,sec:sg.duration,nexcoKm:0,shutokoKm:0}));return{km:f.properties.summary.distance/1000,sec:f.properties.summary.duration,line:f.geometry.coordinates.map(c=>({lat:c[1],lng:c[0]})),nexcoKm:hwKm,shutokoKm:0,legs};}
 function updatePrefHint(){const el=document.getElementById('orsHint');el.textContent=routePref==='avoid'?'下道優先：高速・有料道路を回避（所要は延びます）':'高速優先：高速・有料も使う最速ルート（渋滞反映）';}
 function stepClassG(html){const t=String(html||'').replace(/<[^>]+>/g,'');if(/首都高/.test(t))return 'shutoko';if(/(高速道路|自動車道|有料道路|スカイライン)/.test(t))return 'nexco';return null;}
-function gDeparture(){const dv=document.getElementById('depTime').value;let d=dv?new Date(dv):new Date();const now=new Date();return d.getTime()<now.getTime()?now:d;}
+function gDeparture(){let d=getEffDep();const now=new Date();return d.getTime()<now.getTime()?now:d;}
 // 区間ごとの色（ナビ風）：渋滞=赤 / やや混雑=橙 / 高速=緑 / 一般道=青
 const COL_JAM='#d93025',COL_SLOW='#f9a825',COL_HW='#1e8e3e';
 function parseDur(s){if(s==null)return 0;if(typeof s==='number')return s;const m=String(s).match(/([\d.]+)s/);return m?parseFloat(m[1]):(parseFloat(s)||0);}
@@ -1417,7 +1419,7 @@ function saveCurrentRoute(){
   if(isTimes){rental=timesRentalCost();other=TIMES_INSURANCE;total=rental+toll+other;}
   else{gas=(eff>0&&price>0)?Math.round(lastDistanceKm/eff*price):0;other=parseFloat(document.getElementById('otherCost').value)||0;total=gas+toll+other;}
   const people=ev?ev.people:Math.max(1,parseInt(document.getElementById('splitN').value)||1);
-  const pts=points.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null})); // 再編集用に地点を保存
+  const pts=points.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null)})); // 再編集用に地点を保存
   const path=(d.fullPath||[]).map(pt=>(typeof pt.lat==='function')?{lat:pt.lat(),lng:pt.lng()}:{lat:pt.lat,lng:pt.lng}); // 再描画用にポリライン座標を保存
   savedRoutes.push({id:ev?ev.id:Date.now(),label,name:ev?ev.name:label,polys,markers,color,distKm:d.distKm,trafSec:d.trafSec+totalDwellSec(),toll,gas,rental,other,total,times:isTimes,timesRank:isTimes?timesRank:null,timesHours:isTimes?timesHours:null,timesNight:isTimes?timesNight:null,people,visible:true,pts,path});
   window.editingVehicle=null;
@@ -1430,7 +1432,7 @@ function editSavedRoute(i){const r=savedRoutes[i];if(!r)return;
   r.polys.forEach(p=>p.setMap(null));r.markers.forEach(m=>m.setMap(null));
   window.editingVehicle={id:r.id,name:r.name||r.label,people:r.people||1,color:r.color};
   savedRoutes.splice(i,1);
-  points=r.pts.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null}));
+  points=r.pts.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null)}));
   const sn=document.getElementById('splitN');if(sn)sn.value=window.editingVehicle.people;
   if(activeTab!=='route')selectTab('route');routeSheet.classList.remove('collapsed');
   renderPoints();computeRoute();renderLayerPanel();renderSettlePanel();
@@ -1444,7 +1446,7 @@ function persistState(){
   try{
     const g=id=>{const e=document.getElementById(id);return e?e.value:'';};
     const slim=savedRoutes.map(r=>({id:r.id,label:r.label,name:r.name||r.label,color:r.color,distKm:r.distKm,trafSec:r.trafSec,toll:r.toll,gas:r.gas,rental:r.rental||0,other:r.other,total:r.total,times:!!r.times,timesRank:r.timesRank||null,timesHours:(r.timesHours!=null?r.timesHours:null),timesNight:!!r.timesNight,people:r.people,manual:!!r.manual,visible:r.visible!==false,pts:r.pts||null,path:r.path||null}));
-    const st={v:1,points:(points||[]).map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null})),depTime:g('depTime'),fuelType,price:g('price'),eff:g('eff'),vehType,otherCost:g('otherCost'),splitN:g('splitN'),applyDisc:!!(document.getElementById('applyDisc')||{}).checked,depTimeManual,routePref,restMin,restStay,timesOn,timesRank,timesHours,timesNight,oc:{food:g('ocFood'),foodN:g('ocFoodN'),lodge:g('ocLodge'),sight:g('ocSight'),reserve:g('ocReserve'),trans:g('ocTrans')},saved:slim};
+    const st={v:1,points:(points||[]).map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null)})),depTime:g('depTime'),fuelType,price:g('price'),eff:g('eff'),vehType,otherCost:g('otherCost'),splitN:g('splitN'),applyDisc:!!(document.getElementById('applyDisc')||{}).checked,depTimeManual,timeMode,routePref,restMin,restStay,timesOn,timesRank,timesHours,timesNight,oc:{food:g('ocFood'),foodN:g('ocFoodN'),lodge:g('ocLodge'),sight:g('ocSight'),reserve:g('ocReserve'),trans:g('ocTrans')},saved:slim};
     localStorage.setItem('tabi_state',JSON.stringify(st));
   }catch(e){}
 }
@@ -1457,6 +1459,7 @@ function restoreState(){
     if(st.oc){sv('ocFood',st.oc.food);sv('ocFoodN',st.oc.foodN);sv('ocLodge',st.oc.lodge);sv('ocSight',st.oc.sight);sv('ocReserve',st.oc.reserve);sv('ocTrans',st.oc.trans);updateOcPanel();}
     if(typeof st.applyDisc==='boolean'){const e=document.getElementById('applyDisc');if(e)e.checked=st.applyDisc;}
     if(typeof st.depTimeManual==='boolean')depTimeManual=st.depTimeManual;
+    if(st.timeMode==='arrive'||st.timeMode==='depart'){timeMode=st.timeMode;if(typeof updateTimeModeUI==='function')updateTimeModeUI();}
     if(st.fuelType){fuelType=st.fuelType;document.querySelectorAll('#fuelSeg button').forEach(b=>b.classList.toggle('on',b.dataset.f===fuelType));}
     if(st.vehType){vehType=st.vehType;document.querySelectorAll('#vehSeg button').forEach(b=>b.classList.toggle('on',b.dataset.v===vehType));}
     if(st.routePref){routePref=st.routePref;document.querySelectorAll('#prefSeg button').forEach(b=>b.classList.toggle('on',b.dataset.p===routePref));}
@@ -1480,7 +1483,7 @@ function restoreState(){
     });
     restorePins();
     renderLayerPanel();renderSettlePanel();
-    if(st.points&&st.points.length){points=st.points.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null}));renderPoints();}
+    if(st.points&&st.points.length){points=st.points.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null)}));renderPoints();}
   }catch(e){console.warn('状態の復元に失敗',e);}
   restoring=false;
   if(points.length>=2)computeRoute();
@@ -1491,7 +1494,7 @@ function toggleSavedRoute(i){const r=savedRoutes[i];if(!r)return;r.visible=!r.vi
 function appendSavedRoute(i){
   const r=savedRoutes[i];if(!r||!r.pts||!r.pts.length){showStatus('この車両には連結できる地点データがありません（費用のみの手動車両）',false);hideStatusLater();return;}
   if(activeTab!=='route')selectTab('route');routeSheet.classList.remove('collapsed');
-  const add=r.pts.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null}));
+  const add=r.pts.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null)}));
   if(points.length&&add.length&&samePlace(points[points.length-1],add[0]))add.shift(); // 連結点の重複を除去
   if(!add.length){showStatus('連結する新しい地点がありません',false);hideStatusLater();return;}
   points=points.concat(add);
@@ -1533,7 +1536,7 @@ function renderLayerPanel(){
   if(savedPins.length){
     const anyVis=savedPins.some(p=>p.visible!==false);
     // ピンは1件の「ピン」グループに集約。ヘッダをタップで一覧を展開/折りたたみ（スペース節約）
-    h+=`<div class="ly-item ly-grp" id="pinGrpHead"><span class="ly-caret">${pinsExpanded?'▾':'▸'}</span><span class="ly-sw pin-grp-sw" title="すべてのピンの表示/非表示" style="background:${anyVis?'#e64980':'var(--surface-2)'};border:1px solid #e64980;"></span><span class="ly-name">📍 ピン (${savedPins.length})<small style="color:var(--muted);font-weight:500;">　${pinsExpanded?'タップで閉じる':'タップで一覧'}</small></span></div>`;
+    h+=`<div class="ly-item ly-grp" id="pinGrpHead"><span class="ly-caret">${pinsExpanded?'▾':'▸'}</span><span class="ly-sw pin-grp-sw" title="すべてのピンの表示/非表示" style="background:${anyVis?'#e64980':'var(--surface-2)'};border:1px solid #e64980;"></span><span class="ly-name">📍 ピン (${savedPins.length})<small style="color:var(--muted);font-weight:500;">　${pinsExpanded?'タップで閉じる':'タップで一覧'}</small></span><button class="ly-del pin-grp-del" title="ピンをすべて削除"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
     if(pinsExpanded){
       h+='<div class="ly-subwrap">';
       savedPins.forEach((p,i)=>{h+=`<div class="ly-item ly-subitem"><span class="ly-sw pin-lysw" data-id="${p.id}" style="background:${p.visible!==false?'#e64980':'var(--surface-2)'};border:1px solid #e64980;"></span><span class="ly-name">ピン${i+1}：${escapeHtml(p.name)}${p.sub?`<br><small style="color:var(--muted);font-weight:500;">${escapeHtml(p.sub)}</small>`:''}</span><button class="ly-del pin-lydel" data-id="${p.id}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
@@ -1555,6 +1558,8 @@ function renderLayerPanel(){
   if(pinHead)pinHead.onclick=(e)=>{if(e.target.closest('.pin-grp-sw'))return;pinsExpanded=!pinsExpanded;renderLayerPanel();};
   const pinGrpSw=list.querySelector('.pin-grp-sw');
   if(pinGrpSw)pinGrpSw.onclick=(e)=>{e.stopPropagation();const anyVis=savedPins.some(p=>p.visible!==false);savedPins.forEach(p=>{p.visible=!anyVis;if(p.marker)p.marker.setMap(p.visible?map:null);});persistPins();renderLayerPanel();};
+  const pinGrpDel=list.querySelector('.pin-grp-del');
+  if(pinGrpDel)pinGrpDel.onclick=(e)=>{e.stopPropagation();if(!confirm('保存済みのピン '+savedPins.length+'件をすべて削除します。よろしいですか？（お気に入りは残ります）'))return;clearSavedPins();};
   list.querySelectorAll('.pin-lysw').forEach(s=>s.onclick=()=>toggleSavedPinVisible(+s.dataset.id));
   list.querySelectorAll('.pin-lydel').forEach(b=>b.onclick=()=>removeSavedPin(+b.dataset.id));
   list.querySelectorAll('.buf-sw').forEach(s=>s.onclick=()=>toggleBufferVisible(+s.dataset.id));
@@ -2640,7 +2645,7 @@ function nearestPlace(res,pt){let best=res[0],bd=1e18;res.forEach(p=>{const la=p
 function restHead(){const noRest=!(restMin>0);return `<div class="rs-label">休憩の設定</div><div class="seg" id="restSeg" style="margin-bottom:8px;"><button data-r="0"${noRest?' class="on"':''}>休憩なし</button><button data-r="90"${restMin===90?' class="on"':''}>1.5時間ごと</button><button data-r="120"${restMin===120?' class="on"':''}>2時間ごと</button><button data-r="180"${restMin===180?' class="on"':''}>3時間ごと</button></div><label class="opt" style="width:100%;justify-content:space-between;${noRest?'opacity:.4;':''}">1回の休憩時間（既定）<span><input type="number" min="0" max="180" id="restStayIn" value="${restStay}"${noRest?' disabled':''} style="width:60px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);font-size:14px;text-align:right;">分</span></label>`;}
 function wireRestCtl(){
   const seg=document.getElementById('restSeg');if(seg)seg.onclick=(e)=>{const b=e.target.closest('button');if(!b)return;restMin=+b.dataset.r;[...seg.children].forEach(x=>x.classList.toggle('on',x===b));suggestRests();};
-  const si=document.getElementById('restStayIn');if(si)si.onchange=()=>{restStay=Math.max(0,Math.min(180,parseInt(si.value)||0));lastRests.forEach(r=>r.stay=restStay);renderItinerary();updateCost();};
+  const si=document.getElementById('restStayIn');if(si)si.onchange=()=>{restStay=Math.max(0,Math.min(180,parseInt(si.value)||0));lastRests.forEach(r=>{r.stay=restStay;r.depOv=null;});renderItinerary();updateCost();};
 }
 // 指定drive秒で高速走行中か（events: in=流入/料金所, out=流出）
 function isHwyAt(t){let hw=false;for(const e of (lastEvents||[])){if(e.t>t)break;if(e.type==='in')hw=true;else if(e.type==='out')hw=false;}return hw;}
@@ -2798,12 +2803,52 @@ function isHolExcluded(d){
   let nx=new Date(d.getTime()+86400000);while(isHolidayDate(nx)&&len<7){len++;nx=new Date(nx.getTime()+86400000);}
   return len>=3;
 }
-// ルート内経過秒→実時刻（その時点までの休憩・経由地滞在を加算。SA車中泊で走行が深夜帯に入るケースも正しく判定される）
-function dwellBeforeSec(t){
-  let s=0;(lastRests||[]).forEach(r=>{if(r.t<t)s+=(r.stay||0)*60;});
-  if(lastPointT&&lastPointT.length===points.length)for(let i=1;i<points.length-1;i++)if(lastPointT[i]<t)s+=(points[i].stay||0)*60;
-  return s;
+// ===== 出発時刻の算定・5分切り上げ滞在システム =====
+let timeMode='depart'; // 'depart'=出発時刻を指定 / 'arrive'=最終目的地の到着時刻を指定し出発を逆算
+// 計算に使う実効「出発時刻」。到着モードでは 到着時刻 −（走行＋滞在）で逆算
+function getEffDep(){
+  const dv=document.getElementById('depTime').value;const base=dv?new Date(dv):new Date();
+  if(timeMode!=='arrive'||lastDurationSec==null)return base;
+  const drive=(lastTrafficSec!=null?lastTrafficSec:lastDurationSec)||0;
+  const dep0=new Date(base.getTime()-drive*1000);                 // 滞在を無視した暫定出発（丸め計算の初期値）
+  const dwell=computeDwells(dep0).total;
+  return new Date(base.getTime()-(drive+dwell)*1000);
 }
+// 到着(arrClock)＋滞在(stayMin) を「次の5分区切り」へ切り上げた出発時刻（秒は切り捨てて分で計算）
+function ceilDep5(arrClock,stayMin){
+  const base=arrClock.getHours()*60+arrClock.getMinutes();
+  const rounded=Math.ceil((base+Math.max(0,stayMin))/5)*5;
+  const mid=new Date(arrClock.getFullYear(),arrClock.getMonth(),arrClock.getDate(),0,0,0,0);
+  return new Date(mid.getTime()+rounded*60000);
+}
+// 実効滞在秒：出発時刻を直接指定(depOvSec)していればそれを最優先、無ければ5分切り上げ後の差
+function effDwellSec(arrClock,stayMin,depOvSec){
+  if(depOvSec!=null)return Math.max(0,depOvSec);
+  return Math.max(0,Math.round((ceilDep5(arrClock,stayMin).getTime()-arrClock.getTime())/1000));
+}
+// 経由地/目的地・休憩の実効滞在を出発時刻から順に算出。{point[i],rest[idx]={arrSec,depSec,eff}, list, total}
+function computeDwells(dep){
+  const n=points.length;
+  const pT=(lastPointT&&lastPointT.length===n)?lastPointT:points.map((_,i)=>lastLegs.slice(0,i).reduce((a,l)=>a+(l.sec||0),0));
+  const nodes=[];
+  for(let i=1;i<n-1;i++)nodes.push({t:pT[i],kind:'point',i});
+  (lastRests||[]).forEach((r,idx)=>nodes.push({t:r.t,kind:'rest',idx}));
+  nodes.sort((a,b)=>a.t-b.t);
+  let accum=0;const point={},rest={},list=[];
+  nodes.forEach(nd=>{
+    const arrSec=nd.t+accum,arrClock=new Date(dep.getTime()+arrSec*1000);
+    let stayMin,ov;
+    if(nd.kind==='point'){stayMin=points[nd.i].stay||0;ov=(points[nd.i].depOv!=null?points[nd.i].depOv:null);}
+    else{const r=lastRests[nd.idx];stayMin=r.stay||0;ov=(r.depOv!=null?r.depOv:null);}
+    const eff=effDwellSec(arrClock,stayMin,ov);
+    accum+=eff;
+    if(nd.kind==='point')point[nd.i]={arrSec,depSec:arrSec+eff,eff};else rest[nd.idx]={arrSec,depSec:arrSec+eff,eff};
+    list.push({t:nd.t,eff});
+  });
+  return {point,rest,list,total:accum};
+}
+// ルート内経過秒→実時刻（実効滞在を加算）。SA車中泊で走行が深夜帯に入るケースも正しく判定される
+function dwellBeforeSec(t){let s=0;computeDwells(getEffDep()).list.forEach(e=>{if(e.t<t)s+=e.eff;});return s;}
 function clockAt(dep,t){return new Date(dep.getTime()+(t+dwellBeforeSec(t))*1000);}
 // 走行[a,b]が深夜時間帯(0〜4時)と少しでも重なるか（日またぎ対応。4:00ちょうどの入場は対象外）
 function hitsNight(a,b){
@@ -2829,7 +2874,7 @@ const r10=x=>Math.round(x/10)*10;
 function calcToll(){
   const f=VEH[vehType];
   const applyD=document.getElementById('applyDisc').checked&&lastDurationSec!=null;
-  const dv=document.getElementById('depTime').value;const dep=dv?new Date(dv):new Date();
+  const dep=getEffDep(); // 出発モード=入力値／到着モード=到着時刻からの逆算
   const nk=parseFloat(document.getElementById('tollKm').value)||0;
   const kel=document.getElementById('kinkoKm');let kinko=kel?(parseFloat(kel.value)||0):0;kinko=Math.min(Math.max(kinko,0),nk);
   // 走行単位。ルート解析で検出できなければ全行程を1走行として扱う
@@ -2919,17 +2964,18 @@ function updateCost(){
   const chip=document.getElementById('cdChip');
   if(chip){const vl={kei:'軽',normal:'普通',mid:'中型',large:'大型',xl:'特大'}[vehType]||'';chip.textContent=`（${vl}車・${fuelLabel(fuelType)}¥${price||'-'}/L・${eff||'-'}km/L${splitN>1?('・'+splitN+'人割り勘'):''}）`;}
   updateOcPanel();
+  if(typeof updateTimeModeUI==='function')updateTimeModeUI(); // 到着モードの逆算出発時刻を更新
   renderItinerary();result.classList.add('show');
   persistState();
 }
-function totalRestSec(){return (lastRests||[]).reduce((a,r)=>a+(r.stay||0)*60,0);}
-function totalDwellSec(){return totalRestSec()+(points||[]).reduce((a,p)=>a+(p.stay||0)*60,0);} // 休憩＋経由地滞在の合計
+function totalRestSec(){const d=computeDwells(getEffDep());let s=0;for(const k in d.rest)s+=d.rest[k].eff;return s;}
+function totalDwellSec(){return computeDwells(getEffDep()).total;} // 休憩＋経由地滞在の実効合計（5分切り上げ反映）
 function fmtClockAdd(dep,sec){return fmtClock(new Date(dep.getTime()+sec*1000));}
 // 行程＝出発/経由/目的＋料金所(IC)・JCT・休憩スポットの到着/出発時刻（休憩時間を加味）
 function renderItinerary(){
   const sec=document.getElementById('itinSec'),box=document.getElementById('itinerary');
   if(!lastLegs||!lastLegs.length||points.length<2){sec.style.display='none';box.innerHTML='';return;}
-  const dv=document.getElementById('depTime').value;const dep=dv?new Date(dv):new Date();
+  const dep=getEffDep(); // 出発モード=入力値／到着モード=到着時刻からの逆算
   const pT=(lastPointT&&lastPointT.length===points.length)?lastPointT:null;
   const roles=computePointRoles();
   const nodes=[];
@@ -2945,18 +2991,22 @@ function renderItinerary(){
     const arrSec=nd.t+restAccum;
     if(nd.kind==='point'){
       const color=roleColor(nd.role);
-      const isMid=(nd.i>0&&nd.i<points.length-1); // 経由地・最下部でない目的地＝出発時刻/滞在時間を双方編集可
+      const isMid=(nd.i>0&&nd.i<points.length-1); // 経由地・最下部でない目的地＝着(現状維持)/発(5分切り上げ・編集可)
       if(isMid){
         pointArr[nd.i]=arrSec;                    // 到着秒を記録（発時刻編集の逆算に使用）
-        const depSec=arrSec+(nd.stay||0)*60;restAccum+=(nd.stay||0)*60;
-        html+=`<div class="sch-row rest"><span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発<input type="time" class="dep-in" data-i="${nd.i}" value="${fmtClockAdd(dep,depSec)}" title="出発（集合）時刻を編集"></small></span><span class="sch-badge" style="background:${color}">${nd.role}</span><span class="sch-label">${escapeHtml(nd.label)}</span><span class="sch-stay">滞在<input type="number" min="0" max="1440" class="ptdur-in" data-i="${nd.i}" value="${nd.stay}">分</span></div>`;
+        const arrClock=new Date(dep.getTime()+arrSec*1000);
+        const eff=effDwellSec(arrClock,points[nd.i].stay||0,points[nd.i].depOv);
+        const depSec=arrSec+eff;restAccum+=eff;   // 実効滞在（5分切り上げ or 直接指定）を加算
+        html+=`<div class="sch-row rest"><span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発<input type="time" class="dep-in" data-i="${nd.i}" value="${fmtClockAdd(dep,depSec)}" title="出発（集合）時刻を編集"></small></span><span class="sch-badge" style="background:${color}">${nd.role}</span><span class="sch-label">${escapeHtml(nd.label)}</span></div>`;
       }
       else html+=`<div class="sch-row"><span class="sch-t">${fmtClockAdd(dep,arrSec)}</span><span class="sch-badge" style="background:${color}">${nd.role}</span><span class="sch-label">${escapeHtml(nd.label)}</span></div>`;
     }else if(nd.kind==='rest'){
       restArr[nd.idx]=arrSec;                     // 休憩の到着秒を記録（発時刻編集の逆算に使用）
-      const depSec=arrSec+(nd.stay||0)*60;restAccum+=(nd.stay||0)*60;
+      const arrClock=new Date(dep.getTime()+arrSec*1000);
+      const eff=effDwellSec(arrClock,lastRests[nd.idx].stay||0,lastRests[nd.idx].depOv);
+      const depSec=arrSec+eff;restAccum+=eff;
       const fac=sapaItinHtml(nd.data);
-      html+=`<div class="sch-row rest${fac?' hasfac':''}"><div class="sch-rest-main"><span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発<input type="time" class="restdep-in" data-i="${nd.idx}" value="${fmtClockAdd(dep,depSec)}" title="出発時刻を編集"></small></span><span class="sch-ic">休</span><span class="sch-label">${escapeHtml(nd.label)}<small> ${escapeHtml(nd.sub||'')}</small></span><span class="sch-stay">休憩<input type="number" min="0" max="180" class="stay-in" data-i="${nd.idx}" value="${nd.stay}">分</span></div>${fac}</div>`;
+      html+=`<div class="sch-row rest${fac?' hasfac':''}"><div class="sch-rest-main"><span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発<input type="time" class="restdep-in" data-i="${nd.idx}" value="${fmtClockAdd(dep,depSec)}" title="出発時刻を編集"></small></span><span class="sch-ic">休</span><span class="sch-label">${escapeHtml(nd.label)}<small> ${escapeHtml(nd.sub||'')}</small></span><span class="sch-stay">休憩<input type="number" min="0" max="180" class="stay-in" data-i="${nd.idx}" value="${lastRests[nd.idx].stay||0}">分</span></div>${fac}</div>`;
     }else{
       const ic='▸',tag=nd.kind==='in'?'入口/料金所':(nd.kind==='out'?'出口/料金所':'JCT');
       const road=nd.label||'',icn=nd.ic||'';
@@ -2967,30 +3017,28 @@ function renderItinerary(){
   });
   html+=`<div class="itin-note">休憩ルール：経由地・目的地の<b>前後30分以内</b>に重なる休憩は、立寄り時に休憩したものとして<b>省略</b>します。ただし<b>経由地の直後</b>でも次の地点まで<b>1時間以上</b>かかる区間は休憩を残します。${lastRestSkipped>0?`<br>今回 ${lastRestSkipped}件 を省略しました。`:''}</div>`;
   box.innerHTML=html;sec.style.display='block';
-  // 出発（集合）時刻(HH:MM) → 到着時刻との差を滞在/休憩(分)に逆算。片方を操作すると再描画でもう片方が連動する
-  const clockToStay=(arrSec,v,cap)=>{
+  // 出発時刻(HH:MM) → 到着との差を実効滞在秒(depOv)として保存。直接指定は5分切り上げより最優先
+  const depToOv=(arrSec,v)=>{
     if(arrSec==null||!/^\d{1,2}:\d{2}$/.test(v))return null;
     const [hh,mm]=v.split(':').map(Number);
     const arr=new Date(dep.getTime()+arrSec*1000);
     const d2=new Date(arr.getFullYear(),arr.getMonth(),arr.getDate(),hh,mm,0,0);
-    let s=Math.round((d2.getTime()-arr.getTime())/60000);
-    if(s<0)s+=1440;                              // 着より前＝翌日の時刻として解釈（日跨ぎ）
-    return Math.max(0,Math.min(cap,s));
+    let sec=Math.round((d2.getTime()-arr.getTime())/1000);
+    if(sec<0)sec+=86400;                          // 着より前＝翌日の時刻として解釈（日跨ぎ）
+    return Math.max(0,Math.min(2880*60,sec));
   };
-  // 休憩地：休憩時間（分）
-  box.querySelectorAll('.stay-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(lastRests[i]){lastRests[i].stay=Math.max(0,Math.min(180,parseInt(inp.value)||0));renderItinerary();updateCost();}});
-  // 休憩地：出発時刻 → 休憩時間へ連動
-  box.querySelectorAll('.restdep-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(!lastRests[i])return;const s=clockToStay(restArr[i],inp.value,180);if(s==null){renderItinerary();return;}lastRests[i].stay=s;renderItinerary();updateCost();});
-  // 経由地・目的地：出発（集合）時刻 → 滞在時間へ連動
-  box.querySelectorAll('.dep-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i,p=points[i];if(!p)return;const s=clockToStay(pointArr[i],inp.value,2880);if(s==null){renderItinerary();return;}p.stay=s;renderItinerary();updateCost();persistState();});
-  // 経由地・目的地：滞在時間（分）→ 出発時刻へ連動
-  box.querySelectorAll('.ptdur-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i,p=points[i];if(!p)return;p.stay=Math.max(0,Math.min(2880,parseInt(inp.value)||0));renderItinerary();updateCost();persistState();});
+  // 休憩地：休憩時間（分）。編集すると出発時刻の直接指定を解除（5分切り上げに戻す）
+  box.querySelectorAll('.stay-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(lastRests[i]){lastRests[i].stay=Math.max(0,Math.min(180,parseInt(inp.value)||0));lastRests[i].depOv=null;renderItinerary();updateCost();}});
+  // 休憩地：出発時刻を直接指定（最優先）
+  box.querySelectorAll('.restdep-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(!lastRests[i])return;const ov=depToOv(restArr[i],inp.value);if(ov==null){renderItinerary();return;}lastRests[i].depOv=ov;renderItinerary();updateCost();});
+  // 経由地・目的地：出発（集合）時刻を直接指定（最優先。滞在時間は「行程」下の地点リストで入力）
+  box.querySelectorAll('.dep-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i,p=points[i];if(!p)return;const ov=depToOv(pointArr[i],inp.value);if(ov==null){renderItinerary();return;}p.depOv=ov;renderItinerary();updateCost();persistState();});
 }
 // ===== 工程表の出力（手書きフォーマット風・印刷/PDF保存。用紙右側にメモ余白を確保） =====
 function schedFacText(d){const arr=['温泉','コンビニ','GS','レストラン'].filter((_,k)=>[d.bath,d.conv,d.gas,d.rest][k]);return arr.length?arr.join('・'):'施設なし';}
 function exportSchedule(){
   if(!lastLegs||!lastLegs.length||points.length<2){showStatus('先にルートを2地点以上で計算してください',false);hideStatusLater();return;}
-  const dv=document.getElementById('depTime').value;const dep=dv?new Date(dv):new Date();
+  const dep=getEffDep(); // 出発モード=入力値／到着モード=到着時刻からの逆算
   const pT=(lastPointT&&lastPointT.length===points.length)?lastPointT:points.map((_,i)=>lastLegs.slice(0,i).reduce((a,l)=>a+(l.sec||0),0));
   // 到着/出発の時刻（滞在・休憩を時間順に加算）
   const nodes=[];
@@ -2998,10 +3046,14 @@ function exportSchedule(){
   (lastRests||[]).forEach((r,idx)=>nodes.push({t:r.t,kind:'rest',idx}));
   nodes.sort((a,b)=>a.t-b.t);
   let acc=0;const ptClock=[],restClock=[];
-  nodes.forEach(nd=>{const arr=new Date(dep.getTime()+(nd.t+acc)*1000);let stay=0;
-    if(nd.kind==='point')stay=(nd.i>0&&nd.i<points.length-1)?(points[nd.i].stay||0):0;else stay=(lastRests[nd.idx].stay||0);
-    const depC=new Date(arr.getTime()+stay*60000);acc+=stay*60;
-    if(nd.kind==='point')ptClock[nd.i]={arr,dep:depC,stay};else restClock[nd.idx]={arr,dep:depC,stay};});
+  nodes.forEach(nd=>{const arr=new Date(dep.getTime()+(nd.t+acc)*1000);
+    const isMidP=(nd.kind==='point'&&nd.i>0&&nd.i<points.length-1);
+    let stayMin=0,ov=null;
+    if(nd.kind==='point'){if(isMidP){stayMin=points[nd.i].stay||0;ov=points[nd.i].depOv;}}
+    else{stayMin=lastRests[nd.idx].stay||0;ov=lastRests[nd.idx].depOv;}
+    const eff=(nd.kind==='point'&&!isMidP)?0:effDwellSec(arr,stayMin,ov); // 出発地/最終到着点は滞在なし、他は5分切り上げ/直接指定
+    const depC=new Date(arr.getTime()+eff*1000);acc+=eff;const stayShown=Math.round(eff/60);
+    if(nd.kind==='point')ptClock[nd.i]={arr,dep:depC,stay:stayShown};else restClock[nd.idx]={arr,dep:depC,stay:stayShown};});
   const schedRoles=computePointRoles();
   const roleOf=i=>schedRoles[i];
   const placeOf=i=>points[i].label||(points[i].lat.toFixed(3)+', '+points[i].lng.toFixed(3));
@@ -3098,7 +3150,7 @@ function exportSchedule(){
   showStatus('行程表を新しいタブに作成しました（印刷/PDF保存・直接記入可）',false);hideStatusLater();
 }
 // Google渋滞ETA
-function gDeparture(){const dv=document.getElementById('depTime').value;let d=dv?new Date(dv):new Date();const now=new Date();return d.getTime()<now.getTime()?now:d;}
+function gDeparture(){let d=getEffDep();const now=new Date();return d.getTime()<now.getTime()?now:d;}
 function computeGoogleTraffic(){
   if(points.length<2||!window.google||!google.maps)return;
   const svc=new google.maps.DirectionsService();
@@ -3397,6 +3449,18 @@ updateOcPanel();
 // 高速距離・近郊区間は自動判定のみ（閲覧専用）。tollKmAuto は常に true を維持
 document.getElementById('depTime').addEventListener('change',()=>{depTimeManual=true;updateCost();});
 document.getElementById('depNowBtn').onclick=setDepNow;
+// 出発時刻／到着時刻の切替（到着モードは最終目的地の到着時刻から出発を逆算）
+function updateTimeModeUI(){
+  const arrive=(timeMode==='arrive');
+  const lab=document.getElementById('depLab');if(lab)lab.textContent=arrive?'到着日時（最終目的地）':'出発日時';
+  document.querySelectorAll('#timeModeSeg button').forEach(b=>b.classList.toggle('on',b.dataset.tm===timeMode));
+  const hint=document.getElementById('timeModeHint');if(!hint)return;
+  if(!arrive){hint.style.display='none';return;}
+  hint.style.display='block';
+  if(lastDurationSec!=null&&points.length>=2){const d=getEffDep(),z=n=>String(n).padStart(2,'0');hint.innerHTML='逆算した<b>出発時刻</b>：'+(d.getMonth()+1)+'/'+d.getDate()+' '+z(d.getHours())+':'+z(d.getMinutes())+'（走行＋滞在から算出）';}
+  else hint.textContent='最終目的地の到着時刻を指定すると、走行＋滞在から出発時刻を逆算します。ルートを2地点以上で計算してください。';
+}
+document.getElementById('timeModeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;timeMode=b.dataset.tm;updateTimeModeUI();if(lastDistanceKm!=null)updateCost();persistState();});
 document.getElementById('applyDisc').addEventListener('change',updateCost);
 document.getElementById('gmapsBtn').onclick=()=>openInGoogleMaps(points);
 document.getElementById('segBtn').onclick=()=>{const a=+document.getElementById('segFrom').value,b=+document.getElementById('segTo').value;if(!(a<b)){showStatus('起点は終点より前に',false);hideStatusLater();return;}openInGoogleMaps(points.slice(a,b+1));};
