@@ -3090,7 +3090,7 @@ function exportSchedule(){
     if(nd.kind==='point'){if(isMidP){stayMin=points[nd.i].stay||0;ov=points[nd.i].depOv;}}
     else{stayMin=lastRests[nd.idx].stay||0;ov=lastRests[nd.idx].depOv;}
     const eff=(nd.kind==='point'&&!isMidP)?0:effDwellSec(arr,stayMin,ov); // 出発地/最終到着点は滞在なし、他は5分切り上げ/直接指定
-    const depC=new Date(arr.getTime()+eff*1000);acc+=eff;const stayShown=Math.round(eff/60);
+    const depC=new Date(arr.getTime()+eff*1000);acc+=eff;const stayShown=Math.round(eff/60/5)*5;
     if(nd.kind==='point')ptClock[nd.i]={arr,dep:depC,stay:stayShown};else restClock[nd.idx]={arr,dep:depC,stay:stayShown};});
   const schedRoles=computePointRoles();
   const roleOf=i=>schedRoles[i];
