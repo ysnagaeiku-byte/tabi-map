@@ -3103,7 +3103,7 @@ function exportSchedule(){
     const vcls=(isStart||lbl==='帰宅')?'sb-start sb-plain':(isEnd||isDest)?'sb-dest'+(isEnd?' sb-plain':''):'sb-via';
     const isMid=(i>0&&!isEnd); // 経由地・最下部でない目的地＝着/発を必ず2行表示（滞在0でも）
     const timeHtml=isStart?('<span class="sb-t1">発'+fmtClock(c.dep)+'</span>'):(isMid?('着'+fmtClock(c.arr)+'<br>発'+fmtClock(c.dep)):('着'+fmtClock(c.arr)));
-    rows+='<div class="stop-box '+vcls+'"><span class="sb-badge">'+lbl+'</span><span class="sb-times">'+timeHtml+'</span><span class="sb-place">'+escapeHtml(placeOf(i))+(c.stay?'<span class="sb-stay">滞在'+c.stay+'分</span>':'')+'</span></div>';
+    rows+='<div class="stop-box '+vcls+'"><span class="sb-badge">'+lbl+'</span><span class="sb-times">'+timeHtml+'</span><span class="sb-place">'+escapeHtml(placeOf(i))+'</span>'+(c.stay?'<span class="sb-stay">約'+c.stay+'分</span>':'')+'</div>';
     if(!isEnd){
       const leg=lastLegs[i]||{km:0,sec:0};
       rows+='<div class="seg"><span class="seg-ar">↓</span><span class="seg-info"><b>'+fmtDuration(leg.sec||0)+'</b> ・ '+(leg.km||0).toFixed(1)+' km</span><span class="seg-note" contenteditable="true"></span></div>';
@@ -3137,50 +3137,77 @@ function exportSchedule(){
     +'<tr><td class="k'+fuelG+'">燃料予算</td><td class="'+fuelG.trim()+'">'+fuelVal+'</td><td class="k">キロ程</td><td class="km">'+lastDistanceKm.toFixed(1)+' km</td></tr>'
     +'<tr><td class="k">有料道路(ETC)予算</td><td><span class="cst">'+yen(t.toll)+'</span></td><td class="k">食費</td>'+foodTd+'</tr>'
     +'<tr><td class="k'+insG+'">保険料金</td><td class="'+insG.trim()+'">'+insVal+'</td><td class="k">宿泊費</td>'+ecell(lodge)+'</tr>'
-    +'<tr><td class="k">予備費・駐車代金</td>'+ecell(reserve)+'<td class="k">観光費</td>'+ecell(sight)+'</tr>'
-    +'<tr><td class="k'+rentG+'">レンタカー予算</td><td class="'+rentG.trim()+'">'+rentalVal+'</td><td class="k emptyk"></td><td class="emptyk"></td></tr>'
-    +'<tr><td class="k">その他移動費</td>'+ecell(transMisc)+'<td class="k emptyk"></td><td class="emptyk"></td></tr>'
+    +'<tr><td class="k'+rentG+'">レンタカー予算</td><td class="'+rentG.trim()+'">'+rentalVal+'</td><td class="k">観光費</td>'+ecell(sight)+'</tr>'
+    +'<tr><td class="k">予備費・駐車代金</td>'+ecell(reserve)+'<td class="k">その他移動費</td>'+ecell(transMisc)+'</tr>'
     +'</table>'
     +'<table class="ctbl sumtbl"><tr><td class="k">予算総額</td><td class="sum" id="budgetTotal">'+yen(travelCost)+'</td></tr>'
     +'<tr><td class="k">1人当たり予算（'+splitN+'人）</td><td class="sum" id="budgetPer">'+yen(Math.ceil(travelCost/splitN))+'/人</td></tr></table>';
   const css='*{box-sizing:border-box;}'
-    +'body{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#111;margin:0 auto;padding:14px 16px;font-size:12px;line-height:1.4;max-width:210mm;}'
-    +'.hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #111;padding-bottom:6px;gap:12px;margin-top:4px;}'
+    +'html,body{margin:0;padding:0;}'
+    +'body{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#111;font-size:12px;line-height:1.4;background:#e9e9ec;}'
+    +'#stage{display:none;}'
+    /* シート＝物理1ページ（天15mm・地20mm・左右12mmの余白は sheet-body の padding で確保。@page は margin:0 でブラウザ見出し/フッターを抑止） */
+    +'.sheet{background:#fff;overflow:hidden;position:relative;margin:0 auto;box-shadow:0 2px 14px rgba(0,0,0,.22);}'
+    +'.sheet+.sheet{margin-top:14px;}'
+    +'.sheet-body{width:100%;height:100%;padding:15mm 12mm 20mm 12mm;display:flex;flex-direction:column;}'
+    +'.hdr-slot{flex:0 0 auto;}'
+    +'.cols{flex:1 1 auto;display:flex;min-height:0;}'
+    +'.col-left{flex:0 0 66.6%;max-width:66.6%;padding-right:10px;display:flex;flex-direction:column;min-height:0;}'
+    +'.col-left .itin{flex:0 0 auto;}'
+    +'.col-left .spacer{flex:1 1 auto;min-height:15mm;}'  /* 行程と予算表の間に最低15mmの余白を確保しつつ予算表を最下部へ押し下げ */
+    +'.col-left .budget-slot{flex:0 0 auto;}'
+    +'.col-right{flex:1 1 auto;border-left:1px solid #ccc;}'  /* 右1/3＝手書きメモ用の白紙（各ページに罫線） */
+    /* ヘッダー */
+    +'.hdr{display:flex;justify-content:space-between;align-items:flex-end;border-bottom:2px solid #111;padding-bottom:6px;gap:12px;}'
     +'.ttl{font-size:20px;font-weight:800;} .ed{border-bottom:1px dashed #999;padding:0 6px;display:inline-block;min-width:60px;}'
     +'.hdr-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;}'
     +'.veh-field{font-size:12px;font-weight:700;white-space:nowrap;} .veh-lbl{color:#666;margin-right:4px;} .veh-ed{min-width:90px;} .veh-ed:empty::before{content:attr(data-ph);color:#bbb;font-weight:500;}'
     +'.period{font-size:13px;font-weight:700;white-space:nowrap;}'
-    +'.main{display:grid;grid-template-columns:2fr 1fr;gap:0;margin-top:16px;}'  /* 右1/3はメモ用の白紙。上部に少し余白 */
     +'@media print{.veh-field:has(.veh-ed:empty){display:none;} .veh-ed:empty::before{content:"";}}'  /* 車両欄が空ならPDFに表示しない */
-    +'.col-left{padding-right:10px;} .col-right{border-left:1px solid #ddd;}'
-    +'.szbtn{background:#fff !important;color:#0ca678 !important;border:1px solid #0ca678 !important;} .szbtn.on{background:#0ca678 !important;color:#fff !important;}'
-    +'.stop{display:flex;align-items:stretch;gap:8px;padding:5px 0;border-bottom:1px solid #eee;}'
-    +'.badge{flex:0 0 46px;background:#eef2f6;border:1px solid #99a;color:#334;font-weight:800;font-size:11px;display:flex;align-items:center;justify-content:center;border-radius:5px;text-align:center;line-height:1.1;}'
-    +'.s-start .badge{background:#e9f5ee;border-color:#2f9e44;color:#1a7a37;} .s-end .badge{background:#fdecec;border-color:#e03131;color:#c92a2a;}'
-    +'.times{flex:0 0 78px;font-size:13px;font-variant-numeric:tabular-nums;display:flex;flex-direction:column;justify-content:center;} .times small{font-weight:600;color:#666;font-size:10px;}'
-    +'.place{flex:1;font-size:14px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;} .place .stay{font-size:10px;font-weight:700;color:#e8590c;background:#fff3e6;border-radius:4px;padding:1px 5px;}'
-    /* 全地点＝上下罫線のボックス。経由地/目的地は地名を大きく、出発地/最終到着点(sb-plain)は現状サイズ */
-    +'.stop-box{display:flex;align-items:center;gap:12px;border-top:1px solid #222;border-bottom:1px solid #222;padding:7px 4px;margin:6px 0;page-break-inside:avoid;break-inside:avoid;}'
+    /* 行程（原則 白黒ベース。例外＝目的地の赤黒／出発・帰宅の緑／キロ程の青） */
+    +'.stop-box{display:flex;align-items:center;gap:12px;border-top:1px solid #222;border-bottom:1px solid #222;padding:7px 4px;margin:6px 0;}'
     +'.sb-badge{flex:0 0 54px;text-align:center;font-weight:800;font-size:12px;border:1.5px solid #333;border-radius:4px;padding:5px 2px;line-height:1.15;}'
-    +'.sb-dest .sb-badge{border-color:#e03131;color:#c92a2a;} .sb-via .sb-badge{border-color:#555;color:#333;} .sb-start .sb-badge{border-color:#2f9e44;color:#1a7a37;}'
+    +'.sb-dest .sb-badge{border-color:#7a1f1f;color:#7a1f1f;} .sb-via .sb-badge{border-color:#555;color:#333;} .sb-start .sb-badge{border-color:#2f9e44;color:#1a7a37;}'  /* 目的地＝赤黒／出発・帰宅＝緑 */
     +'.sb-times{flex:0 0 62px;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:#333;line-height:1.5;}'
-    +'.sb-place{flex:1;font-size:27px;font-weight:800;line-height:1.15;display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;} .sb-place .sb-stay{font-size:11px;font-weight:700;color:#e8590c;background:#fff3e6;border-radius:4px;padding:1px 6px;}'
+    +'.sb-place{flex:1 1 auto;min-width:0;font-size:27px;font-weight:800;line-height:1.15;color:#111;word-break:break-word;}'
     +'.sb-plain .sb-place{font-size:14px;}'  /* 出発地・帰宅は文字サイズ現状維持 */
-    +'.seg{display:flex;align-items:center;gap:8px;padding:3px 0 3px 8px;color:#555;font-size:11.5px;page-break-inside:avoid;break-inside:avoid;} .seg-ar{color:#999;font-weight:800;} .seg-info b{color:#111;} .seg-note{flex:1;border-bottom:1px dotted #ddd;min-height:14px;}'
-    +'.rest{display:flex;align-items:center;gap:9px;padding:2px 0 2px 22px;font-size:12px;color:#444;page-break-inside:avoid;break-inside:avoid;} .r-ic{background:#8a5a2b;color:#fff;font-weight:800;border-radius:4px;padding:2px 5px;font-size:10px;} .r-t{color:#666;font-variant-numeric:tabular-nums;font-size:11px;line-height:1.3;flex:0 0 auto;} .r-name{font-weight:700;}'
-    +'.cost{margin-top:12px;page-break-inside:avoid;break-inside:avoid;} .ctbl{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:6px;} .ctbl td{border:1px solid #ccc;padding:2px 6px;line-height:1.3;color:#444;} .ctbl .k{background:#f5f5f5;font-weight:700;white-space:nowrap;width:1%;color:#555;} .ctbl .big{font-size:11px;font-weight:800;color:#222;} .ctbl .km{font-size:12px;font-weight:800;color:#1c6fb3;} .ctbl .cost-sub{font-size:7.5px;color:#999;} .ctbl .grey{background:#e6e6e6;color:#999;} .ctbl .k.grey{color:#999;} .ctbl .emptyk{background:#fafafa;border-color:#eee;} .ctbl .ce{min-height:12px;}'
-    +'.sumtbl{width:auto;margin-left:auto;} .sumtbl .k{background:#f5f5f5;} .sumtbl .sum{font-size:13px;font-weight:800;color:#c92a2a;padding:3px 14px;} .sumtbl .k{padding:3px 8px;}'
-    +'.toolbar{position:fixed;top:10px;right:12px;display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.9);padding:5px;border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.15);} .toolbar .tlab{font-size:11px;font-weight:800;color:#555;padding-left:4px;} .toolbar button{font-size:13px;font-weight:800;padding:8px 13px;border:none;border-radius:8px;background:#0ca678;color:#fff;cursor:pointer;}'
-    +'.hint{font-size:10.5px;color:#999;margin-top:8px;}'
-    +'@media print{.toolbar,.hint{display:none;} body{padding:11mm 12mm;}}';
-  // @page margin:0 でブラウザ自動の見出し（タイトル）・フッター（URL/ページ番号）を消す。余白は body 側で確保
-  const html='<!doctype html><html lang="ja"><head><meta charset="utf-8"><title>行程表 '+escapeHtml(title)+'</title><style>'+css+'</style><style id="pg">@page{size:A4 portrait;margin:0;}</style></head><body>'
+    +'.sb-stay{flex:0 0 auto;margin-left:8px;font-size:11px;font-weight:700;color:#333;border:1px solid #999;border-radius:4px;padding:1px 7px;white-space:nowrap;}'  /* 滞在＝右揃え・約表記・白黒 */
+    +'.seg{display:flex;align-items:center;gap:8px;padding:3px 0 3px 8px;color:#555;font-size:11.5px;} .seg-ar{color:#999;font-weight:800;} .seg-info b{color:#111;} .seg-note{flex:1;border-bottom:1px dotted #ddd;min-height:14px;}'
+    +'.rest{display:flex;align-items:center;gap:9px;padding:2px 0 2px 22px;font-size:12px;color:#444;} .r-ic{background:#444;color:#fff;font-weight:800;border-radius:4px;padding:2px 5px;font-size:10px;} .r-t{color:#666;font-variant-numeric:tabular-nums;font-size:11px;line-height:1.3;flex:0 0 auto;} .r-name{font-weight:700;}'
+    /* 予算表 */
+    +'.ctbl{width:100%;border-collapse:collapse;font-size:9.5px;margin-bottom:6px;} .ctbl td{border:1px solid #ccc;padding:2px 6px;line-height:1.3;color:#444;} .ctbl .k{background:#f5f5f5;font-weight:700;white-space:nowrap;width:1%;color:#555;} .ctbl .big{font-size:11px;font-weight:800;color:#222;} .ctbl td.km{font-size:14px;font-weight:800;color:#1c6fb3;padding:4px 8px;} .ctbl .cost-sub{font-size:7.5px;color:#999;} .ctbl .grey{background:#e6e6e6;color:#999;} .ctbl .k.grey{color:#999;} .ctbl .ce{min-height:12px;}'  /* キロ程＝文字/枠を拡大・青は維持 */
+    +'.sumtbl{width:auto;margin-left:auto;} .sumtbl .k{background:#f5f5f5;padding:3px 8px;} .sumtbl .sum{font-size:13px;font-weight:800;color:#7a1f1f;padding:3px 14px;}'
+    /* ツールバー/注記（画面のみ） */
+    +'.szbtn{background:#fff !important;color:#0ca678 !important;border:1px solid #0ca678 !important;} .szbtn.on{background:#0ca678 !important;color:#fff !important;}'
+    +'.toolbar{position:fixed;top:10px;right:12px;z-index:9;display:flex;gap:6px;align-items:center;background:rgba(255,255,255,.9);padding:5px;border-radius:10px;box-shadow:0 3px 10px rgba(0,0,0,.15);} .toolbar .tlab{font-size:11px;font-weight:800;color:#555;padding-left:4px;} .toolbar button{font-size:13px;font-weight:800;padding:8px 13px;border:none;border-radius:8px;background:#0ca678;color:#fff;cursor:pointer;}'
+    +'.hint{font-size:10.5px;color:#999;max-width:210mm;margin:10px auto;padding:0 4px;}'
+    +'@media print{ body{background:#fff;} .toolbar,.hint{display:none;} .sheet{margin:0 auto;box-shadow:none;break-after:page;} .sheet:last-child{break-after:auto;} .sheet+.sheet{margin-top:0;} }';
+  // 予算表を必ず1枚目の下部に配置するため、行程はJSで各ページ(シート)へ手動ページネーションする
+  const SCRIPT='var MT=15,MB=20,GAP=15;'  /* 天15mm・地20mm・行程と予算の間15mm（mm） */
+    +'var PAPER={A4:{w:210,h:297},B5:{w:182,h:257}};var paper="A4",MM=3.7795,SRC={};'
+    +'function calcMM(){var d=document.createElement("div");d.style.cssText="height:100mm;position:absolute;visibility:hidden;";document.body.appendChild(d);MM=d.getBoundingClientRect().height/100;document.body.removeChild(d);}'
+    +'function capture(){SRC.hdr=document.getElementById("srcHdr");SRC.rows=[].slice.call(document.getElementById("srcRows").children);SRC.budget=document.getElementById("srcBudget");}'
+    +'function mkSheet(hasHdr,hasBudget){var P=PAPER[paper];var sh=document.createElement("div");sh.className="sheet";sh.style.width=P.w+"mm";sh.style.height="calc("+P.h+"mm - 1px)";var b=document.createElement("div");b.className="sheet-body";sh.appendChild(b);var o={sheet:sh};if(hasHdr){var h=document.createElement("div");h.className="hdr-slot";b.appendChild(h);o.hdr=h;}var c=document.createElement("div");c.className="cols";b.appendChild(c);var l=document.createElement("div");l.className="col-left";c.appendChild(l);var it=document.createElement("div");it.className="itin";l.appendChild(it);o.itin=it;if(hasBudget){var sp=document.createElement("div");sp.className="spacer";l.appendChild(sp);var bs=document.createElement("div");bs.className="budget-slot";l.appendChild(bs);o.budget=bs;}var r=document.createElement("div");r.className="col-right";c.appendChild(r);return o;}'
+    +'function fitRows(list,avail,meas){var n=0;for(var i=0;i<list.length;i++){meas.appendChild(list[i]);if(meas.offsetHeight>avail){meas.removeChild(list[i]);break;}n++;}return n;}'
+    +'function paginate(){var doc=document.getElementById("doc");calcMM();var P=PAPER[paper];var contentH=(P.h-MT-MB)*MM,gap=GAP*MM;doc.innerHTML="";'
+    +'var s1=mkSheet(true,true);doc.appendChild(s1.sheet);s1.hdr.appendChild(SRC.hdr);var hdrH=SRC.hdr.offsetHeight;var colW=s1.itin.clientWidth;s1.budget.appendChild(SRC.budget);var budgetH=SRC.budget.offsetHeight;'
+    +'var meas=document.createElement("div");meas.className="itin";meas.style.cssText="position:absolute;left:-99999px;top:0;visibility:hidden;overflow:hidden;width:"+colW+"px;";document.body.appendChild(meas);'
+    +'var avail1=contentH-hdrH-gap-budgetH-6;var rest=SRC.rows.slice();var n1=fitRows(rest,avail1,meas);for(var i=0;i<n1;i++)s1.itin.appendChild(rest[i]);rest=rest.slice(n1);'
+    +'while(rest.length){var s=mkSheet(false,false);doc.appendChild(s.sheet);var cw=s.itin.clientWidth;meas.style.width=cw+"px";while(meas.firstChild)meas.removeChild(meas.firstChild);var nn=fitRows(rest,contentH-6,meas);if(nn===0)nn=1;for(var j=0;j<nn;j++)s.itin.appendChild(rest[j]);rest=rest.slice(nn);}'
+    +'document.body.removeChild(meas);}'
+    +'function setSize(s){paper=s;document.getElementById("pg").textContent="@page{size:"+s+" portrait;margin:0;}";var bs=document.querySelectorAll(".szbtn");for(var i=0;i<bs.length;i++)bs[i].classList.toggle("on",bs[i].getAttribute("data-s")===s);paginate();}'
+    +'var SPLITN='+splitN+';function yenP(v){return "\\u00a5"+Math.round(v).toLocaleString();}function recompute(){var s=0;document.querySelectorAll(".cst").forEach(function(c){var t=(c.textContent||"").replace(/[^0-9]/g,"");if(t)s+=parseInt(t,10);});var bt=document.getElementById("budgetTotal");if(bt)bt.textContent=yenP(s);var bp=document.getElementById("budgetPer");if(bp)bp.textContent=yenP(Math.ceil(s/SPLITN))+"/\\u4eba";}'
+    +'capture();recompute();setSize("A4");document.querySelectorAll(".ce").forEach(function(c){c.addEventListener("input",recompute);});if(document.fonts&&document.fonts.ready){document.fonts.ready.then(paginate);}';
+  const html='<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>行程表 '+escapeHtml(title)+'</title><style>'+css+'</style><style id="pg">@page{size:A4 portrait;margin:0;}</style></head><body>'
     +'<div class="toolbar"><span class="tlab">用紙</span><button class="szbtn" data-s="A4" onclick="setSize(\'A4\')">A4</button><button class="szbtn" data-s="B5" onclick="setSize(\'B5\')">B5</button><button onclick="window.print()">印刷 / PDF保存</button></div>'
-    +'<div class="hdr"><div class="ttl">行程表【<span class="ed" contenteditable="true">'+escapeHtml(title)+'</span>】</div><div class="hdr-right"><div class="veh-field"><span class="veh-lbl">車両</span><span class="ed veh-ed" contenteditable="true" data-ph="号車・車名"></span></div><div class="period">期間 <span class="ed" contenteditable="true">'+period+'</span></div></div></div>'
-    +'<div class="main"><div class="col-left">'+rows+'<div class="cost">'+cost+'</div></div><div class="col-right"></div></div>'
-    +'<div class="hint">タイトル・期間・車両・費用の空欄はクリックして直接記入できます（食費・宿泊費などを入れると予算総額が自動計算）。右の1/3は手書きメモ用の白紙です。用紙(A4/B5)を選んで「印刷 / PDF保存」してください。</div>'
-    +'<script>function setSize(s){document.getElementById("pg").textContent="@page{size:"+s+" portrait;margin:0;}";document.body.style.maxWidth=(s==="B5"?"182mm":"210mm");document.querySelectorAll(".szbtn").forEach(function(b){b.classList.toggle("on",b.getAttribute("data-s")===s);});}setSize("A4");'
-    +'var SPLITN='+splitN+';function yenP(v){return "\\u00a5"+Math.round(v).toLocaleString();}function recompute(){var s=0;document.querySelectorAll(".cst").forEach(function(c){var t=(c.textContent||"").replace(/[^0-9]/g,"");if(t)s+=parseInt(t,10);});document.getElementById("budgetTotal").textContent=yenP(s);document.getElementById("budgetPer").textContent=yenP(Math.ceil(s/SPLITN))+"/\\u4eba";}document.querySelectorAll(".ce").forEach(function(c){c.addEventListener("input",recompute);});recompute();<\/script>'
+    +'<div id="stage" aria-hidden="true">'
+    +'<div id="srcHdr" class="hdr"><div class="ttl">行程表【<span class="ed" contenteditable="true">'+escapeHtml(title)+'</span>】</div><div class="hdr-right"><div class="veh-field"><span class="veh-lbl">車両</span><span class="ed veh-ed" contenteditable="true" data-ph="号車・車名"></span></div><div class="period">期間 <span class="ed" contenteditable="true">'+period+'</span></div></div></div>'
+    +'<div id="srcRows">'+rows+'</div>'
+    +'<div id="srcBudget" class="budget">'+cost+'</div>'
+    +'</div>'
+    +'<div id="doc"></div>'
+    +'<div class="hint">タイトル・期間・車両・費用の空欄はクリックして直接記入できます（食費・宿泊費などを入れると予算総額が自動計算）。右の1/3は手書きメモ用の白紙です。予算表は必ず1枚目の下部に配置されます。用紙(A4/B5)を選んで「印刷 / PDF保存」してください。</div>'
+    +'<script>'+SCRIPT+'<\/script>'
     +'</body></html>';
   const w=window.open('','_blank');
   if(!w){showStatus('ポップアップがブロックされました。ブラウザで許可してください',false);hideStatusLater();return;}
