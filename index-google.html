@@ -346,8 +346,18 @@
   .stl-row{display:flex;justify-content:space-between;font-size:13px;margin:3px 0;}
   .stl-total{font-size:20px;font-weight:800;color:var(--accent);display:flex;justify-content:space-between;align-items:baseline;margin-top:6px;}
   .stl-add{width:100%;margin-top:10px;min-height:38px;border:1px dashed var(--line);background:var(--surface);color:var(--fg);border-radius:10px;font-weight:700;font-size:12.5px;cursor:pointer;}
-  .ly-head{font-size:13px;font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+  .ly-head{font-size:13px;font-weight:800;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:6px;}
+  .ly-head span{margin-right:auto;}
   .ly-head button{border:none;background:none;color:var(--muted);font-size:16px;cursor:pointer;}
+  .ly-save-set{font-size:11px !important;font-weight:800;color:var(--accent) !important;border:1px solid var(--accent) !important;border-radius:999px;padding:3px 10px !important;white-space:nowrap;}
+  .ls-count{font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px;}
+  .ls-empty{font-size:12px;color:var(--muted);line-height:1.6;padding:8px 0;}
+  .ls-item{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--line);}
+  .ls-main{flex:1;min-width:0;}
+  .ls-name{font-size:13px;font-weight:700;color:var(--fg);word-break:break-word;}
+  .ls-meta{font-size:10.5px;color:var(--muted);font-weight:500;margin-top:1px;}
+  .ls-load{flex:none;font-size:12px;font-weight:800;color:#fff;background:var(--accent);border:none;border-radius:8px;padding:6px 12px;cursor:pointer;}
+  .ls-ren,.ls-del{flex:none;border:none;background:none;color:var(--muted);font-size:14px;cursor:pointer;padding:4px 5px;} .ls-del:hover{color:#e03131;} .ls-ren:hover{color:var(--accent);}
   .ly-item{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;}
   .ly-item:last-child{border-bottom:none;}
   .ly-sw{flex:none;width:16px;height:16px;border-radius:4px;cursor:pointer;}
@@ -442,7 +452,7 @@
 <button id="layerBtn" title="レイヤー（温泉郷・圏域・保存ルート）" aria-label="レイヤー管理"><svg class="svgi" viewBox="0 0 24 24"><path d="M12 2 22 7.5 12 13 2 7.5 12 2z"/><path d="m2 12.2 10 5.5 10-5.5"/><path d="m2 16.7 10 5.5 10-5.5"/></svg><small>レイヤー</small></button>
 <button id="settleBtn" title="複数車両の割り勘決算" aria-label="複数車両の割り勘決算"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.6 7.6 3.4 4.3 3.4-4.3M12 11.9V17M9.4 13.4h5.2M9.4 15.6h5.2"/></svg><small>割り勘</small></button>
 <button id="imgBtn" title="表示中の地図・レイヤーを画像で保存" aria-label="画像出力"><svg class="svgi" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="m4 17 5-5 4 4 3-3 4 4"/></svg><small>画像出力</small></button>
-<div id="layerPanel"><div class="ly-head"><span>レイヤー</span><button id="layerClose">✕</button></div><div id="layerList"></div></div>
+<div id="layerPanel"><div class="ly-head"><span>レイヤー</span><button id="lySaveSetBtn" class="ly-save-set" title="現在のレイヤー（ルート・ピン・距離円）を名前を付けて保存">💾 保存</button><button id="layerClose">✕</button></div><div id="layerList"></div></div>
 <div id="settlePanel"><div class="ly-head"><span>複数車両 割り勘決算</span><button id="settleClose">✕</button></div><div id="settleList"></div></div>
 
 <div id="routeSheet">
@@ -522,7 +532,13 @@
   <div class="set-sec"><div class="set-label">Google Maps APIキー（この版に必須）</div><input id="gmapInput" placeholder="Google Maps APIキー" autocomplete="off" /><div class="set-help">この版は地図表示・渋滞ETAにGoogleを使用（課金あり）。「Maps JavaScript API」＋「Directions API」＋<b>「Routes API」</b>（区間ごとの実渋滞表示に必須）を有効化し<b>HTTPリファラー制限</b>を設定。キーは端末内のみ保存。</div><button class="set-save" id="gmapSave">保存して再読込</button><div class="set-msg" id="gmapMsg"></div></div>
   <div class="set-sec"><div class="set-label">到達圏マップ（Mapbox アクセストークン）</div><input id="mbxInput" placeholder="Mapbox public token (pk.xxx)" autocomplete="off" /><div class="set-help">「到達圏」タブで、任意地点から ○分で行ける範囲（アイソクロン）を描画します。<b>URL（リファラー）制限</b>の設定を推奨。トークンは端末内のみ保存。</div><button class="set-save" id="mbxSave">保存</button><div class="set-msg" id="mbxMsg"></div></div>
   <div class="set-sec"><div class="set-label">楽天トラベル連携</div><input id="rakInput" placeholder="楽天 applicationId" autocomplete="off" /><button class="set-save" id="rakSave">保存</button><div class="set-msg" id="rakMsg"></div></div>
-  <div class="set-sec" style="margin-bottom:0;"><div class="set-label">高速・有料の回避（OpenRouteService）</div><input id="orsInput" placeholder="ORS APIキー" autocomplete="off" /><button class="set-save" id="orsSave">保存</button><div class="set-msg" id="orsMsg"></div></div>
+  <div class="set-sec"><div class="set-label">高速・有料の回避（OpenRouteService）</div><input id="orsInput" placeholder="ORS APIキー" autocomplete="off" /><button class="set-save" id="orsSave">保存</button><div class="set-msg" id="orsMsg"></div></div>
+  <div class="set-sec" style="margin-bottom:0;"><div class="set-label">保存したレイヤー</div><button class="set-save" id="lsOpenBtn">保存したレイヤーを参照 / 読み込む</button><div class="set-help">現在のレイヤー（ルート・ピン・距離円）を<b>一括で名前を付けて保存</b>し、あとから呼び出せます（最大300件）。保存は<b>レイヤーパネル右上の「💾 保存」</b>から行います。</div></div>
+</div></div>
+
+<div class="overlay" id="lsOverlay"><div class="modal">
+  <div class="modal-h"><b>保存したレイヤー</b><button id="lsClose">✕</button></div>
+  <div class="set-sec" style="margin-bottom:0;"><div id="lsList"></div></div>
 </div></div>
 
 <div id="nokey"><div class="box"><h2>たびマップ（ドライブサポートツール）</h2><p>この版は <b>Google Maps APIキー</b> が必要です。<br>右上のメニューから「設定」を開きキーを入力してください。<br>（無料版は <a href="index.html">こちら</a>）</p><button class="set-save" style="max-width:200px;margin:14px auto 0;" onclick="document.getElementById('overlay').classList.add('open')">キーを入力</button></div></div>
@@ -1585,6 +1601,77 @@ function renderLayerPanel(){
   list.querySelectorAll('.ly-edit[data-ap]').forEach(b=>b.onclick=()=>appendSavedRoute(+b.dataset.ap));
   list.querySelectorAll('.ly-del[data-d]').forEach(b=>b.onclick=()=>deleteSavedRoute(+b.dataset.d));
 }
+// ===== レイヤーの一括保存・参照（現在のレイヤー＝保存ルート・ピン・距離円 を名前を付けて保存。設定から最大300件を参照/読込） =====
+const MAX_LAYER_SETS=300;
+function getLayerSets(){try{return JSON.parse(localStorage.getItem('tabi_layer_sets')||'[]');}catch(e){return[];}}
+function saveLayerSets(a){try{localStorage.setItem('tabi_layer_sets',JSON.stringify(a));return true;}catch(e){showStatus('保存に失敗しました（ブラウザの保存容量超過の可能性）',false);hideStatusLater();return false;}}
+function serializeCurrentLayer(){ // 現在のレイヤーを永続化可能な形へ（地図オブジェクトは除外）
+  const routes=savedRoutes.map(r=>({id:r.id,label:r.label,name:r.name||r.label,color:r.color,distKm:r.distKm,trafSec:r.trafSec,toll:r.toll,gas:r.gas,rental:r.rental||0,other:r.other,total:r.total,times:!!r.times,timesRank:r.timesRank||null,timesHours:(r.timesHours!=null?r.timesHours:null),timesNight:!!r.timesNight,people:r.people,manual:!!r.manual,visible:r.visible!==false,depTime:r.depTime||null,depTimeMode:r.depTimeMode||null,depTimeManual:!!r.depTimeManual,pts:r.pts||null,path:r.path||null}));
+  const pins=savedPins.map(p=>({id:p.id,name:p.name,lat:p.lat,lng:p.lng,sub:p.sub||'',visible:p.visible!==false}));
+  const buffers=bufferLayers.map(b=>({name:b.name,lat:b.center.lat,lng:b.center.lng}));
+  return {routes,pins,buffers};
+}
+function saveCurrentLayerSet(){
+  const data=serializeCurrentLayer();
+  if(!data.routes.length&&!data.pins.length&&!data.buffers.length){showStatus('保存するレイヤーがありません（ルートを保存・ピンを残す・距離円を追加してください）',false);hideStatusLater();return;}
+  const sets=getLayerSets();
+  if(sets.length>=MAX_LAYER_SETS){showStatus('保存上限（'+MAX_LAYER_SETS+'件）に達しています。設定→「保存したレイヤー」で不要なものを削除してください',false);hideStatusLater();return;}
+  const d=new Date(),z=n=>String(n).padStart(2,'0');
+  const defName=(d.getMonth()+1)+'/'+d.getDate()+' '+z(d.getHours())+':'+z(d.getMinutes())+'のレイヤー';
+  const name=(prompt('保存するレイヤーの名前',defName)||'').trim();
+  if(!name)return;
+  sets.push({id:Date.now(),name,at:d.toISOString(),routes:data.routes,pins:data.pins,buffers:data.buffers});
+  if(saveLayerSets(sets)){showStatus('「'+name+'」にレイヤーを保存しました（ルート'+data.routes.length+'・ピン'+data.pins.length+'・距離円'+data.buffers.length+'）。設定→「保存したレイヤー」から参照',false);hideStatusLater();}
+}
+function rebuildSavedRouteObj(r){ // 保存ルート1件を地図に復元（restoreStateの再構築と同等）
+  let polys=[],markers=[];
+  if(r.path&&r.path.length){
+    polys=[new google.maps.Polyline({path:r.path,strokeColor:(currentTheme==='dark'?'#000':'#ffffff'),strokeOpacity:.7,strokeWeight:9,map,zIndex:2}),
+           new google.maps.Polyline({path:r.path,strokeColor:r.color,strokeOpacity:.95,strokeWeight:5,map,zIndex:3})];
+    const a=r.path[0],b=r.path[r.path.length-1];
+    markers=[a,b].map((p,k)=>new google.maps.Marker({position:p,map,icon:pinIcon(r.color,1.4),label:{text:k===0?'出':'着',fontSize:'10px',color:'#fff',fontWeight:'700'},zIndex:4}));
+    if(r.visible===false){polys.forEach(p=>p.setMap(null));markers.forEach(m=>m.setMap(null));}
+  }
+  return Object.assign({},r,{polys,markers,visible:r.visible!==false});
+}
+function clearCurrentLayerObjects(){ // 現在のレイヤーの地図オブジェクトを除去
+  savedRoutes.forEach(r=>{(r.polys||[]).forEach(p=>p.setMap(null));(r.markers||[]).forEach(m=>m.setMap(null));});savedRoutes.length=0;
+  savedPins.forEach(p=>{if(p.marker)p.marker.setMap(null);});savedPins.length=0;
+  bufferLayers.forEach(b=>b.shapes.forEach(s=>s.setMap(null)));bufferLayers.length=0;document.getElementById('bufClear').style.display='none';
+}
+function loadLayerSet(id){ // 保存レイヤーを読み込み（現在のレイヤーを置換）
+  const sets=getLayerSets(),set=sets.find(s=>s.id===id);if(!set)return;
+  const cur=serializeCurrentLayer(),hasCur=cur.routes.length||cur.pins.length||cur.buffers.length;
+  if(hasCur&&!confirm('現在のレイヤー（ルート'+cur.routes.length+'・ピン'+cur.pins.length+'・距離円'+cur.buffers.length+'）を、保存レイヤー「'+set.name+'」で置き換えます。よろしいですか？'))return;
+  clearCurrentLayerObjects();
+  (set.routes||[]).forEach(r=>savedRoutes.push(rebuildSavedRouteObj(r)));
+  (set.pins||[]).forEach(o=>{const pin={id:o.id||Date.now()+Math.floor(Math.random()*1e6),name:o.name,lat:o.lat,lng:o.lng,sub:o.sub||'',visible:o.visible!==false};pin.marker=makePinMarker(pin);if(pin.visible===false&&pin.marker)pin.marker.setMap(null);savedPins.push(pin);});
+  (set.buffers||[]).forEach(b=>{if(b.lat!=null&&b.lng!=null)drawBuffer(b.lat,b.lng,b.name);});
+  persistPins();persistState();renderLayerPanel();renderSettlePanel();if(activeTab==='custom')buildCustomPanel();
+  document.getElementById('lsOverlay').classList.remove('open');
+  document.getElementById('layerPanel').classList.add('open');
+  showStatus('レイヤー「'+set.name+'」を読み込みました（ルート'+(set.routes||[]).length+'・ピン'+(set.pins||[]).length+'・距離円'+(set.buffers||[]).length+'）',false);hideStatusLater();
+}
+function deleteLayerSet(id){
+  const sets=getLayerSets(),set=sets.find(s=>s.id===id);if(!set)return;
+  if(!confirm('保存レイヤー「'+set.name+'」を削除します。よろしいですか？'))return;
+  saveLayerSets(sets.filter(s=>s.id!==id));renderLayerSets();
+}
+function renameLayerSet(id){
+  const sets=getLayerSets(),set=sets.find(s=>s.id===id);if(!set)return;
+  const v=prompt('レイヤーの名前',set.name);if(v==null)return;set.name=(v.trim()||set.name);saveLayerSets(sets);renderLayerSets();
+}
+function renderLayerSets(){
+  const box=document.getElementById('lsList');if(!box)return;
+  const sets=getLayerSets().slice().sort((a,b)=>(b.id||0)-(a.id||0));
+  if(!sets.length){box.innerHTML='<div class="ls-empty">保存したレイヤーはありません。<br>レイヤーパネル右上の「💾 保存」で、現在のレイヤー（ルート・ピン・距離円）を名前を付けて保存できます。</div>';return;}
+  const fmtAt=iso=>{try{const d=new Date(iso),z=n=>String(n).padStart(2,'0');return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()+' '+z(d.getHours())+':'+z(d.getMinutes());}catch(e){return'';}};
+  box.innerHTML='<div class="ls-count">'+sets.length+' / '+MAX_LAYER_SETS+' 件</div>'+sets.map(s=>`<div class="ls-item"><div class="ls-main"><div class="ls-name">${escapeHtml(s.name)}</div><div class="ls-meta">${fmtAt(s.at)}　ルート${(s.routes||[]).length}・ピン${(s.pins||[]).length}・距離円${(s.buffers||[]).length}</div></div><button class="ls-load" data-id="${s.id}">読込</button><button class="ls-ren" data-id="${s.id}" title="名前を変更">✎</button><button class="ls-del" data-id="${s.id}" title="削除">✕</button></div>`).join('');
+  box.querySelectorAll('.ls-load').forEach(b=>b.onclick=()=>loadLayerSet(+b.dataset.id));
+  box.querySelectorAll('.ls-ren').forEach(b=>b.onclick=()=>renameLayerSet(+b.dataset.id));
+  box.querySelectorAll('.ls-del').forEach(b=>b.onclick=()=>deleteLayerSet(+b.dataset.id));
+}
+function openLayerSets(){renderLayerSets();document.getElementById('lsOverlay').classList.add('open');}
 const ROUTES_API_FIELDS=['routes.duration','routes.staticDuration','routes.distanceMeters','routes.polyline.encodedPolyline','routes.legs.distanceMeters','routes.legs.duration','routes.legs.staticDuration','routes.legs.steps.navigationInstruction','routes.legs.steps.distanceMeters','routes.legs.steps.staticDuration','routes.legs.steps.polyline.encodedPolyline','routes.travelAdvisory.speedReadingIntervals','routes.optimizedIntermediateWaypointIndex'].join(',');
 const MAX_INTERMEDIATES=25; // Google Routes APIの中間経由地上限（出発+25+目的=27地点/リクエスト）
 // ===== 区間（出発・目的地・帰宅で分割。経由地は区間内部）ごとの高速/下道優先 =====
@@ -3528,6 +3615,10 @@ async function exportMapImage(){
 document.getElementById('imgBtn').onclick=exportMapImage;
 document.getElementById('settleClose').onclick=()=>document.getElementById('settlePanel').classList.remove('open');
 document.getElementById('layerClose').onclick=()=>document.getElementById('layerPanel').classList.remove('open');
+document.getElementById('lySaveSetBtn').onclick=saveCurrentLayerSet; // レイヤーを一括で名前を付けて保存
+document.getElementById('lsOpenBtn').onclick=openLayerSets;           // 設定→保存したレイヤーを参照
+document.getElementById('lsClose').onclick=()=>document.getElementById('lsOverlay').classList.remove('open');
+document.getElementById('lsOverlay').addEventListener('click',e=>{if(e.target.id==='lsOverlay')document.getElementById('lsOverlay').classList.remove('open');});
 document.getElementById('useLoc').onclick=()=>{if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}showStatus('現在地を取得中…',true);navigator.geolocation.getCurrentPosition(pos=>{statusEl.classList.remove('show');showCurrentLoc(pos.coords.latitude,pos.coords.longitude,pos.coords.accuracy);addPoint(pos.coords.latitude,pos.coords.longitude,'現在地');},err=>{showStatus('現在地を取得できませんでした',false);hideStatusLater();},{enableHighAccuracy:true,timeout:8000});};
 document.getElementById('prefSeg').addEventListener('click',(e)=>{const btn=e.target.closest('button');if(!btn)return;routePref=btn.dataset.p;[...e.currentTarget.children].forEach(b=>b.classList.toggle('on',b===btn));points.forEach(p=>{if(p)delete p.segPref;});updatePrefHint();if(points.length>=2)computeRoute();}); // 全体ボタンは区間別の上書きを解除して全区間に適用
 document.getElementById('fuelSeg').addEventListener('click',(e)=>{const btn=e.target.closest('button');if(!btn)return;fuelType=btn.dataset.f;[...e.currentTarget.children].forEach(b=>b.classList.toggle('on',b===btn));const np=priceManual?fuelPrices[fuelType]:FUEL_AVG[fuelType];document.getElementById('price').value=np;fuelPrices[fuelType]=np;updateGasNote();updateCost();});
