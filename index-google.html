@@ -42,7 +42,24 @@
   /* === 浮遊ヘッダ（Google Maps風） === */
   #topbar{position:fixed;top:0;left:0;right:0;z-index:1250;padding-top:env(safe-area-inset-top);pointer-events:none;}
   /* 現在時刻（NICT風デジタル時計）。pointer-events:none で地図操作を妨げない・常時最前面 */
-  #liveClock{position:fixed;top:calc(60px + env(safe-area-inset-top));right:12px;z-index:1200;pointer-events:none;display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:6px 12px 7px;box-shadow:0 4px 18px var(--shadow);}
+  #liveClock{position:fixed;top:calc(60px + env(safe-area-inset-top));right:12px;z-index:1200;pointer-events:auto;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:6px 12px 7px;box-shadow:0 4px 18px var(--shadow);}
+  #evacLabel{display:none;font-weight:800;font-size:14px;color:#fff;white-space:nowrap;letter-spacing:.5px;line-height:1.3;}
+  #liveClock.evac-armed{background:#e03131;border-color:#b02020;box-shadow:0 4px 20px rgba(224,49,49,.55);animation:evacPulse 1s infinite;}
+  #liveClock.evac-armed #lcTime,#liveClock.evac-armed #lcDate,#liveClock.evac-armed #speedChip{display:none;}
+  #liveClock.evac-armed #evacLabel{display:block;}
+  @keyframes evacPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.07);}}
+  #evacPanel{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));z-index:1400;width:min(92vw,380px);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 30px var(--shadow);padding:12px 14px;display:none;}
+  #evacPanel.open{display:block;}
+  .evac-h{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:800;color:#e03131;margin-bottom:8px;}
+  .evac-h button{border:none;background:none;color:var(--muted);font-size:16px;cursor:pointer;}
+  #evacBody{font-size:13px;color:var(--fg);line-height:1.5;}
+  .evac-dest{font-size:15px;font-weight:800;}
+  .evac-warn{background:rgba(224,49,49,.12);border:1px solid #e03131;border-radius:8px;padding:6px 9px;color:#e03131;font-weight:700;font-size:12px;margin:2px 0 8px;line-height:1.5;}
+  .evac-modes{display:flex;gap:6px;margin:8px 0;}
+  .evac-modes button{flex:1;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);font-size:13px;font-weight:800;cursor:pointer;}
+  .evac-modes button.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .evac-meta{font-weight:700;min-height:18px;}
+  .evac-disc{font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.55;}
   #lcTime{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;font-weight:800;font-size:16.5px;letter-spacing:1.2px;color:var(--fg);line-height:1;}
   #lcDate{font-size:9.5px;letter-spacing:.8px;color:var(--muted);font-weight:700;line-height:1;display:flex;align-items:center;}
   #liveClock.sync #lcDate::after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:#0ca678;margin-left:5px;}
@@ -439,7 +456,8 @@
     <div class="rs-hint" id="ocHint" style="margin-top:8px;"></div>
   </div>
 </div>
-<div id="liveClock" title="現在時刻（NTP同期・JST）"><span id="lcTime">--:--:--</span><span id="lcDate"></span><div id="speedChip"><b id="spdVal">--</b><span class="spd-u">km/h</span></div></div>
+<div id="liveClock" title="現在時刻（NTP同期・JST）／タップで緊急避難"><span id="lcTime">--:--:--</span><span id="lcDate"></span><div id="speedChip"><b id="spdVal">--</b><span class="spd-u">km/h</span></div><span id="evacLabel">🚨 緊急避難</span></div>
+<div id="evacPanel"><div class="evac-h"><b>🚨 緊急避難（参考）</b><button id="evacClose" title="閉じる">✕</button></div><div id="evacBody"></div></div>
 <div id="status"></div>
 <div id="controls">
   <button class="fab ghost" id="locBtn" title="現在地へ"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.6"/><path d="M12 1.6V4M12 20v2.4M1.6 12H4M20 12h2.4"/></svg></button>
@@ -3558,6 +3576,75 @@ document.getElementById('clearAllBtn').onclick=clearAllObjects;
   async function sync(){try{const txt=await fetch('https://www.cloudflare.com/cdn-cgi/trace',{cache:'no-store'}).then(r=>r.text());const m=txt.match(/ts=([0-9.]+)/);if(m){offsetMs=Math.round(parseFloat(m[1])*1000)-Date.now();synced=true;box.title='NTP同期済み（日本標準時 JST）';}}catch(e){if(!synced)box.title='端末時計（NTP同期に失敗）';}}
   function tick(){const j=new Date(Date.now()+offsetMs+9*3600000);t.textContent=z(j.getUTCHours())+':'+z(j.getUTCMinutes())+':'+z(j.getUTCSeconds());d.textContent=`${j.getUTCFullYear()}/${z(j.getUTCMonth()+1)}/${z(j.getUTCDate())}（${W[j.getUTCDay()]}）`;box.classList.toggle('sync',synced);}
   tick();setInterval(tick,1000);sync();setInterval(sync,600000);})();
+// ===== 緊急避難：時計を1回タップ→「🚨 緊急避難」ボタン化、もう一度タップで実行（周辺の海抜40m以上の最寄り地点へ最短経路）。標高=国土地理院GSI（無料）。あくまで参考。 =====
+let evacArmed=false,evacTimer=null,evacBusy=false,evacMarker=null,evacRoute=null,evacOrigin=null,evacDest=null,evacMode='WALKING';
+(function(){const clk=document.getElementById('liveClock');if(!clk)return;clk.addEventListener('click',()=>{if(evacBusy)return;if(!evacArmed)armEvac();else{disarmEvac();runEvac();}});
+  const ec=document.getElementById('evacClose');if(ec)ec.onclick=closeEvac;})();
+function armEvac(){evacArmed=true;document.getElementById('liveClock').classList.add('evac-armed');showStatus('もう一度タップで緊急避難を実行（周辺の海抜40m以上へ最短経路）。数秒操作が無ければ解除します',false);if(evacTimer)clearTimeout(evacTimer);evacTimer=setTimeout(disarmEvac,5000);}
+function disarmEvac(){evacArmed=false;if(evacTimer){clearTimeout(evacTimer);evacTimer=null;}const c=document.getElementById('liveClock');if(c)c.classList.remove('evac-armed');}
+function gsiElev(lat,lng){return fetch('https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon='+lng+'&lat='+lat+'&outtype=JSON',{cache:'no-store'}).then(r=>r.json()).then(j=>{const e=parseFloat(j.elevation);return isFinite(e)?e:null;}).catch(()=>null);}
+async function findHighGround(lat,lng){ // 近い順のリングで海抜40m以上を探し、見つかり次第打ち切り。無ければ最高地点(fallback)
+  const rings=[300,600,1000,1500,2000,3000,4000,5000,7000,10000],dirs=8,cosL=Math.cos(lat*Math.PI/180);
+  let highest=null;
+  for(const r of rings){
+    const pts=[];for(let k=0;k<dirs;k++){const a=2*Math.PI*k/dirs;pts.push({lat:lat+(r*Math.cos(a))/111320,lng:lng+(r*Math.sin(a))/(111320*cosL),dist:r});}
+    const es=await Promise.all(pts.map(p=>gsiElev(p.lat,p.lng)));
+    let ringBest=null;
+    pts.forEach((p,i)=>{const e=es[i];if(e==null)return;p.elev=e;if(!highest||e>highest.elev)highest=p;if(e>=40&&(!ringBest||e>ringBest.elev))ringBest=p;});
+    if(ringBest)return {dest:ringBest,fallback:false};
+  }
+  return {dest:highest,fallback:true};
+}
+function runEvac(){
+  if(evacBusy)return;
+  if(!window.google||!google.maps||typeof map==='undefined'||!map){showStatus('地図の準備ができていません（APIキーをご確認ください）',false);hideStatusLater();return;}
+  if(!navigator.geolocation){showStatus('この端末は位置情報に対応していません',false);hideStatusLater();return;}
+  evacBusy=true;showStatus('🚨 現在地を取得中…',true);
+  navigator.geolocation.getCurrentPosition(pos=>{
+    const lat=pos.coords.latitude,lng=pos.coords.longitude;evacOrigin={lat,lng};
+    showStatus('🚨 周辺の高台（海抜40m以上）を探索中…',true);
+    Promise.all([gsiElev(lat,lng),findHighGround(lat,lng)]).then(([oElev,res])=>{
+      evacOrigin.elev=oElev;
+      if(!res||!res.dest){showStatus('周辺の標高データを取得できませんでした（海上・国外の可能性）',false);hideStatusLater();evacBusy=false;return;}
+      evacDest=res.dest;showEvacResult(res.fallback);evacBusy=false;
+    }).catch(e=>{showStatus('探索に失敗しました：'+e,false);hideStatusLater();evacBusy=false;});
+  },err=>{
+    evacBusy=false;const m=err.code===1?'位置情報の許可が必要です（ブラウザの許可を確認）':(err.code===3?'位置情報の取得がタイムアウトしました':'位置情報を取得できませんでした');
+    showStatus('🚨 '+m,false);hideStatusLater();
+  },{enableHighAccuracy:true,timeout:12000,maximumAge:0});
+}
+function showEvacResult(fallback){
+  clearEvacMap();
+  evacMarker=new google.maps.Marker({position:{lat:evacDest.lat,lng:evacDest.lng},map,zIndex:60,icon:{path:google.maps.SymbolPath.CIRCLE,scale:11,fillColor:'#2f9e44',fillOpacity:1,strokeColor:'#fff',strokeWeight:2},label:{text:'避',fontSize:'11px',color:'#fff',fontWeight:'800'},title:'避難先（海抜'+Math.round(evacDest.elev)+'m）'});
+  const dkm=distMeters(evacOrigin,{lat:evacDest.lat,lng:evacDest.lng})/1000;
+  const oe=(evacOrigin.elev!=null)?('現在地 海抜 '+Math.round(evacOrigin.elev)+'m　→　'):'';
+  const body=document.getElementById('evacBody');
+  body.innerHTML=(fallback?'<div class="evac-warn">⚠ 周辺（約10km）に海抜40m以上が見つかりませんでした。範囲内で<b>最も標高の高い地点</b>を表示します。より高い場所・内陸へ避難してください。</div>':'')
+    +'<div class="evac-dest">'+oe+'避難先：海抜 <b style="color:#2f9e44">'+Math.round(evacDest.elev)+'m</b>　<span style="font-weight:600;color:var(--muted)">直線 約'+dkm.toFixed(dkm<10?1:0)+'km</span></div>'
+    +'<div class="evac-modes"><button data-m="WALKING" class="'+(evacMode==='WALKING'?'on':'')+'">徒歩</button><button data-m="DRIVING" class="'+(evacMode==='DRIVING'?'on':'')+'">車</button></div>'
+    +'<div class="evac-meta" id="evacMeta">経路を計算中…</div>'
+    +'<div class="evac-disc">⚠ この機能は<b>参考</b>です。標高40m以上でも海岸からの距離・地形により安全とは限りません。実際は<b>自治体の避難指示・避難標識・ハザードマップ</b>に従い、可能な限り高く内陸へ避難してください。標高データ：国土地理院。</div>';
+  document.getElementById('evacPanel').classList.add('open');
+  body.querySelectorAll('.evac-modes button').forEach(b=>b.onclick=()=>{evacMode=b.dataset.m;body.querySelectorAll('.evac-modes button').forEach(x=>x.classList.toggle('on',x===b));drawEvacRoute();});
+  drawEvacRoute();
+  const bnds=new google.maps.LatLngBounds();bnds.extend(evacOrigin);bnds.extend({lat:evacDest.lat,lng:evacDest.lng});map.fitBounds(bnds,90);
+}
+function drawEvacRoute(){
+  const meta=document.getElementById('evacMeta');
+  const svc=new google.maps.DirectionsService();
+  svc.route({origin:evacOrigin,destination:{lat:evacDest.lat,lng:evacDest.lng},travelMode:google.maps.TravelMode[evacMode]},(res,status)=>{
+    if(evacRoute){evacRoute.setMap(null);evacRoute=null;}
+    if(status!=='OK'||!res||!res.routes[0]){ // 経路が引けなければ直線（点線）で方向のみ提示
+      evacRoute=new google.maps.Polyline({path:[evacOrigin,{lat:evacDest.lat,lng:evacDest.lng}],strokeColor:'#e03131',strokeOpacity:0,map,zIndex:9,icons:[{icon:{path:'M 0,-1 0,1',strokeColor:'#e03131',strokeOpacity:1,scale:3},offset:'0',repeat:'12px'}]});
+      if(meta)meta.textContent='（'+(evacMode==='WALKING'?'徒歩':'車')+'経路を取得できませんでした。直線方向を表示）';return;
+    }
+    const leg=res.routes[0].legs[0];
+    evacRoute=new google.maps.Polyline({path:res.routes[0].overview_path,strokeColor:'#e03131',strokeWeight:6,strokeOpacity:.9,map,zIndex:9});
+    if(meta)meta.innerHTML='<b>'+(evacMode==='WALKING'?'徒歩':'車')+'</b>：約'+leg.duration.text+'・'+leg.distance.text;
+  });
+}
+function clearEvacMap(){if(evacMarker){evacMarker.setMap(null);evacMarker=null;}if(evacRoute){evacRoute.setMap(null);evacRoute=null;}}
+function closeEvac(){clearEvacMap();const p=document.getElementById('evacPanel');if(p)p.classList.remove('open');}
 document.getElementById('layerBtn').onclick=()=>{const p=document.getElementById('layerPanel');document.getElementById('settlePanel').classList.remove('open');const o=p.classList.toggle('open');if(o)renderLayerPanel();};
 document.getElementById('settleBtn').onclick=()=>{const p=document.getElementById('settlePanel');document.getElementById('layerPanel').classList.remove('open');const o=p.classList.toggle('open');if(o)renderSettlePanel();};
 // ===== 画像出力：表示中の地図＋選択中レイヤーをStatic Maps APIで画像化し、上下に黒帯（たびマップ/日時・距離/時間/費用）を合成して保存 =====
