@@ -2908,8 +2908,9 @@ function isSapaName(s){return /サービスエリア|パーキングエリア|�
 function sapaVisitTimes(){
   const ts=[];
   (lastRests||[]).forEach(r=>{ if(r&&r.t!=null&&(r.data||isSapaName(r.name)))ts.push(r.t); });          // SA/PAでの休憩
-  const pT=(lastPointT&&points&&lastPointT.length===points.length)?lastPointT:null;
-  if(pT)for(let i=1;i<points.length;i++){ if(isSapaName(points[i].label)&&pT[i]!=null)ts.push(pT[i]); } // SA/PAを経由地/目的地に設定（出発地i=0は起点なので除く）
+  const pT=(lastPointT&&points&&lastPointT.length===points.length)?lastPointT
+          :((points&&points.length&&lastLegs&&lastLegs.length)?points.map((_,i)=>lastLegs.slice(0,i).reduce((a,l)=>a+(l.sec||0),0)):null); // pointT未整合時はレグ所要から復元
+  if(pT)for(let i=1;i<points.length;i++){ if(points[i]&&isSapaName(points[i].label)&&pT[i]!=null)ts.push(pT[i]); } // SA/PAを経由地/目的地に設定（出発地i=0は起点なので除く）
   return ts;
 }
 function mergeSapaRuns(runs){
@@ -3043,7 +3044,8 @@ function renderItinerary(){
     const t=pT?pT[i]:lastLegs.slice(0,i).reduce((a,l)=>a+(l.sec||0),0);
     nodes.push({t,kind:'point',i,role:roles[i],stay:(i>0&&i<points.length-1)?(points[i].stay||0):0,label:points[i].label||(points[i].lat.toFixed(3)+', '+points[i].lng.toFixed(3))});
   }
-  (lastEvents||[]).filter(e=>e.type!=='jct').forEach(e=>nodes.push({t:e.t,kind:e.type,label:e.name,ic:e.ic})); // JCTは工程に表示しない
+  const sapaTs=(typeof sapaVisitTimes==='function')?sapaVisitTimes():[];const nearSapa=t=>sapaTs.some(s=>Math.abs(s-t)<=180); // SA/PA立寄りは本線通し扱い→前後の出口/入口(料金所)は行程に表示しない（降車扱いに見えるのを防止）
+  (lastEvents||[]).filter(e=>e.type!=='jct'&&!((e.type==='in'||e.type==='out')&&nearSapa(e.t))).forEach(e=>nodes.push({t:e.t,kind:e.type,label:e.name,ic:e.ic})); // JCTは工程に表示しない
   (lastRests||[]).forEach((r,idx)=>nodes.push({t:r.t,kind:'rest',label:r.name,sub:r.kind,stay:r.stay,idx,data:r.data}));
   nodes.sort((a,b)=>a.t-b.t);
   // 区間（出発・目的地・帰宅で分割）の色帯：各ノードの所属区間を走行秒から判定（境界の目的地は手前の区間に属する）
