@@ -325,6 +325,7 @@
   .sch-stay{flex:none;font-size:11px;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:2px;}
   .sch-stay input{width:60px;padding:4px 6px;border:1px solid var(--line);border-radius:7px;background:var(--surface);color:var(--fg);font-size:13px;text-align:right;}
   .rest-del{flex:none;border:none;background:none;color:var(--muted);font-size:15px;line-height:1;cursor:pointer;padding:2px 4px;align-self:center;opacity:.7;} .rest-del:hover{color:#e03131;opacity:1;}
+  .rest-reset-btn{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--fg);font-size:12px;font-weight:700;cursor:pointer;} .rest-reset-btn:hover{border-color:var(--accent);color:var(--accent);} .rest-reset-btn:disabled{opacity:.4;cursor:default;}
   .alt-row{display:flex;gap:7px;flex-wrap:wrap;}
   .alt-chip{flex:1 1 auto;min-height:40px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;padding:6px 10px;}
   .alt-chip.on{background:var(--accent);color:#fff;border-color:transparent;}
@@ -780,6 +781,7 @@ function setDepNow(){const e=document.getElementById('depTime');if(e){e.value=no
 function touchDepTime(){if(depTimeManual)return;const e=document.getElementById('depTime');if(e)e.value=nowLocal();if(typeof lastDistanceKm!=='undefined'&&lastDistanceKm!=null)updateCost();}
 let lastEvents=[], lastPointT=[], lastRests=[], restStay=15, lastNexcoKinkoKm=0, lastRestSkipped=0, lastFullPath=[];
 let deletedRestTs=[]; // 手動削除した休憩のターゲット秒（＝したものとして扱い再提案しない。以降の間隔は不変）
+let restStayOv={}; // 手入力した休憩時間（ターゲット秒→分）。ルート更新でも保持し、既定に勝手に戻さない。リセットボタンで一括既定化
 let lastNexRuns=[], lastShuRuns=[]; // 走行単位（入口料金所→出口料金所）{t0,t1,km,kinkoKm}。深夜/休日割引の判定に使用
 let routeAlts=[], altIndex=0, savedRoutes=[], onsenLayerOn=false, isoVisible=true;
 const ROUTE_COLORS=['#1a73e8','#d6336c','#f76707','#7048e8','#0ca678','#e8590c'];
@@ -984,7 +986,7 @@ function clearAllObjects(){
   // 保存済みのピン集合(savedPins)・お気に入り(tabi_favs)は保持する（消去対象外）
   savedRoutes.forEach(r=>{r.polys.forEach(p=>p.setMap(null));r.markers.forEach(m=>m.setMap(null));});savedRoutes.length=0; // 割り勘の車両（保存ルート）
   // ルートタブの行程を完全リセット（rsClear と同等）
-  points=[];lastDistanceKm=lastDurationSec=null;lastFlatYen=0;lastFlatNames=[];lastLegSteps=[];lastRouteTimeline=[];lastRests=[];deletedRestTs=[];lastEvents=[];lastPointT=[];lastNexRuns=[];lastShuRuns=[];routeAlts=[];window.editingVehicle=null;
+  points=[];lastDistanceKm=lastDurationSec=null;lastFlatYen=0;lastFlatNames=[];lastLegSteps=[];lastRouteTimeline=[];lastRests=[];deletedRestTs=[];restStayOv={};lastEvents=[];lastPointT=[];lastNexRuns=[];lastShuRuns=[];routeAlts=[];window.editingVehicle=null;
   if(document.getElementById('altSel'))renderAltSelector();
   tollKmAuto=true;document.getElementById('tollKm').value='';document.getElementById('kinkoKm').value='0';
   clearArr(routeMarkers);clearArr(restMarkers);clearRouteLine();renderPoints();
@@ -1430,7 +1432,7 @@ function saveCurrentRoute(){
   const people=ev?ev.people:Math.max(1,parseInt(document.getElementById('splitN').value)||1);
   const pts=points.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null),segPref:(p.segPref||null)})); // 再編集用に地点を保存
   const path=(d.fullPath||[]).map(pt=>(typeof pt.lat==='function')?{lat:pt.lat(),lng:pt.lng()}:{lat:pt.lat,lng:pt.lng}); // 再描画用にポリライン座標を保存
-  savedRoutes.push({id:ev?ev.id:Date.now(),label,name:ev?ev.name:label,polys,markers,color,distKm:d.distKm,trafSec:d.trafSec+totalDwellSec(),toll,gas,rental,other,total,times:isTimes,timesRank:isTimes?timesRank:null,timesHours:isTimes?timesHours:null,timesNight:isTimes?timesNight:null,people,visible:true,pts,path});
+  savedRoutes.push({id:ev?ev.id:Date.now(),label,name:ev?ev.name:label,polys,markers,color,distKm:d.distKm,trafSec:d.trafSec+totalDwellSec(),toll,gas,rental,other,total,times:isTimes,timesRank:isTimes?timesRank:null,timesHours:isTimes?timesHours:null,timesNight:isTimes?timesNight:null,people,visible:true,depTime:((document.getElementById('depTime')||{}).value||''),depTimeMode:timeMode,depTimeManual:depTimeManual,pts,path});
   window.editingVehicle=null;
   showStatus(ev?('工程「'+(ev.name||label)+'」を更新しました'):'車両として保存しました（レイヤー／割り勘決算で管理）',false);hideStatusLater();
   renderLayerPanel();renderSettlePanel();persistState();
@@ -1443,6 +1445,8 @@ function editSavedRoute(i){const r=savedRoutes[i];if(!r)return;
   savedRoutes.splice(i,1);
   points=r.pts.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null),segPref:(p.segPref||null)}));
   const sn=document.getElementById('splitN');if(sn)sn.value=window.editingVehicle.people;
+  if(r.depTime){const dt=document.getElementById('depTime');if(dt)dt.value=r.depTime;depTimeManual=true;} // 行程ごとの出発時間を復元（直近設定に置き換わらない）
+  if(r.depTimeMode==='arrive'||r.depTimeMode==='depart'){timeMode=r.depTimeMode;if(typeof updateTimeModeUI==='function')updateTimeModeUI();}
   if(activeTab!=='route')selectTab('route');routeSheet.classList.remove('collapsed');
   renderPoints();computeRoute();renderLayerPanel();renderSettlePanel();
   showStatus('工程「'+window.editingVehicle.name+'」を編集中。変更後『保存』で更新されます',false);hideStatusLater();
@@ -1454,8 +1458,8 @@ function persistState(){
   if(restoring)return;
   try{
     const g=id=>{const e=document.getElementById(id);return e?e.value:'';};
-    const slim=savedRoutes.map(r=>({id:r.id,label:r.label,name:r.name||r.label,color:r.color,distKm:r.distKm,trafSec:r.trafSec,toll:r.toll,gas:r.gas,rental:r.rental||0,other:r.other,total:r.total,times:!!r.times,timesRank:r.timesRank||null,timesHours:(r.timesHours!=null?r.timesHours:null),timesNight:!!r.timesNight,people:r.people,manual:!!r.manual,visible:r.visible!==false,pts:r.pts||null,path:r.path||null}));
-    const st={v:1,points:(points||[]).map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null),segPref:(p.segPref||null)})),depTime:g('depTime'),fuelType,price:g('price'),eff:g('eff'),vehType,otherCost:g('otherCost'),splitN:g('splitN'),applyDisc:!!(document.getElementById('applyDisc')||{}).checked,depTimeManual,timeMode,routePref,restMin,restStay,delRest:(deletedRestTs||[]),timesOn,timesRank,timesHours,timesNight,oc:{food:g('ocFood'),foodN:g('ocFoodN'),lodge:g('ocLodge'),sight:g('ocSight'),reserve:g('ocReserve'),trans:g('ocTrans')},saved:slim};
+    const slim=savedRoutes.map(r=>({id:r.id,label:r.label,name:r.name||r.label,color:r.color,distKm:r.distKm,trafSec:r.trafSec,toll:r.toll,gas:r.gas,rental:r.rental||0,other:r.other,total:r.total,times:!!r.times,timesRank:r.timesRank||null,timesHours:(r.timesHours!=null?r.timesHours:null),timesNight:!!r.timesNight,people:r.people,manual:!!r.manual,visible:r.visible!==false,depTime:r.depTime||null,depTimeMode:r.depTimeMode||null,depTimeManual:!!r.depTimeManual,pts:r.pts||null,path:r.path||null}));
+    const st={v:1,points:(points||[]).map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null),segPref:(p.segPref||null)})),depTime:g('depTime'),fuelType,price:g('price'),eff:g('eff'),vehType,otherCost:g('otherCost'),splitN:g('splitN'),applyDisc:!!(document.getElementById('applyDisc')||{}).checked,depTimeManual,timeMode,routePref,restMin,restStay,delRest:(deletedRestTs||[]),stayOv:(restStayOv||{}),timesOn,timesRank,timesHours,timesNight,oc:{food:g('ocFood'),foodN:g('ocFoodN'),lodge:g('ocLodge'),sight:g('ocSight'),reserve:g('ocReserve'),trans:g('ocTrans')},saved:slim};
     localStorage.setItem('tabi_state',JSON.stringify(st));
   }catch(e){}
 }
@@ -1474,6 +1478,7 @@ function restoreState(){
     if(st.routePref){routePref=st.routePref;document.querySelectorAll('#prefSeg button').forEach(b=>b.classList.toggle('on',b.dataset.p===routePref));}
     if(st.restMin)restMin=st.restMin;if(st.restStay!=null)restStay=st.restStay;
     if(Array.isArray(st.delRest))deletedRestTs=st.delRest.slice();
+    if(st.stayOv&&typeof st.stayOv==='object')restStayOv=Object.assign({},st.stayOv);
     if(typeof st.timesOn==='boolean')timesOn=st.timesOn;
     if(st.timesRank){timesRank=st.timesRank;document.querySelectorAll('#timesRankSeg button').forEach(b=>b.classList.toggle('on',b.dataset.r===timesRank));}
     if(st.timesHours!=null){timesHours=st.timesHours;const e=document.getElementById('timesHrs');if(e)e.value=st.timesHours;}
@@ -2669,10 +2674,11 @@ function buildRestPath(){
 }
 function posAtTime(t){const rp=buildRestPath()||lastRouteTimeline;for(const p of rp){if(p.t>=t)return {lat:p.lat,lng:p.lng};}return rp.length?{lat:rp[rp.length-1].lat,lng:rp[rp.length-1].lng}:null;}
 function nearestPlace(res,pt){let best=res[0],bd=1e18;res.forEach(p=>{const la=p.geometry.location.lat(),ln=p.geometry.location.lng();const d=(la-pt.lat)*(la-pt.lat)+(ln-pt.lng)*(ln-pt.lng);if(d<bd){bd=d;best=p;}});return best;}
-function restHead(){const noRest=!(restMin>0);return `<div class="rs-label">休憩の設定</div><div class="seg" id="restSeg" style="margin-bottom:8px;"><button data-r="0"${noRest?' class="on"':''}>休憩なし</button><button data-r="90"${restMin===90?' class="on"':''}>1.5時間ごと</button><button data-r="120"${restMin===120?' class="on"':''}>2時間ごと</button><button data-r="180"${restMin===180?' class="on"':''}>3時間ごと</button></div><label class="opt" style="width:100%;justify-content:space-between;${noRest?'opacity:.4;':''}">1回の休憩時間（既定）<span><input type="number" min="0" max="180" id="restStayIn" value="${restStay}"${noRest?' disabled':''} style="width:60px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);font-size:14px;text-align:right;">分</span></label>`;}
+function restHead(){const noRest=!(restMin>0);return `<div class="rs-label">休憩の設定</div><div class="seg" id="restSeg" style="margin-bottom:8px;"><button data-r="0"${noRest?' class="on"':''}>休憩なし</button><button data-r="90"${restMin===90?' class="on"':''}>1.5時間ごと</button><button data-r="120"${restMin===120?' class="on"':''}>2時間ごと</button><button data-r="180"${restMin===180?' class="on"':''}>3時間ごと</button></div><label class="opt" style="width:100%;justify-content:space-between;${noRest?'opacity:.4;':''}">1回の休憩時間（既定）<span><input type="number" min="0" max="600" id="restStayIn" value="${restStay}"${noRest?' disabled':''} style="width:60px;padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);font-size:14px;text-align:right;">分</span></label><button id="restResetBtn" class="rest-reset-btn"${noRest?' disabled':''} title="手入力した休憩時間をすべて既定（1回の休憩時間）に戻します">↺ 休憩時間を一括で既定にリセット</button>`;}
 function wireRestCtl(){
-  const seg=document.getElementById('restSeg');if(seg)seg.onclick=(e)=>{const b=e.target.closest('button');if(!b)return;restMin=+b.dataset.r;deletedRestTs=[];[...seg.children].forEach(x=>x.classList.toggle('on',x===b));suggestRests();};
-  const si=document.getElementById('restStayIn');if(si)si.onchange=()=>{restStay=Math.max(0,Math.min(180,parseInt(si.value)||0));lastRests.forEach(r=>{r.stay=restStay;r.depOv=null;});renderItinerary();updateCost();};
+  const seg=document.getElementById('restSeg');if(seg)seg.onclick=(e)=>{const b=e.target.closest('button');if(!b)return;restMin=+b.dataset.r;deletedRestTs=[];restStayOv={};[...seg.children].forEach(x=>x.classList.toggle('on',x===b));suggestRests();};
+  const si=document.getElementById('restStayIn');if(si)si.onchange=()=>{restStay=Math.max(0,Math.min(600,parseInt(si.value)||0));lastRests.forEach(r=>{if(!(r.t!=null&&restStayOv[r.t]!=null)){r.stay=restStay;r.depOv=null;}});renderItinerary();updateCost();persistState();}; // 既定変更は手入力していない休憩のみ更新
+  const rb=document.getElementById('restResetBtn');if(rb)rb.onclick=()=>{restStayOv={};lastRests.forEach(r=>{r.stay=restStay;r.stayManual=false;r.depOv=null;});renderItinerary();updateCost();persistState();showStatus('全休憩の時間を既定（'+restStay+'分）にリセットしました',false);hideStatusLater();}; // 一律で既定に戻す
 }
 // 指定drive秒で高速走行中か（events: in=流入/料金所, out=流出）
 function isHwyAt(t){let hw=false;for(const e of (lastEvents||[])){if(e.t>t)break;if(e.type==='in')hw=true;else if(e.type==='out')hw=false;}return hw;}
@@ -2779,7 +2785,8 @@ function finalizeRests(list,box){
   clearArr(restMarkers);lastRests=[];
   list.forEach(r=>{
     if(lastRests.some(x=>x.name===r.name))return; // 同一スポットの重複を除外
-    const rest={t:r.t,name:r.name,kind:r.kind,lat:r.lat,lng:r.lng,stay:restStay,data:r.data};
+    const ovStay=restStayOv[r.t]; // 手入力した休憩時間があれば既定に戻さず維持
+    const rest={t:r.t,name:r.name,kind:r.kind,lat:r.lat,lng:r.lng,stay:(ovStay!=null?ovStay:restStay),stayManual:(ovStay!=null),data:r.data};
     lastRests.push(rest);
     const m=new google.maps.Marker({position:{lat:r.lat,lng:r.lng},map,icon:dotIcon('#8a5a2b',8.5),label:{text:'休',fontSize:'9px',color:'#fff',fontWeight:'700'},title:r.name,zIndex:5});
     m.addListener('click',()=>openInfo(m,restPopupHtml(r)));
@@ -3070,7 +3077,7 @@ function renderItinerary(){
       const eff=effDwellSec(arrClock,lastRests[nd.idx].stay||0,lastRests[nd.idx].depOv);
       const depSec=arrSec+eff;restAccum+=eff;
       const fac=sapaItinHtml(nd.data);
-      html+=`<div class="sch-row rest${fac?' hasfac':''}"><div class="sch-rest-main"><span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発<input type="time" class="restdep-in" data-i="${nd.idx}" value="${fmtClockAdd(dep,depSec)}" title="出発時刻を編集"></small></span><span class="sch-ic">休</span><span class="sch-label">${escapeHtml(nd.label)}<small> ${escapeHtml(nd.sub||'')}</small></span><span class="sch-stay">休憩<input type="number" min="0" max="180" class="stay-in" data-i="${nd.idx}" value="${lastRests[nd.idx].stay||0}">分</span><button class="rest-del" data-i="${nd.idx}" title="この休憩を削除（削除しても以降の休憩間隔は変わりません）">✕</button></div>${fac}</div>`;
+      html+=`<div class="sch-row rest${fac?' hasfac':''}"><div class="sch-rest-main"><span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発<input type="time" class="restdep-in" data-i="${nd.idx}" value="${fmtClockAdd(dep,depSec)}" title="出発時刻を編集"></small></span><span class="sch-ic">休</span><span class="sch-label">${escapeHtml(nd.label)}<small> ${escapeHtml(nd.sub||'')}</small></span><span class="sch-stay">休憩<input type="number" min="0" max="600" class="stay-in" data-i="${nd.idx}" value="${lastRests[nd.idx].stay||0}">分</span><button class="rest-del" data-i="${nd.idx}" title="この休憩を削除（削除しても以降の休憩間隔は変わりません）">✕</button></div>${fac}</div>`;
     }else{
       const ic='▸',tag=nd.kind==='in'?'入口/料金所':(nd.kind==='out'?'出口/料金所':'JCT');
       const road=nd.label||'',icn=nd.ic||'';
@@ -3095,7 +3102,7 @@ function renderItinerary(){
     return Math.max(0,Math.min(2880*60,sec));
   };
   // 休憩地：休憩時間（分）。編集すると出発時刻の直接指定を解除（5分切り上げに戻す）
-  box.querySelectorAll('.stay-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(lastRests[i]){lastRests[i].stay=Math.max(0,Math.min(180,parseInt(inp.value)||0));lastRests[i].depOv=null;renderItinerary();updateCost();}});
+  box.querySelectorAll('.stay-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(lastRests[i]){const v=Math.max(0,Math.min(600,parseInt(inp.value)||0));lastRests[i].stay=v;lastRests[i].stayManual=true;lastRests[i].depOv=null;if(lastRests[i].t!=null)restStayOv[lastRests[i].t]=v;renderItinerary();updateCost();persistState();}}); // 手入力はrestStayOvに記憶しルート更新でも維持
   // 休憩地：出発時刻を直接指定（最優先）
   box.querySelectorAll('.restdep-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(!lastRests[i])return;const ov=depToOv(restArr[i],inp.value);if(ov==null){renderItinerary();return;}lastRests[i].depOv=ov;renderItinerary();updateCost();});
   // 休憩地：この休憩を削除（＝したものとして扱う。ターゲット秒を記録し再提案しない。以降の休憩間隔は不変）
