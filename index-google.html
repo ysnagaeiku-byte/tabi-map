@@ -3152,14 +3152,20 @@ function renderItinerary(){
     if(nd.kind==='point'){
       const color=roleColor(nd.role);
       const isMid=(nd.i>0&&nd.i<points.length-1); // 経由地・最下部でない目的地＝着(現状維持)/発(5分切り上げ・編集可)
+      let fac='';
+      if(nd.i>0&&isSapaName(nd.label)){const dir=(typeof travelDirAt==='function')?travelDirAt(nd.t):null;fac=sapaItinHtml(lookupSapa(nd.label,dir));} // SA/PAを経由地/目的地に設定した場合も、休憩と同じ施設アイコン・規模・駐車台数を表示
       if(isMid){
         pointArr[nd.i]=arrSec;                    // 到着秒を記録（発時刻編集の逆算に使用）
         const arrClock=new Date(dep.getTime()+arrSec*1000);
         const eff=effDwellSec(arrClock,points[nd.i].stay||0,points[nd.i].depOv);
         const depSec=arrSec+eff;restAccum+=eff;   // 実効滞在（5分切り上げ or 直接指定）を加算
-        html+=`<div class="sch-row rest"><span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発<input type="time" class="dep-in" data-i="${nd.i}" value="${fmtClockAdd(dep,depSec)}" title="出発（集合）時刻を編集"></small></span><span class="sch-badge" style="background:${color}">${nd.role}</span><span class="sch-label">${escapeHtml(nd.label)}</span></div>`;
+        const inner=`<span class="sch-t">着${fmtClockAdd(dep,arrSec)}<small>発<input type="time" class="dep-in" data-i="${nd.i}" value="${fmtClockAdd(dep,depSec)}" title="出発（集合）時刻を編集"></small></span><span class="sch-badge" style="background:${color}">${nd.role}</span><span class="sch-label">${escapeHtml(nd.label)}</span>`;
+        html+=fac?`<div class="sch-row rest hasfac"><div class="sch-rest-main">${inner}</div>${fac}</div>`:`<div class="sch-row rest">${inner}</div>`;
       }
-      else html+=`<div class="sch-row"><span class="sch-t">${fmtClockAdd(dep,arrSec)}</span><span class="sch-badge" style="background:${color}">${nd.role}</span><span class="sch-label">${escapeHtml(nd.label)}</span></div>`;
+      else{
+        const inner=`<span class="sch-t">${fmtClockAdd(dep,arrSec)}</span><span class="sch-badge" style="background:${color}">${nd.role}</span><span class="sch-label">${escapeHtml(nd.label)}</span>`;
+        html+=fac?`<div class="sch-row rest hasfac"><div class="sch-rest-main">${inner}</div>${fac}</div>`:`<div class="sch-row">${inner}</div>`;
+      }
     }else if(nd.kind==='rest'){
       restArr[nd.idx]=arrSec;                     // 休憩の到着秒を記録（発時刻編集の逆算に使用）
       const arrClock=new Date(dep.getTime()+arrSec*1000);
