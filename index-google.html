@@ -43,11 +43,12 @@
   #topbar{position:fixed;top:0;left:0;right:0;z-index:1250;padding-top:env(safe-area-inset-top);pointer-events:none;}
   /* 現在時刻（NICT風デジタル時計）。pointer-events:none で地図操作を妨げない・常時最前面 */
   #liveClock{position:fixed;top:calc(60px + env(safe-area-inset-top));right:12px;z-index:1200;pointer-events:auto;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:6px 12px 7px;box-shadow:0 4px 18px var(--shadow);}
-  #evacLabel{display:none;font-weight:800;font-size:14px;color:#fff;white-space:nowrap;letter-spacing:.5px;line-height:1.3;}
-  #liveClock.evac-armed{background:#e03131;border-color:#b02020;box-shadow:0 4px 20px rgba(224,49,49,.55);animation:evacPulse 1s infinite;}
-  #liveClock.evac-armed #lcTime,#liveClock.evac-armed #lcDate,#liveClock.evac-armed #speedChip{display:none;}
-  #liveClock.evac-armed #evacLabel{display:block;}
-  @keyframes evacPulse{0%,100%{transform:scale(1);}50%{transform:scale(1.07);}}
+  #evacLabel{display:none;}
+  /* 緊急避難：時計と同じ大きさを保つため、時計の中身は visibility:hidden で場所だけ残し、ラベルを絶対配置で重ねる（サイズ不変・拡大アニメ無し） */
+  #liveClock.evac-armed{background:#e03131;border-color:#b02020;animation:evacPulse 1.1s infinite;}
+  #liveClock.evac-armed #lcTime,#liveClock.evac-armed #lcDate,#liveClock.evac-armed #speedChip{visibility:hidden;}
+  #liveClock.evac-armed #evacLabel{display:flex;position:absolute;inset:0;align-items:center;justify-content:center;font-weight:800;font-size:14px;color:#fff;letter-spacing:1px;white-space:nowrap;}
+  @keyframes evacPulse{0%,100%{box-shadow:0 4px 18px rgba(224,49,49,.4);}50%{box-shadow:0 4px 22px rgba(224,49,49,.85);}}
   #evacPanel{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom));z-index:1400;width:min(92vw,380px);background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 30px var(--shadow);padding:12px 14px;display:none;}
   #evacPanel.open{display:block;}
   .evac-h{display:flex;justify-content:space-between;align-items:center;font-size:14px;font-weight:800;color:#e03131;margin-bottom:8px;}
@@ -367,6 +368,8 @@
   .ly-head span{margin-right:auto;}
   .ly-head button{border:none;background:none;color:var(--muted);font-size:16px;cursor:pointer;}
   .ly-save-set{font-size:11px !important;font-weight:800;color:var(--accent) !important;border:1px solid var(--accent) !important;border-radius:999px;padding:3px 10px !important;white-space:nowrap;}
+  .ly-color{flex:none;width:24px;height:24px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer;-webkit-appearance:none;appearance:none;}
+  .ly-color::-webkit-color-swatch-wrapper{padding:2px;} .ly-color::-webkit-color-swatch{border:none;border-radius:4px;} .ly-color::-moz-color-swatch{border:none;border-radius:4px;}
   .ls-count{font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px;}
   .ls-empty{font-size:12px;color:var(--muted);line-height:1.6;padding:8px 0;}
   .ls-item{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--line);}
@@ -456,8 +459,8 @@
     <div class="rs-hint" id="ocHint" style="margin-top:8px;"></div>
   </div>
 </div>
-<div id="liveClock" title="現在時刻（NTP同期・JST）／タップで緊急避難"><span id="lcTime">--:--:--</span><span id="lcDate"></span><div id="speedChip"><b id="spdVal">--</b><span class="spd-u">km/h</span></div><span id="evacLabel">🚨 緊急避難</span></div>
-<div id="evacPanel"><div class="evac-h"><b>🚨 緊急避難（参考）</b><button id="evacClose" title="閉じる">✕</button></div><div id="evacBody"></div></div>
+<div id="liveClock" title="現在時刻（NTP同期・JST）／タップで緊急避難"><span id="lcTime">--:--:--</span><span id="lcDate"></span><div id="speedChip"><b id="spdVal">--</b><span class="spd-u">km/h</span></div><span id="evacLabel">緊急避難</span></div>
+<div id="evacPanel"><div class="evac-h"><b>緊急避難（参考）</b><button id="evacClose" title="閉じる">✕</button></div><div id="evacBody"></div></div>
 <div id="status"></div>
 <div id="controls">
   <button class="fab ghost" id="locBtn" title="現在地へ"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.6"/><path d="M12 1.6V4M12 20v2.4M1.6 12H4M20 12h2.4"/></svg></button>
@@ -470,7 +473,7 @@
 <button id="layerBtn" title="レイヤー（温泉郷・圏域・保存ルート）" aria-label="レイヤー管理"><svg class="svgi" viewBox="0 0 24 24"><path d="M12 2 22 7.5 12 13 2 7.5 12 2z"/><path d="m2 12.2 10 5.5 10-5.5"/><path d="m2 16.7 10 5.5 10-5.5"/></svg><small>レイヤー</small></button>
 <button id="settleBtn" title="複数車両の割り勘決算" aria-label="複数車両の割り勘決算"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.6 7.6 3.4 4.3 3.4-4.3M12 11.9V17M9.4 13.4h5.2M9.4 15.6h5.2"/></svg><small>割り勘</small></button>
 <button id="imgBtn" title="表示中の地図・レイヤーを画像で保存" aria-label="画像出力"><svg class="svgi" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="m4 17 5-5 4 4 3-3 4 4"/></svg><small>画像出力</small></button>
-<div id="layerPanel"><div class="ly-head"><span>レイヤー</span><button id="lySaveSetBtn" class="ly-save-set" title="現在のレイヤー（ルート・ピン・距離円）を名前を付けて保存">💾 保存</button><button id="layerClose">✕</button></div><div id="layerList"></div></div>
+<div id="layerPanel"><div class="ly-head"><span>レイヤー</span><button id="lySaveSetBtn" class="ly-save-set" title="現在のレイヤー（ルート・ピン・距離円）を名前を付けて保存">保存</button><button id="layerClose">✕</button></div><div id="layerList"></div></div>
 <div id="settlePanel"><div class="ly-head"><span>複数車両 割り勘決算</span><button id="settleClose">✕</button></div><div id="settleList"></div></div>
 
 <div id="routeSheet">
@@ -551,7 +554,7 @@
   <div class="set-sec"><div class="set-label">到達圏マップ（Mapbox アクセストークン）</div><input id="mbxInput" placeholder="Mapbox public token (pk.xxx)" autocomplete="off" /><div class="set-help">「到達圏」タブで、任意地点から ○分で行ける範囲（アイソクロン）を描画します。<b>URL（リファラー）制限</b>の設定を推奨。トークンは端末内のみ保存。</div><button class="set-save" id="mbxSave">保存</button><div class="set-msg" id="mbxMsg"></div></div>
   <div class="set-sec"><div class="set-label">楽天トラベル連携</div><input id="rakInput" placeholder="楽天 applicationId" autocomplete="off" /><button class="set-save" id="rakSave">保存</button><div class="set-msg" id="rakMsg"></div></div>
   <div class="set-sec"><div class="set-label">高速・有料の回避（OpenRouteService）</div><input id="orsInput" placeholder="ORS APIキー" autocomplete="off" /><button class="set-save" id="orsSave">保存</button><div class="set-msg" id="orsMsg"></div></div>
-  <div class="set-sec" style="margin-bottom:0;"><div class="set-label">保存したレイヤー</div><button class="set-save" id="lsOpenBtn">保存したレイヤーを参照 / 読み込む</button><div class="set-help">現在のレイヤー（ルート・ピン・距離円）を<b>一括で名前を付けて保存</b>し、あとから呼び出せます（最大300件）。保存は<b>レイヤーパネル右上の「💾 保存」</b>から行います。</div></div>
+  <div class="set-sec" style="margin-bottom:0;"><div class="set-label">保存したレイヤー</div><button class="set-save" id="lsOpenBtn">保存したレイヤーを参照 / 読み込む</button><div class="set-help">現在のレイヤー（ルート・ピン・距離円）を<b>一括で名前を付けて保存</b>し、あとから呼び出せます（最大300件）。保存は<b>レイヤーパネル右上の「保存」</b>から行います。</div></div>
 </div></div>
 
 <div class="overlay" id="lsOverlay"><div class="modal">
@@ -1585,14 +1588,14 @@ function renderLayerPanel(){
   if(savedPins.length){
     const anyVis=savedPins.some(p=>p.visible!==false);
     // ピンは1件の「ピン」グループに集約。ヘッダをタップで一覧を展開/折りたたみ（スペース節約）
-    h+=`<div class="ly-item ly-grp" id="pinGrpHead"><span class="ly-caret">${pinsExpanded?'▾':'▸'}</span><span class="ly-sw pin-grp-sw" title="すべてのピンの表示/非表示" style="background:${anyVis?'#e64980':'var(--surface-2)'};border:1px solid #e64980;"></span><span class="ly-name">📍 ピン (${savedPins.length})<small style="color:var(--muted);font-weight:500;">　${pinsExpanded?'タップで閉じる':'タップで一覧'}</small></span><button class="ly-del pin-grp-del" title="ピンをすべて削除"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
+    h+=`<div class="ly-item ly-grp" id="pinGrpHead"><span class="ly-caret">${pinsExpanded?'▾':'▸'}</span><span class="ly-sw pin-grp-sw" title="すべてのピンの表示/非表示" style="background:${anyVis?'#e64980':'var(--surface-2)'};border:1px solid #e64980;"></span><span class="ly-name">ピン (${savedPins.length})<small style="color:var(--muted);font-weight:500;">　${pinsExpanded?'タップで閉じる':'タップで一覧'}</small></span><button class="ly-del pin-grp-del" title="ピンをすべて削除"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
     if(pinsExpanded){
       h+='<div class="ly-subwrap">';
-      savedPins.forEach((p,i)=>{h+=`<div class="ly-item ly-subitem"><span class="ly-sw pin-lysw" data-id="${p.id}" style="background:${p.visible!==false?'#e64980':'var(--surface-2)'};border:1px solid #e64980;"></span><span class="ly-name">ピン${i+1}：${escapeHtml(p.name)}${p.sub?`<br><small style="color:var(--muted);font-weight:500;">${escapeHtml(p.sub)}</small>`:''}</span><button class="ly-del pin-lydel" data-id="${p.id}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
+      savedPins.forEach((p,i)=>{const pc=p.color||'#e6197a';h+=`<div class="ly-item ly-subitem"><span class="ly-sw pin-lysw" data-id="${p.id}" style="background:${p.visible!==false?pc:'var(--surface-2)'};border:1px solid ${pc};"></span><span class="ly-name">ピン${i+1}：${escapeHtml(p.name)}${p.sub?`<br><small style="color:var(--muted);font-weight:500;">${escapeHtml(p.sub)}</small>`:''}</span><input type="color" class="ly-color pin-color" data-id="${p.id}" value="${pc}" title="ピンの色を変更"><button class="ly-del pin-lydel" data-id="${p.id}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
       h+='</div>';
     }
   }
-  savedRoutes.forEach((r,i)=>{h+=`<div class="ly-item"><span class="ly-sw ly-rt" data-i="${i}" style="background:${r.visible?r.color:'var(--surface-2)'};border:1px solid ${r.color};"></span><span class="ly-name" style="color:${r.color}">${escapeHtml(r.name||r.label)}<br><small style="color:var(--muted);font-weight:500;">${r.distKm.toFixed(0)}km・${fmtDuration(r.trafSec)}・¥${r.toll.toLocaleString()}</small></span><button class="ly-edit" data-e="${i}" title="名前を変更">✎</button>${(r.pts&&r.pts.length)?`<button class="ly-edit" data-ap="${i}" title="現在の行程に連結" style="font-size:10.5px;font-weight:800;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 7px;">＋連結</button><button class="ly-edit" data-ed="${i}" title="工程を再編集">✎</button>`:''}<button class="ly-del" data-d="${i}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
+  savedRoutes.forEach((r,i)=>{h+=`<div class="ly-item"><span class="ly-sw ly-rt" data-i="${i}" style="background:${r.visible?r.color:'var(--surface-2)'};border:1px solid ${r.color};"></span><span class="ly-name" style="color:${r.color}">${escapeHtml(r.name||r.label)}<br><small style="color:var(--muted);font-weight:500;">${r.distKm.toFixed(0)}km・${fmtDuration(r.trafSec)}・¥${r.toll.toLocaleString()}</small></span><input type="color" class="ly-color rt-color" data-i="${i}" value="${r.color}" title="ルートの色を変更"><button class="ly-edit" data-e="${i}" title="名前を変更">✎</button>${(r.pts&&r.pts.length)?`<button class="ly-edit" data-ap="${i}" title="現在の行程に連結" style="font-size:10.5px;font-weight:800;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 7px;">＋連結</button><button class="ly-edit" data-ed="${i}" title="工程を再編集">✎</button>`:''}<button class="ly-del" data-d="${i}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   if(!savedRoutes.length&&!isoShapes.length&&!onsenLayerOn&&!poiCats.length&&!lineKeys.length&&!savedPins.length&&!bufferLayers.length)h+='<div class="ly-empty">レイヤーは空です。カスタムタブでPOI・高速/鉄道の全国強調を表示、温泉郷タブ、到達圏、検索して「ピンを残す」、ピンの「距離円」、ルートの「保存」などで要素を地図に重ねられます（タブを切り替えても残ります）。</div>';
   list.innerHTML=h;
   const lyOnsen=document.getElementById('lyOnsen');if(lyOnsen)lyOnsen.onclick=toggleOnsenLayer;
@@ -1611,9 +1614,11 @@ function renderLayerPanel(){
   if(pinGrpDel)pinGrpDel.onclick=(e)=>{e.stopPropagation();if(!confirm('保存済みのピン '+savedPins.length+'件をすべて削除します。よろしいですか？（お気に入りは残ります）'))return;clearSavedPins();};
   list.querySelectorAll('.pin-lysw').forEach(s=>s.onclick=()=>toggleSavedPinVisible(+s.dataset.id));
   list.querySelectorAll('.pin-lydel').forEach(b=>b.onclick=()=>removeSavedPin(+b.dataset.id));
+  list.querySelectorAll('.pin-color').forEach(inp=>inp.oninput=()=>{const p=savedPins.find(x=>x.id===+inp.dataset.id);if(!p)return;p.color=inp.value;if(p.marker)p.marker.setIcon(pinHaloIcon(p.color));const sw=list.querySelector('.pin-lysw[data-id="'+p.id+'"]');if(sw){sw.style.background=(p.visible!==false)?p.color:'var(--surface-2)';sw.style.borderColor=p.color;}persistPins();}); // ピンの色を任意に変更
   list.querySelectorAll('.buf-sw').forEach(s=>s.onclick=()=>toggleBufferVisible(+s.dataset.id));
   list.querySelectorAll('.buf-del').forEach(b=>b.onclick=()=>removeBuffer(+b.dataset.id));
   list.querySelectorAll('.ly-rt').forEach(s=>s.onclick=()=>toggleSavedRoute(+s.dataset.i));
+  list.querySelectorAll('.rt-color').forEach(inp=>inp.oninput=()=>{const r=savedRoutes[+inp.dataset.i];if(!r)return;r.color=inp.value;if(r.polys&&r.polys[1])r.polys[1].setOptions({strokeColor:r.color});(r.markers||[]).forEach(m=>m.setIcon(pinIcon(r.color,1.4)));const sw=list.querySelector('.ly-rt[data-i="'+inp.dataset.i+'"]');if(sw){sw.style.background=r.visible?r.color:'var(--surface-2)';sw.style.borderColor=r.color;}const nm=inp.closest('.ly-item').querySelector('.ly-name');if(nm)nm.style.color=r.color;persistState();}); // 保存ルートの色を任意に変更
   list.querySelectorAll('.ly-edit[data-e]').forEach(b=>b.onclick=()=>renameSavedRoute(+b.dataset.e));
   list.querySelectorAll('.ly-edit[data-ed]').forEach(b=>b.onclick=()=>editSavedRoute(+b.dataset.ed));
   list.querySelectorAll('.ly-edit[data-ap]').forEach(b=>b.onclick=()=>appendSavedRoute(+b.dataset.ap));
@@ -1625,7 +1630,7 @@ function getLayerSets(){try{return JSON.parse(localStorage.getItem('tabi_layer_s
 function saveLayerSets(a){try{localStorage.setItem('tabi_layer_sets',JSON.stringify(a));return true;}catch(e){showStatus('保存に失敗しました（ブラウザの保存容量超過の可能性）',false);hideStatusLater();return false;}}
 function serializeCurrentLayer(){ // 現在のレイヤーを永続化可能な形へ（地図オブジェクトは除外）
   const routes=savedRoutes.map(r=>({id:r.id,label:r.label,name:r.name||r.label,color:r.color,distKm:r.distKm,trafSec:r.trafSec,toll:r.toll,gas:r.gas,rental:r.rental||0,other:r.other,total:r.total,times:!!r.times,timesRank:r.timesRank||null,timesHours:(r.timesHours!=null?r.timesHours:null),timesNight:!!r.timesNight,people:r.people,manual:!!r.manual,visible:r.visible!==false,depTime:r.depTime||null,depTimeMode:r.depTimeMode||null,depTimeManual:!!r.depTimeManual,pts:r.pts||null,path:r.path||null}));
-  const pins=savedPins.map(p=>({id:p.id,name:p.name,lat:p.lat,lng:p.lng,sub:p.sub||'',visible:p.visible!==false}));
+  const pins=savedPins.map(p=>({id:p.id,name:p.name,lat:p.lat,lng:p.lng,sub:p.sub||'',visible:p.visible!==false,color:p.color||null}));
   const buffers=bufferLayers.map(b=>({name:b.name,lat:b.center.lat,lng:b.center.lng}));
   return {routes,pins,buffers};
 }
@@ -1663,7 +1668,7 @@ function loadLayerSet(id){ // 保存レイヤーを読み込み（現在のレ�
   if(hasCur&&!confirm('現在のレイヤー（ルート'+cur.routes.length+'・ピン'+cur.pins.length+'・距離円'+cur.buffers.length+'）を、保存レイヤー「'+set.name+'」で置き換えます。よろしいですか？'))return;
   clearCurrentLayerObjects();
   (set.routes||[]).forEach(r=>savedRoutes.push(rebuildSavedRouteObj(r)));
-  (set.pins||[]).forEach(o=>{const pin={id:o.id||Date.now()+Math.floor(Math.random()*1e6),name:o.name,lat:o.lat,lng:o.lng,sub:o.sub||'',visible:o.visible!==false};pin.marker=makePinMarker(pin);if(pin.visible===false&&pin.marker)pin.marker.setMap(null);savedPins.push(pin);});
+  (set.pins||[]).forEach(o=>{const pin={id:o.id||Date.now()+Math.floor(Math.random()*1e6),name:o.name,lat:o.lat,lng:o.lng,sub:o.sub||'',visible:o.visible!==false,color:o.color||null};pin.marker=makePinMarker(pin);if(pin.visible===false&&pin.marker)pin.marker.setMap(null);savedPins.push(pin);});
   (set.buffers||[]).forEach(b=>{if(b.lat!=null&&b.lng!=null)drawBuffer(b.lat,b.lng,b.name);});
   persistPins();persistState();renderLayerPanel();renderSettlePanel();if(activeTab==='custom')buildCustomPanel();
   document.getElementById('lsOverlay').classList.remove('open');
@@ -1682,7 +1687,7 @@ function renameLayerSet(id){
 function renderLayerSets(){
   const box=document.getElementById('lsList');if(!box)return;
   const sets=getLayerSets().slice().sort((a,b)=>(b.id||0)-(a.id||0));
-  if(!sets.length){box.innerHTML='<div class="ls-empty">保存したレイヤーはありません。<br>レイヤーパネル右上の「💾 保存」で、現在のレイヤー（ルート・ピン・距離円）を名前を付けて保存できます。</div>';return;}
+  if(!sets.length){box.innerHTML='<div class="ls-empty">保存したレイヤーはありません。<br>レイヤーパネル右上の「保存」で、現在のレイヤー（ルート・ピン・距離円）を名前を付けて保存できます。</div>';return;}
   const fmtAt=iso=>{try{const d=new Date(iso),z=n=>String(n).padStart(2,'0');return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()+' '+z(d.getHours())+':'+z(d.getMinutes());}catch(e){return'';}};
   box.innerHTML='<div class="ls-count">'+sets.length+' / '+MAX_LAYER_SETS+' 件</div>'+sets.map(s=>`<div class="ls-item"><div class="ls-main"><div class="ls-name">${escapeHtml(s.name)}</div><div class="ls-meta">${fmtAt(s.at)}　ルート${(s.routes||[]).length}・ピン${(s.pins||[]).length}・距離円${(s.buffers||[]).length}</div></div><button class="ls-load" data-id="${s.id}">読込</button><button class="ls-ren" data-id="${s.id}" title="名前を変更">✎</button><button class="ls-del" data-id="${s.id}" title="削除">✕</button></div>`).join('');
   box.querySelectorAll('.ls-load').forEach(b=>b.onclick=()=>loadLayerSet(+b.dataset.id));
@@ -3465,7 +3470,7 @@ function pinHaloIcon(color){
     +'<circle cx="17" cy="17" r="10.5" fill="none" stroke="'+color+'" stroke-width="1.4" stroke-opacity="0.9"/></svg>';
   return {url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),scaledSize:new google.maps.Size(34,34),anchor:new google.maps.Point(17,17)};
 }
-function makePinMarker(o){const m=new google.maps.Marker({position:{lat:o.lat,lng:o.lng},map:(o.visible!==false)?map:null,icon:pinHaloIcon('#e6197a'),zIndex:66,title:o.name||''});m._info={lat:o.lat,lng:o.lng,name:o.name,sub:o.sub,id:o.id};m.addListener('click',()=>openKeptPopup(m));return m;}
+function makePinMarker(o){const m=new google.maps.Marker({position:{lat:o.lat,lng:o.lng},map:(o.visible!==false)?map:null,icon:pinHaloIcon(o.color||'#e6197a'),zIndex:66,title:o.name||''});m._info={lat:o.lat,lng:o.lng,name:o.name,sub:o.sub,id:o.id};m.addListener('click',()=>openKeptPopup(m));return m;}
 function addSavedPin(o){ // {name,lat,lng,sub} → 常設ピンを追加（同座標の重複は無視）
   if(savedPins.some(p=>Math.abs(p.lat-o.lat)<1e-6&&Math.abs(p.lng-o.lng)<1e-6))return savedPins.find(p=>Math.abs(p.lat-o.lat)<1e-6&&Math.abs(p.lng-o.lng)<1e-6);
   const pin={id:Date.now()+Math.floor(Math.random()*1000),name:o.name||'地点',lat:o.lat,lng:o.lng,sub:o.sub||'',visible:true};
@@ -3474,8 +3479,8 @@ function addSavedPin(o){ // {name,lat,lng,sub} → 常設ピンを追加（同�
 function removeSavedPin(id){const i=savedPins.findIndex(p=>p.id===id);if(i<0)return;if(savedPins[i].marker)savedPins[i].marker.setMap(null);savedPins.splice(i,1);persistPins();renderLayerPanel();if(activeTab==='custom')buildCustomPanel();}
 function toggleSavedPinVisible(id){const p=savedPins.find(x=>x.id===id);if(!p)return;p.visible=!p.visible;if(p.marker)p.marker.setMap(p.visible?map:null);persistPins();renderLayerPanel();}
 function clearSavedPins(){savedPins.forEach(p=>{if(p.marker)p.marker.setMap(null);});savedPins.length=0;persistPins();renderLayerPanel();if(activeTab==='custom')buildCustomPanel();}
-function persistPins(){try{localStorage.setItem('tabi_pins',JSON.stringify(savedPins.map(p=>({id:p.id,name:p.name,lat:p.lat,lng:p.lng,sub:p.sub,visible:p.visible!==false}))));}catch(e){}}
-function restorePins(){let a;try{a=JSON.parse(localStorage.getItem('tabi_pins')||'[]');}catch(e){a=[];}savedPins.forEach(p=>{if(p.marker)p.marker.setMap(null);});savedPins=(a||[]).map(o=>{const pin={id:o.id,name:o.name,lat:o.lat,lng:o.lng,sub:o.sub||'',visible:o.visible!==false};pin.marker=makePinMarker(pin);return pin;});}
+function persistPins(){try{localStorage.setItem('tabi_pins',JSON.stringify(savedPins.map(p=>({id:p.id,name:p.name,lat:p.lat,lng:p.lng,sub:p.sub,visible:p.visible!==false,color:p.color||null}))));}catch(e){}}
+function restorePins(){let a;try{a=JSON.parse(localStorage.getItem('tabi_pins')||'[]');}catch(e){a=[];}savedPins.forEach(p=>{if(p.marker)p.marker.setMap(null);});savedPins=(a||[]).map(o=>{const pin={id:o.id,name:o.name,lat:o.lat,lng:o.lng,sub:o.sub||'',visible:o.visible!==false,color:o.color||null};pin.marker=makePinMarker(pin);return pin;});}
 // 保存ピングループ（現在のピン一式に名前を付けて保存→いつでも一括描画）
 function getPinGroups(){try{return JSON.parse(localStorage.getItem('tabi_pin_groups')||'[]');}catch(e){return[];}}
 function savePinGroups(a){localStorage.setItem('tabi_pin_groups',JSON.stringify(a));}
@@ -3576,7 +3581,7 @@ document.getElementById('clearAllBtn').onclick=clearAllObjects;
   async function sync(){try{const txt=await fetch('https://www.cloudflare.com/cdn-cgi/trace',{cache:'no-store'}).then(r=>r.text());const m=txt.match(/ts=([0-9.]+)/);if(m){offsetMs=Math.round(parseFloat(m[1])*1000)-Date.now();synced=true;box.title='NTP同期済み（日本標準時 JST）';}}catch(e){if(!synced)box.title='端末時計（NTP同期に失敗）';}}
   function tick(){const j=new Date(Date.now()+offsetMs+9*3600000);t.textContent=z(j.getUTCHours())+':'+z(j.getUTCMinutes())+':'+z(j.getUTCSeconds());d.textContent=`${j.getUTCFullYear()}/${z(j.getUTCMonth()+1)}/${z(j.getUTCDate())}（${W[j.getUTCDay()]}）`;box.classList.toggle('sync',synced);}
   tick();setInterval(tick,1000);sync();setInterval(sync,600000);})();
-// ===== 緊急避難：時計を1回タップ→「🚨 緊急避難」ボタン化、もう一度タップで実行（周辺の海抜40m以上の最寄り地点へ最短経路）。標高=国土地理院GSI（無料）。あくまで参考。 =====
+// ===== 緊急避難：時計を1回タップ→「緊急避難」ボタン化、もう一度タップで実行（周辺の海抜40m以上の最寄り地点へ最短経路）。標高=国土地理院GSI（無料）。あくまで参考。 =====
 let evacArmed=false,evacTimer=null,evacBusy=false,evacMarker=null,evacRoute=null,evacOrigin=null,evacDest=null,evacMode='WALKING';
 (function(){const clk=document.getElementById('liveClock');if(!clk)return;clk.addEventListener('click',()=>{if(evacBusy)return;if(!evacArmed)armEvac();else{disarmEvac();runEvac();}});
   const ec=document.getElementById('evacClose');if(ec)ec.onclick=closeEvac;})();
@@ -3599,10 +3604,10 @@ function runEvac(){
   if(evacBusy)return;
   if(!window.google||!google.maps||typeof map==='undefined'||!map){showStatus('地図の準備ができていません（APIキーをご確認ください）',false);hideStatusLater();return;}
   if(!navigator.geolocation){showStatus('この端末は位置情報に対応していません',false);hideStatusLater();return;}
-  evacBusy=true;showStatus('🚨 現在地を取得中…',true);
+  evacBusy=true;showStatus('現在地を取得中…',true);
   navigator.geolocation.getCurrentPosition(pos=>{
     const lat=pos.coords.latitude,lng=pos.coords.longitude;evacOrigin={lat,lng};
-    showStatus('🚨 周辺の高台（海抜40m以上）を探索中…',true);
+    showStatus('周辺の高台（海抜40m以上）を探索中…',true);
     Promise.all([gsiElev(lat,lng),findHighGround(lat,lng)]).then(([oElev,res])=>{
       evacOrigin.elev=oElev;
       if(!res||!res.dest){showStatus('周辺の標高データを取得できませんでした（海上・国外の可能性）',false);hideStatusLater();evacBusy=false;return;}
@@ -3610,7 +3615,7 @@ function runEvac(){
     }).catch(e=>{showStatus('探索に失敗しました：'+e,false);hideStatusLater();evacBusy=false;});
   },err=>{
     evacBusy=false;const m=err.code===1?'位置情報の許可が必要です（ブラウザの許可を確認）':(err.code===3?'位置情報の取得がタイムアウトしました':'位置情報を取得できませんでした');
-    showStatus('🚨 '+m,false);hideStatusLater();
+    showStatus(m,false);hideStatusLater();
   },{enableHighAccuracy:true,timeout:12000,maximumAge:0});
 }
 function showEvacResult(fallback){
@@ -3619,11 +3624,11 @@ function showEvacResult(fallback){
   const dkm=distMeters(evacOrigin,{lat:evacDest.lat,lng:evacDest.lng})/1000;
   const oe=(evacOrigin.elev!=null)?('現在地 海抜 '+Math.round(evacOrigin.elev)+'m　→　'):'';
   const body=document.getElementById('evacBody');
-  body.innerHTML=(fallback?'<div class="evac-warn">⚠ 周辺（約10km）に海抜40m以上が見つかりませんでした。範囲内で<b>最も標高の高い地点</b>を表示します。より高い場所・内陸へ避難してください。</div>':'')
+  body.innerHTML=(fallback?'<div class="evac-warn">※ 周辺（約10km）に海抜40m以上が見つかりませんでした。範囲内で<b>最も標高の高い地点</b>を表示します。より高い場所・内陸へ避難してください。</div>':'')
     +'<div class="evac-dest">'+oe+'避難先：海抜 <b style="color:#2f9e44">'+Math.round(evacDest.elev)+'m</b>　<span style="font-weight:600;color:var(--muted)">直線 約'+dkm.toFixed(dkm<10?1:0)+'km</span></div>'
     +'<div class="evac-modes"><button data-m="WALKING" class="'+(evacMode==='WALKING'?'on':'')+'">徒歩</button><button data-m="DRIVING" class="'+(evacMode==='DRIVING'?'on':'')+'">車</button></div>'
     +'<div class="evac-meta" id="evacMeta">経路を計算中…</div>'
-    +'<div class="evac-disc">⚠ この機能は<b>参考</b>です。標高40m以上でも海岸からの距離・地形により安全とは限りません。実際は<b>自治体の避難指示・避難標識・ハザードマップ</b>に従い、可能な限り高く内陸へ避難してください。標高データ：国土地理院。</div>';
+    +'<div class="evac-disc">※ この機能は<b>参考</b>です。標高40m以上でも海岸からの距離・地形により安全とは限りません。実際は<b>自治体の避難指示・避難標識・ハザードマップ</b>に従い、可能な限り高く内陸へ避難してください。標高データ：国土地理院。</div>';
   document.getElementById('evacPanel').classList.add('open');
   body.querySelectorAll('.evac-modes button').forEach(b=>b.onclick=()=>{evacMode=b.dataset.m;body.querySelectorAll('.evac-modes button').forEach(x=>x.classList.toggle('on',x===b));drawEvacRoute();});
   drawEvacRoute();
