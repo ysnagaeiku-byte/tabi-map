@@ -368,8 +368,6 @@
   .ly-head span{margin-right:auto;}
   .ly-head button{border:none;background:none;color:var(--muted);font-size:16px;cursor:pointer;}
   .ly-save-set{font-size:11px !important;font-weight:800;color:var(--accent) !important;border:1px solid var(--accent) !important;border-radius:999px;padding:3px 10px !important;white-space:nowrap;}
-  .ly-color{flex:none;width:24px;height:24px;padding:0;border:1px solid var(--line);border-radius:6px;background:none;cursor:pointer;-webkit-appearance:none;appearance:none;}
-  .ly-color::-webkit-color-swatch-wrapper{padding:2px;} .ly-color::-webkit-color-swatch{border:none;border-radius:4px;} .ly-color::-moz-color-swatch{border:none;border-radius:4px;}
   .ls-count{font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px;}
   .ls-empty{font-size:12px;color:var(--muted);line-height:1.6;padding:8px 0;}
   .ls-item{display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--line);}
@@ -381,6 +379,14 @@
   .ly-item{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;}
   .ly-item:last-child{border-bottom:none;}
   .ly-sw{flex:none;width:16px;height:16px;border-radius:4px;cursor:pointer;}
+  /* レイヤーの表示/非表示ボタン：塗りは透過・表示中はチェックマーク（色は各要素の色を継承）。※割り勘パネルの色ドットには適用しない */
+  #layerList .ly-sw{background:transparent !important;position:relative;}
+  #layerList .ly-sw.on::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid;border-width:0 2px 2px 0;border-color:inherit;transform:rotate(45deg);}
+  /* 既定色パレット（6色）ポップオーバー */
+  .ly-color{flex:none;width:24px;height:24px;padding:0;border:1px solid var(--line);border-radius:6px;cursor:pointer;}
+  .cpal{position:fixed;z-index:1600;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 22px var(--shadow);padding:7px;display:flex;gap:6px;}
+  .cpal-sw{width:26px;height:26px;border-radius:7px;border:2px solid transparent;cursor:pointer;padding:0;}
+  .cpal-sw.on{border-color:var(--fg);}
   .ly-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
   .ly-del{flex:none;border:none;background:none;color:var(--muted);font-size:15px;cursor:pointer;}
   .ly-edit{flex:none;border:none;background:none;color:var(--muted);font-size:14px;cursor:pointer;padding:0 2px;}
@@ -1575,27 +1581,41 @@ function renderSettlePanel(){
   list.querySelectorAll('.stl-lbl').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(savedRoutes[i]){savedRoutes[i].name=inp.value;renderLayerPanel();persistState();}});
   list.querySelectorAll('.stl-del').forEach(b=>b.onclick=()=>deleteSavedRoute(+b.dataset.i));
 }
+// 既定6色パレット（ピン・保存ルートの色選択）
+const LAYER_PALETTE=['#e03131','#f08c00','#2f9e44','#1c7ed6','#7048e8','#e64980'];
+function closeColorPalette(){const p=document.getElementById('cpalPop');if(p)p.remove();}
+function openColorPalette(anchorEl,current,onPick){
+  closeColorPalette();
+  const pop=document.createElement('div');pop.className='cpal';pop.id='cpalPop';
+  LAYER_PALETTE.forEach(c=>{const b=document.createElement('button');b.className='cpal-sw'+(String(current||'').toLowerCase()===c.toLowerCase()?' on':'');b.style.background=c;b.title=c;b.onclick=(ev)=>{ev.stopPropagation();closeColorPalette();onPick(c);};pop.appendChild(b);});
+  document.body.appendChild(pop);
+  const r=anchorEl.getBoundingClientRect(),pw=pop.offsetWidth,ph=pop.offsetHeight;
+  let top=r.bottom+4;if(top+ph>window.innerHeight-6)top=r.top-ph-4;                 // 下に入らなければ上へ
+  let left=Math.min(r.left,window.innerWidth-pw-6);left=Math.max(6,left);
+  pop.style.top=top+'px';pop.style.left=left+'px';
+  setTimeout(()=>document.addEventListener('click',closeColorPalette,{once:true}),0); // 外側クリックで閉じる
+}
 function renderLayerPanel(){
   const list=document.getElementById('layerList');if(!list)return;
   // 温泉郷は「表示中(onsenLayerOn)」のときだけレイヤーに出す。通常時のレイヤーは空。
-  let h=onsenLayerOn?`<div class="ly-item"><span class="ly-sw" id="lyOnsen" style="background:#e64980;border:1px solid var(--line);"></span><span class="ly-name">♨ 温泉郷 (${ONSEN_GO.length})</span><button class="ly-del" id="lyOnsenDel"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`:'';
+  let h=onsenLayerOn?`<div class="ly-item"><span class="ly-sw on" id="lyOnsen" style="border:1px solid #e64980;"></span><span class="ly-name">♨ 温泉郷 (${ONSEN_GO.length})</span><button class="ly-del" id="lyOnsenDel"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`:'';
   const poiCats=Object.keys(poiLayers);
-  poiCats.forEach(cat=>{const L=poiLayers[cat],c=CATS[cat]||{emoji:'',label:cat},col=catColor(cat);h+=`<div class="ly-item"><span class="ly-sw poi-sw" data-c="${cat}" style="background:${L.visible?col:'var(--surface-2)'};border:1px solid ${col};"></span><span class="ly-name">${c.label} (${L.markers.length})</span><button class="ly-del poi-del" data-c="${cat}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
+  poiCats.forEach(cat=>{const L=poiLayers[cat],c=CATS[cat]||{emoji:'',label:cat},col=catColor(cat);h+=`<div class="ly-item"><span class="ly-sw poi-sw${L.visible?' on':''}" data-c="${cat}" style="border:1px solid ${col};"></span><span class="ly-name">${c.label} (${L.markers.length})</span><button class="ly-del poi-del" data-c="${cat}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   const lineKeys=Object.keys(lineLayers);
-  lineKeys.forEach(key=>{const L=lineLayers[key];const sub=L.overpass?(L.loading?'取得中…':((L.lines?L.lines.length:0)+'本・この範囲')):'全国強調';h+=`<div class="ly-item"><span class="ly-sw ln-sw" data-k="${key}" style="background:${L.visible?L.def.swatch:'var(--surface-2)'};border:1px solid ${L.def.swatch};"></span><span class="ly-name">${L.label} <small style="color:var(--muted);font-weight:500;">${sub}</small></span><button class="ly-del ln-del" data-k="${key}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
-  if(isoShapes.length)h+=`<div class="ly-item"><span class="ly-sw ly-iso-sw" style="background:${isoVisible?'#1a73e8':'var(--surface-2)'};border:1px solid #1a73e8;"></span><span class="ly-name">到達圏</span><button class="ly-del" id="lyIsoDel"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
-  bufferLayers.forEach(bf=>{const col=cssvar('--accent');h+=`<div class="ly-item"><span class="ly-sw buf-sw" data-id="${bf.id}" style="background:${bf.visible?col:'var(--surface-2)'};border:1px solid ${col};"></span><span class="ly-name">距離円：${escapeHtml(bf.name)}</span><button class="ly-del buf-del" data-id="${bf.id}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
+  lineKeys.forEach(key=>{const L=lineLayers[key];const sub=L.overpass?(L.loading?'取得中…':((L.lines?L.lines.length:0)+'本・この範囲')):'全国強調';h+=`<div class="ly-item"><span class="ly-sw ln-sw${L.visible?' on':''}" data-k="${key}" style="border:1px solid ${L.def.swatch};"></span><span class="ly-name">${L.label} <small style="color:var(--muted);font-weight:500;">${sub}</small></span><button class="ly-del ln-del" data-k="${key}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
+  if(isoShapes.length)h+=`<div class="ly-item"><span class="ly-sw ly-iso-sw${isoVisible?' on':''}" style="border:1px solid #1a73e8;"></span><span class="ly-name">到達圏</span><button class="ly-del" id="lyIsoDel"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
+  bufferLayers.forEach(bf=>{const col=cssvar('--accent');h+=`<div class="ly-item"><span class="ly-sw buf-sw${bf.visible?' on':''}" data-id="${bf.id}" style="border:1px solid ${col};"></span><span class="ly-name">距離円：${escapeHtml(bf.name)}</span><button class="ly-del buf-del" data-id="${bf.id}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   if(savedPins.length){
     const anyVis=savedPins.some(p=>p.visible!==false);
     // ピンは1件の「ピン」グループに集約。ヘッダをタップで一覧を展開/折りたたみ（スペース節約）
-    h+=`<div class="ly-item ly-grp" id="pinGrpHead"><span class="ly-caret">${pinsExpanded?'▾':'▸'}</span><span class="ly-sw pin-grp-sw" title="すべてのピンの表示/非表示" style="background:${anyVis?'#e64980':'var(--surface-2)'};border:1px solid #e64980;"></span><span class="ly-name">ピン (${savedPins.length})<small style="color:var(--muted);font-weight:500;">　${pinsExpanded?'タップで閉じる':'タップで一覧'}</small></span><button class="ly-del pin-grp-del" title="ピンをすべて削除"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
+    h+=`<div class="ly-item ly-grp" id="pinGrpHead"><span class="ly-caret">${pinsExpanded?'▾':'▸'}</span><span class="ly-sw pin-grp-sw${anyVis?' on':''}" title="すべてのピンの表示/非表示" style="border:1px solid #e64980;"></span><span class="ly-name">ピン (${savedPins.length})<small style="color:var(--muted);font-weight:500;">　${pinsExpanded?'タップで閉じる':'タップで一覧'}</small></span><button class="ly-del pin-grp-del" title="ピンをすべて削除"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
     if(pinsExpanded){
       h+='<div class="ly-subwrap">';
-      savedPins.forEach((p,i)=>{const pc=p.color||'#e6197a';h+=`<div class="ly-item ly-subitem"><span class="ly-sw pin-lysw" data-id="${p.id}" style="background:${p.visible!==false?pc:'var(--surface-2)'};border:1px solid ${pc};"></span><span class="ly-name">ピン${i+1}：${escapeHtml(p.name)}${p.sub?`<br><small style="color:var(--muted);font-weight:500;">${escapeHtml(p.sub)}</small>`:''}</span><input type="color" class="ly-color pin-color" data-id="${p.id}" value="${pc}" title="ピンの色を変更"><button class="ly-del pin-lydel" data-id="${p.id}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
+      savedPins.forEach((p,i)=>{const pc=p.color||'#e6197a';h+=`<div class="ly-item ly-subitem"><span class="ly-sw pin-lysw${p.visible!==false?' on':''}" data-id="${p.id}" style="border:1px solid ${pc};"></span><span class="ly-name">ピン${i+1}：${escapeHtml(p.name)}${p.sub?`<br><small style="color:var(--muted);font-weight:500;">${escapeHtml(p.sub)}</small>`:''}</span><button class="ly-color pin-color" data-id="${p.id}" style="background:${pc};" title="ピンの色を変更（6色から選択）"></button><button class="ly-del pin-lydel" data-id="${p.id}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
       h+='</div>';
     }
   }
-  savedRoutes.forEach((r,i)=>{h+=`<div class="ly-item"><span class="ly-sw ly-rt" data-i="${i}" style="background:${r.visible?r.color:'var(--surface-2)'};border:1px solid ${r.color};"></span><span class="ly-name" style="color:${r.color}">${escapeHtml(r.name||r.label)}<br><small style="color:var(--muted);font-weight:500;">${r.distKm.toFixed(0)}km・${fmtDuration(r.trafSec)}・¥${r.toll.toLocaleString()}</small></span><input type="color" class="ly-color rt-color" data-i="${i}" value="${r.color}" title="ルートの色を変更"><button class="ly-edit" data-e="${i}" title="名前を変更">✎</button>${(r.pts&&r.pts.length)?`<button class="ly-edit" data-ap="${i}" title="現在の行程に連結" style="font-size:10.5px;font-weight:800;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 7px;">＋連結</button><button class="ly-edit" data-ed="${i}" title="工程を再編集">✎</button>`:''}<button class="ly-del" data-d="${i}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
+  savedRoutes.forEach((r,i)=>{h+=`<div class="ly-item"><span class="ly-sw ly-rt${r.visible?' on':''}" data-i="${i}" style="border:1px solid ${r.color};"></span><span class="ly-name" style="color:${r.color}">${escapeHtml(r.name||r.label)}<br><small style="color:var(--muted);font-weight:500;">${r.distKm.toFixed(0)}km・${fmtDuration(r.trafSec)}・¥${r.toll.toLocaleString()}</small></span><button class="ly-color rt-color" data-i="${i}" style="background:${r.color};" title="ルートの色を変更（6色から選択）"></button><button class="ly-edit" data-e="${i}" title="名前を変更">✎</button>${(r.pts&&r.pts.length)?`<button class="ly-edit" data-ap="${i}" title="現在の行程に連結" style="font-size:10.5px;font-weight:800;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 7px;">＋連結</button><button class="ly-edit" data-ed="${i}" title="工程を再編集">✎</button>`:''}<button class="ly-del" data-d="${i}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
   if(!savedRoutes.length&&!isoShapes.length&&!onsenLayerOn&&!poiCats.length&&!lineKeys.length&&!savedPins.length&&!bufferLayers.length)h+='<div class="ly-empty">レイヤーは空です。カスタムタブでPOI・高速/鉄道の全国強調を表示、温泉郷タブ、到達圏、検索して「ピンを残す」、ピンの「距離円」、ルートの「保存」などで要素を地図に重ねられます（タブを切り替えても残ります）。</div>';
   list.innerHTML=h;
   const lyOnsen=document.getElementById('lyOnsen');if(lyOnsen)lyOnsen.onclick=toggleOnsenLayer;
@@ -1614,11 +1634,11 @@ function renderLayerPanel(){
   if(pinGrpDel)pinGrpDel.onclick=(e)=>{e.stopPropagation();if(!confirm('保存済みのピン '+savedPins.length+'件をすべて削除します。よろしいですか？（お気に入りは残ります）'))return;clearSavedPins();};
   list.querySelectorAll('.pin-lysw').forEach(s=>s.onclick=()=>toggleSavedPinVisible(+s.dataset.id));
   list.querySelectorAll('.pin-lydel').forEach(b=>b.onclick=()=>removeSavedPin(+b.dataset.id));
-  list.querySelectorAll('.pin-color').forEach(inp=>inp.oninput=()=>{const p=savedPins.find(x=>x.id===+inp.dataset.id);if(!p)return;p.color=inp.value;if(p.marker)p.marker.setIcon(pinHaloIcon(p.color));const sw=list.querySelector('.pin-lysw[data-id="'+p.id+'"]');if(sw){sw.style.background=(p.visible!==false)?p.color:'var(--surface-2)';sw.style.borderColor=p.color;}persistPins();}); // ピンの色を任意に変更
+  list.querySelectorAll('.pin-color').forEach(btn=>btn.onclick=(e)=>{e.stopPropagation();const p=savedPins.find(x=>x.id===+btn.dataset.id);if(!p)return;openColorPalette(btn,p.color||'#e6197a',c=>{p.color=c;btn.style.background=c;if(p.marker)p.marker.setIcon(pinHaloIcon(c));const sw=list.querySelector('.pin-lysw[data-id="'+p.id+'"]');if(sw)sw.style.borderColor=c;persistPins();});}); // ピンの色を6色から選択
   list.querySelectorAll('.buf-sw').forEach(s=>s.onclick=()=>toggleBufferVisible(+s.dataset.id));
   list.querySelectorAll('.buf-del').forEach(b=>b.onclick=()=>removeBuffer(+b.dataset.id));
   list.querySelectorAll('.ly-rt').forEach(s=>s.onclick=()=>toggleSavedRoute(+s.dataset.i));
-  list.querySelectorAll('.rt-color').forEach(inp=>inp.oninput=()=>{const r=savedRoutes[+inp.dataset.i];if(!r)return;r.color=inp.value;if(r.polys&&r.polys[1])r.polys[1].setOptions({strokeColor:r.color});(r.markers||[]).forEach(m=>m.setIcon(pinIcon(r.color,1.4)));const sw=list.querySelector('.ly-rt[data-i="'+inp.dataset.i+'"]');if(sw){sw.style.background=r.visible?r.color:'var(--surface-2)';sw.style.borderColor=r.color;}const nm=inp.closest('.ly-item').querySelector('.ly-name');if(nm)nm.style.color=r.color;persistState();}); // 保存ルートの色を任意に変更
+  list.querySelectorAll('.rt-color').forEach(btn=>btn.onclick=(e)=>{e.stopPropagation();const r=savedRoutes[+btn.dataset.i];if(!r)return;openColorPalette(btn,r.color,c=>{r.color=c;btn.style.background=c;if(r.polys&&r.polys[1])r.polys[1].setOptions({strokeColor:c});(r.markers||[]).forEach(m=>m.setIcon(pinIcon(c,1.4)));const sw=list.querySelector('.ly-rt[data-i="'+btn.dataset.i+'"]');if(sw)sw.style.borderColor=c;const nm=btn.closest('.ly-item').querySelector('.ly-name');if(nm)nm.style.color=c;persistState();});}); // 保存ルートの色を6色から選択
   list.querySelectorAll('.ly-edit[data-e]').forEach(b=>b.onclick=()=>renameSavedRoute(+b.dataset.e));
   list.querySelectorAll('.ly-edit[data-ed]').forEach(b=>b.onclick=()=>editSavedRoute(+b.dataset.ed));
   list.querySelectorAll('.ly-edit[data-ap]').forEach(b=>b.onclick=()=>appendSavedRoute(+b.dataset.ap));
@@ -3583,23 +3603,25 @@ document.getElementById('clearAllBtn').onclick=clearAllObjects;
   tick();setInterval(tick,1000);sync();setInterval(sync,600000);})();
 // ===== 緊急避難：時計を1回タップ→「緊急避難」ボタン化、もう一度タップで実行（周辺の海抜40m以上の最寄り地点へ最短経路）。標高=国土地理院GSI（無料）。あくまで参考。 =====
 let evacArmed=false,evacTimer=null,evacBusy=false,evacMarker=null,evacRoute=null,evacOrigin=null,evacDest=null,evacMode='WALKING';
+let evacSamples=[],evacSafe=null,evacSafeMarker=null,evacSafeRoute=null; // 標高サンプル群・最寄りの海抜40m以上・その表示
+const EVAC_R={WALKING:800,DRIVING:4500}; // 各移動手段の「約10分圏」の目安半径(直線・m)
 (function(){const clk=document.getElementById('liveClock');if(!clk)return;clk.addEventListener('click',()=>{if(evacBusy)return;if(!evacArmed)armEvac();else{disarmEvac();runEvac();}});
   const ec=document.getElementById('evacClose');if(ec)ec.onclick=closeEvac;})();
-function armEvac(){evacArmed=true;document.getElementById('liveClock').classList.add('evac-armed');showStatus('もう一度タップで緊急避難を実行（周辺の海抜40m以上へ最短経路）。数秒操作が無ければ解除します',false);if(evacTimer)clearTimeout(evacTimer);evacTimer=setTimeout(disarmEvac,5000);}
+function armEvac(){evacArmed=true;document.getElementById('liveClock').classList.add('evac-armed');showStatus('もう一度タップで緊急避難を実行（約10分圏内の最高地点＋海抜40m以上へ）。数秒操作が無ければ解除します',false);if(evacTimer)clearTimeout(evacTimer);evacTimer=setTimeout(disarmEvac,5000);}
 function disarmEvac(){evacArmed=false;if(evacTimer){clearTimeout(evacTimer);evacTimer=null;}const c=document.getElementById('liveClock');if(c)c.classList.remove('evac-armed');}
 function gsiElev(lat,lng){return fetch('https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon='+lng+'&lat='+lat+'&outtype=JSON',{cache:'no-store'}).then(r=>r.json()).then(j=>{const e=parseFloat(j.elevation);return isFinite(e)?e:null;}).catch(()=>null);}
-async function findHighGround(lat,lng){ // 近い順のリングで海抜40m以上を探し、見つかり次第打ち切り。無ければ最高地点(fallback)
-  const rings=[300,600,1000,1500,2000,3000,4000,5000,7000,10000],dirs=8,cosL=Math.cos(lat*Math.PI/180);
-  let highest=null;
+async function evacSampleAll(lat,lng){ // 現在地周辺のリング状に標高をサンプリング（10分圏の最高地点＋40m以上の探索に共用）
+  const rings=[200,400,600,800,1200,1800,2500,3500,4500,6000,8000,10000],dirs=8,cosL=Math.cos(lat*Math.PI/180);
+  const out=[];
   for(const r of rings){
     const pts=[];for(let k=0;k<dirs;k++){const a=2*Math.PI*k/dirs;pts.push({lat:lat+(r*Math.cos(a))/111320,lng:lng+(r*Math.sin(a))/(111320*cosL),dist:r});}
     const es=await Promise.all(pts.map(p=>gsiElev(p.lat,p.lng)));
-    let ringBest=null;
-    pts.forEach((p,i)=>{const e=es[i];if(e==null)return;p.elev=e;if(!highest||e>highest.elev)highest=p;if(e>=40&&(!ringBest||e>ringBest.elev))ringBest=p;});
-    if(ringBest)return {dest:ringBest,fallback:false};
+    pts.forEach((p,i)=>{if(es[i]!=null){p.elev=es[i];out.push(p);}});
   }
-  return {dest:highest,fallback:true};
+  return out;
 }
+function evacHighestWithin(radius){let best=null;evacSamples.forEach(p=>{if(p.dist<=radius&&(!best||p.elev>best.elev))best=p;});if(!best)evacSamples.forEach(p=>{if(!best||p.dist<best.dist)best=p;});return best;} // 圏内の最高地点。圏内に無ければ最寄り
+function evacNearestSafe(){let best=null;evacSamples.forEach(p=>{if(p.elev>=40&&(!best||p.dist<best.dist))best=p;});return best;} // 海抜40m以上の最寄り（距離無制限）
 function runEvac(){
   if(evacBusy)return;
   if(!window.google||!google.maps||typeof map==='undefined'||!map){showStatus('地図の準備ができていません（APIキーをご確認ください）',false);hideStatusLater();return;}
@@ -3607,48 +3629,48 @@ function runEvac(){
   evacBusy=true;showStatus('現在地を取得中…',true);
   navigator.geolocation.getCurrentPosition(pos=>{
     const lat=pos.coords.latitude,lng=pos.coords.longitude;evacOrigin={lat,lng};
-    showStatus('周辺の高台（海抜40m以上）を探索中…',true);
-    Promise.all([gsiElev(lat,lng),findHighGround(lat,lng)]).then(([oElev,res])=>{
-      evacOrigin.elev=oElev;
-      if(!res||!res.dest){showStatus('周辺の標高データを取得できませんでした（海上・国外の可能性）',false);hideStatusLater();evacBusy=false;return;}
-      evacDest=res.dest;showEvacResult(res.fallback);evacBusy=false;
+    showStatus('周辺の標高（高台）を探索中…',true);
+    Promise.all([gsiElev(lat,lng),evacSampleAll(lat,lng)]).then(([oElev,samples])=>{
+      evacOrigin.elev=oElev;evacSamples=samples;evacSafe=evacNearestSafe();
+      if(!evacSamples.length){showStatus('周辺の標高データを取得できませんでした（海上・国外の可能性）',false);hideStatusLater();evacBusy=false;return;}
+      showEvacResult();evacBusy=false;
     }).catch(e=>{showStatus('探索に失敗しました：'+e,false);hideStatusLater();evacBusy=false;});
   },err=>{
     evacBusy=false;const m=err.code===1?'位置情報の許可が必要です（ブラウザの許可を確認）':(err.code===3?'位置情報の取得がタイムアウトしました':'位置情報を取得できませんでした');
     showStatus(m,false);hideStatusLater();
   },{enableHighAccuracy:true,timeout:12000,maximumAge:0});
 }
-function showEvacResult(fallback){
+function showEvacResult(){ // 選択中の移動手段で「約10分圏内の最高地点」を案内。40m未満なら圏外の最寄り40m以上も併記
   clearEvacMap();
-  evacMarker=new google.maps.Marker({position:{lat:evacDest.lat,lng:evacDest.lng},map,zIndex:60,icon:{path:google.maps.SymbolPath.CIRCLE,scale:11,fillColor:'#2f9e44',fillOpacity:1,strokeColor:'#fff',strokeWeight:2},label:{text:'避',fontSize:'11px',color:'#fff',fontWeight:'800'},title:'避難先（海抜'+Math.round(evacDest.elev)+'m）'});
-  const dkm=distMeters(evacOrigin,{lat:evacDest.lat,lng:evacDest.lng})/1000;
+  const dest=evacHighestWithin(EVAC_R[evacMode]);evacDest=dest;
+  const safeIn=dest.elev>=40,modeL=evacMode==='WALKING'?'徒歩':'車';
+  const showSafe=(!safeIn&&evacSafe);
+  evacMarker=new google.maps.Marker({position:{lat:dest.lat,lng:dest.lng},map,zIndex:60,icon:{path:google.maps.SymbolPath.CIRCLE,scale:11,fillColor:safeIn?'#2f9e44':'#f08c00',fillOpacity:1,strokeColor:'#fff',strokeWeight:2},label:{text:'避',fontSize:'11px',color:'#fff',fontWeight:'800'},title:'約10分圏内の最高地点（海抜'+Math.round(dest.elev)+'m）'});
+  if(showSafe)evacSafeMarker=new google.maps.Marker({position:{lat:evacSafe.lat,lng:evacSafe.lng},map,zIndex:59,icon:{path:google.maps.SymbolPath.CIRCLE,scale:10,fillColor:'#2f9e44',fillOpacity:1,strokeColor:'#fff',strokeWeight:2},label:{text:'40',fontSize:'9px',color:'#fff',fontWeight:'800'},title:'海抜40m以上（最寄り・海抜'+Math.round(evacSafe.elev)+'m）'});
   const oe=(evacOrigin.elev!=null)?('現在地 海抜 '+Math.round(evacOrigin.elev)+'m　→　'):'';
   const body=document.getElementById('evacBody');
-  body.innerHTML=(fallback?'<div class="evac-warn">※ 周辺（約10km）に海抜40m以上が見つかりませんでした。範囲内で<b>最も標高の高い地点</b>を表示します。より高い場所・内陸へ避難してください。</div>':'')
-    +'<div class="evac-dest">'+oe+'避難先：海抜 <b style="color:#2f9e44">'+Math.round(evacDest.elev)+'m</b>　<span style="font-weight:600;color:var(--muted)">直線 約'+dkm.toFixed(dkm<10?1:0)+'km</span></div>'
-    +'<div class="evac-modes"><button data-m="WALKING" class="'+(evacMode==='WALKING'?'on':'')+'">徒歩</button><button data-m="DRIVING" class="'+(evacMode==='DRIVING'?'on':'')+'">車</button></div>'
+  body.innerHTML='<div class="evac-modes"><button data-m="WALKING" class="'+(evacMode==='WALKING'?'on':'')+'">徒歩</button><button data-m="DRIVING" class="'+(evacMode==='DRIVING'?'on':'')+'">車</button></div>'
+    +'<div class="evac-dest">'+oe+modeL+' 約10分圏内の最高地点：海抜 <b style="color:'+(safeIn?'#2f9e44':'#f08c00')+'">'+Math.round(dest.elev)+'m</b>'+(safeIn?'<span style="color:#2f9e44;font-weight:700;font-size:11px;">（40m以上）</span>':'<span style="color:#f08c00;font-weight:700;font-size:11px;">（40m未満）</span>')+'</div>'
     +'<div class="evac-meta" id="evacMeta">経路を計算中…</div>'
-    +'<div class="evac-disc">※ この機能は<b>参考</b>です。標高40m以上でも海岸からの距離・地形により安全とは限りません。実際は<b>自治体の避難指示・避難標識・ハザードマップ</b>に従い、可能な限り高く内陸へ避難してください。標高データ：国土地理院。</div>';
+    +(showSafe?'<div class="evac-warn">※ 約10分圏内に海抜40m以上がありません。<b>40m以上の最寄り（緑「40」・10分圏外の可能性）</b>への経路も表示します。</div><div class="evac-dest" style="margin-top:2px;">40m以上（最寄り）：海抜 <b style="color:#2f9e44">'+Math.round(evacSafe.elev)+'m</b></div><div class="evac-meta" id="evacSafeMeta">経路を計算中…</div>':'')
+    +'<div class="evac-disc">※ この機能は<b>参考</b>です。「約10分圏」は直線距離の目安（'+modeL+'）で実際の所要は経路により前後します。標高40m以上でも安全とは限りません。実際は<b>自治体の避難指示・避難標識・ハザードマップ</b>に従い可能な限り高く内陸へ避難してください。標高：国土地理院。</div>';
   document.getElementById('evacPanel').classList.add('open');
-  body.querySelectorAll('.evac-modes button').forEach(b=>b.onclick=()=>{evacMode=b.dataset.m;body.querySelectorAll('.evac-modes button').forEach(x=>x.classList.toggle('on',x===b));drawEvacRoute();});
-  drawEvacRoute();
-  const bnds=new google.maps.LatLngBounds();bnds.extend(evacOrigin);bnds.extend({lat:evacDest.lat,lng:evacDest.lng});map.fitBounds(bnds,90);
+  body.querySelectorAll('.evac-modes button').forEach(b=>b.onclick=()=>{if(evacBusy)return;evacMode=b.dataset.m;showEvacResult();}); // 移動手段の切替で圏内最高地点を再計算
+  fitEvac();
+  evacRouteTo(dest,evacMode,'#e03131',6,'evacMeta',pl=>{evacRoute=pl;});                       // 主：10分圏内の最高地点への経路（赤）
+  if(showSafe)evacRouteTo(evacSafe,evacMode,'#2f9e44',5,'evacSafeMeta',pl=>{evacSafeRoute=pl;}); // 副：40m以上最寄りへの経路（緑）
 }
-function drawEvacRoute(){
-  const meta=document.getElementById('evacMeta');
-  const svc=new google.maps.DirectionsService();
-  svc.route({origin:evacOrigin,destination:{lat:evacDest.lat,lng:evacDest.lng},travelMode:google.maps.TravelMode[evacMode]},(res,status)=>{
-    if(evacRoute){evacRoute.setMap(null);evacRoute=null;}
-    if(status!=='OK'||!res||!res.routes[0]){ // 経路が引けなければ直線（点線）で方向のみ提示
-      evacRoute=new google.maps.Polyline({path:[evacOrigin,{lat:evacDest.lat,lng:evacDest.lng}],strokeColor:'#e03131',strokeOpacity:0,map,zIndex:9,icons:[{icon:{path:'M 0,-1 0,1',strokeColor:'#e03131',strokeOpacity:1,scale:3},offset:'0',repeat:'12px'}]});
-      if(meta)meta.textContent='（'+(evacMode==='WALKING'?'徒歩':'車')+'経路を取得できませんでした。直線方向を表示）';return;
-    }
-    const leg=res.routes[0].legs[0];
-    evacRoute=new google.maps.Polyline({path:res.routes[0].overview_path,strokeColor:'#e03131',strokeWeight:6,strokeOpacity:.9,map,zIndex:9});
-    if(meta)meta.innerHTML='<b>'+(evacMode==='WALKING'?'徒歩':'車')+'</b>：約'+leg.duration.text+'・'+leg.distance.text;
+function evacRouteTo(dest,mode,color,weight,metaId,setPl){ // DirectionsServiceで経路描画＋所要をmetaへ。失敗時は直線点線
+  const modeL=mode==='WALKING'?'徒歩':'車';
+  new google.maps.DirectionsService().route({origin:evacOrigin,destination:{lat:dest.lat,lng:dest.lng},travelMode:google.maps.TravelMode[mode]},(res,status)=>{
+    const meta=document.getElementById(metaId);
+    if(status==='OK'&&res&&res.routes[0]){const leg=res.routes[0].legs[0];setPl(new google.maps.Polyline({path:res.routes[0].overview_path,strokeColor:color,strokeWeight:weight,strokeOpacity:.9,map,zIndex:9}));if(meta)meta.innerHTML='<b>'+modeL+'</b>：約'+leg.duration.text+'・'+leg.distance.text;}
+    else{setPl(new google.maps.Polyline({path:[evacOrigin,{lat:dest.lat,lng:dest.lng}],strokeOpacity:0,map,zIndex:8,icons:[{icon:{path:'M 0,-1 0,1',strokeColor:color,strokeOpacity:1,scale:3},offset:'0',repeat:'12px'}]}));if(meta)meta.textContent='（'+modeL+'経路を取得できませんでした。直線方向を表示）';}
+    fitEvac();
   });
 }
-function clearEvacMap(){if(evacMarker){evacMarker.setMap(null);evacMarker=null;}if(evacRoute){evacRoute.setMap(null);evacRoute=null;}}
+function fitEvac(){if(!map||!evacOrigin)return;const b=new google.maps.LatLngBounds();b.extend(evacOrigin);if(evacDest)b.extend({lat:evacDest.lat,lng:evacDest.lng});if(evacSafeMarker&&evacSafe)b.extend({lat:evacSafe.lat,lng:evacSafe.lng});map.fitBounds(b,90);}
+function clearEvacMap(){[evacMarker,evacSafeMarker].forEach(m=>{if(m)m.setMap(null);});[evacRoute,evacSafeRoute].forEach(p=>{if(p)p.setMap(null);});evacMarker=evacSafeMarker=evacRoute=evacSafeRoute=null;}
 function closeEvac(){clearEvacMap();const p=document.getElementById('evacPanel');if(p)p.classList.remove('open');}
 document.getElementById('layerBtn').onclick=()=>{const p=document.getElementById('layerPanel');document.getElementById('settlePanel').classList.remove('open');const o=p.classList.toggle('open');if(o)renderLayerPanel();};
 document.getElementById('settleBtn').onclick=()=>{const p=document.getElementById('settlePanel');document.getElementById('layerPanel').classList.remove('open');const o=p.classList.toggle('open');if(o)renderSettlePanel();};
