@@ -110,6 +110,8 @@
   @keyframes spin{to{transform:rotate(360deg);}}
   .gm-style-iw .popup h3{margin:0 0 5px;font-size:15px;color:#16181d;} .popup h3{margin:0 0 5px;font-size:15px;}
   .popup .meta{font-size:12.5px;color:#52606d;margin:3px 0;line-height:1.5;} .popup .meta a{color:#1a73e8;}
+  .popup .pin-note{display:block;width:100%;box-sizing:border-box;margin:5px 0;padding:5px 7px;border:1px solid #d5d9e0;border-radius:7px;background:#fafbfc;color:#16181d;font-size:11px;line-height:1.45;resize:vertical;min-height:44px;font-family:inherit;}
+  .popup .pin-note::placeholder{color:#98a2b3;}
   .oh{font-weight:800;} .oh.open{color:#2f9e44;} .oh.closed{color:#e03131;}
   .popup .links{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;}
   .popup .links a,.popup .links button{text-decoration:none;font-size:12.5px;font-weight:700;cursor:pointer;padding:7px 11px;border-radius:9px;border:1px solid #e3e7ee;color:#16181d;background:#f1f4f8;}
@@ -384,7 +386,7 @@
   #layerList .ly-sw.on::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid;border-width:0 2px 2px 0;border-color:inherit;transform:rotate(45deg);}
   /* 既定色パレット（6色）ポップオーバー */
   .ly-color{flex:none;width:24px;height:24px;padding:0;border:1px solid var(--line);border-radius:6px;cursor:pointer;}
-  .cpal{position:fixed;z-index:1600;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 22px var(--shadow);padding:7px;display:flex;gap:6px;}
+  .cpal{position:fixed;z-index:1600;background:var(--panel);border:1px solid var(--line);border-radius:10px;box-shadow:0 6px 22px var(--shadow);padding:7px;display:flex;flex-wrap:wrap;gap:6px;width:200px;}
   .cpal-sw{width:26px;height:26px;border-radius:7px;border:2px solid transparent;cursor:pointer;padding:0;}
   .cpal-sw.on{border-color:var(--fg);}
   .ly-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
@@ -1085,8 +1087,9 @@ function buildPinPanel(){
   wrap.querySelectorAll('.pin-grp-x').forEach(b=>b.onclick=()=>deletePinGroup(+b.dataset.i));
 }
 const statusEl=document.getElementById('status');
-function showStatus(h,l){statusEl.innerHTML=(l?'<div class="spinner"></div>':'')+h;statusEl.classList.add('show');}
-function hideStatusLater(){setTimeout(()=>statusEl.classList.remove('show'),2600);}
+let statusTimer=null; // バナー/通知はすべて約3秒で自動的に消す（表示のたびにタイマーを更新）
+function showStatus(h,l){statusEl.innerHTML=(l?'<div class="spinner"></div>':'')+h;statusEl.classList.add('show');if(statusTimer)clearTimeout(statusTimer);statusTimer=setTimeout(()=>statusEl.classList.remove('show'),3000);}
+function hideStatusLater(){if(statusTimer)clearTimeout(statusTimer);statusTimer=setTimeout(()=>statusEl.classList.remove('show'),3000);}
 
 // ===== マーカー生成（Google） =====
 function dot(color,scale){return {path:google.maps.SymbolPath.CIRCLE,scale:scale||11,fillColor:color,fillOpacity:1,strokeColor:cssvar('--panel'),strokeWeight:2};}
@@ -1501,7 +1504,7 @@ function persistState(){
   if(restoring)return;
   try{
     const g=id=>{const e=document.getElementById(id);return e?e.value:'';};
-    const slim=savedRoutes.map(r=>({id:r.id,label:r.label,name:r.name||r.label,color:r.color,distKm:r.distKm,trafSec:r.trafSec,toll:r.toll,gas:r.gas,rental:r.rental||0,other:r.other,total:r.total,times:!!r.times,timesRank:r.timesRank||null,timesHours:(r.timesHours!=null?r.timesHours:null),timesNight:!!r.timesNight,people:r.people,manual:!!r.manual,visible:r.visible!==false,depTime:r.depTime||null,depTimeMode:r.depTimeMode||null,depTimeManual:!!r.depTimeManual,pts:r.pts||null,path:r.path||null}));
+    const slim=savedRoutes.map(r=>({id:r.id,label:r.label,name:r.name||r.label,color:r.color,distKm:r.distKm,trafSec:r.trafSec,toll:r.toll,gas:r.gas,rental:r.rental||0,other:r.other,total:r.total,times:!!r.times,timesRank:r.timesRank||null,timesHours:(r.timesHours!=null?r.timesHours:null),timesNight:!!r.timesNight,people:r.people,manual:!!r.manual,visible:r.visible!==false,depTime:r.depTime||null,depTimeMode:r.depTimeMode||null,depTimeManual:!!r.depTimeManual,pts:r.pts||null,path:r.path?simplifyPath(r.path,2000):null}));
     const st={v:1,points:(points||[]).map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null),segPref:(p.segPref||null)})),depTime:g('depTime'),fuelType,price:g('price'),eff:g('eff'),vehType,otherCost:g('otherCost'),splitN:g('splitN'),applyDisc:!!(document.getElementById('applyDisc')||{}).checked,depTimeManual,timeMode,routePref,restMin,restStay,delRest:(deletedRestTs||[]),stayOv:(restStayOv||{}),timesOn,timesRank,timesHours,timesNight,oc:{food:g('ocFood'),foodN:g('ocFoodN'),lodge:g('ocLodge'),sight:g('ocSight'),reserve:g('ocReserve'),trans:g('ocTrans')},saved:slim};
     localStorage.setItem('tabi_state',JSON.stringify(st));
   }catch(e){}
@@ -1582,7 +1585,7 @@ function renderSettlePanel(){
   list.querySelectorAll('.stl-del').forEach(b=>b.onclick=()=>deleteSavedRoute(+b.dataset.i));
 }
 // 既定6色パレット（ピン・保存ルートの色選択）
-const LAYER_PALETTE=['#e03131','#f08c00','#2f9e44','#1c7ed6','#7048e8','#e64980'];
+const LAYER_PALETTE=['#e03131','#f76707','#f59f00','#37b24d','#0ca678','#1098ad','#1c7ed6','#4263eb','#7048e8','#9c36b5','#e64980','#495057']; // 既定12色
 function closeColorPalette(){const p=document.getElementById('cpalPop');if(p)p.remove();}
 function openColorPalette(anchorEl,current,onPick){
   closeColorPalette();
@@ -1646,25 +1649,34 @@ function renderLayerPanel(){
 }
 // ===== レイヤーの一括保存・参照（現在のレイヤー＝保存ルート・ピン・距離円 を名前を付けて保存。設定から最大300件を参照/読込） =====
 const MAX_LAYER_SETS=300;
-function getLayerSets(){try{return JSON.parse(localStorage.getItem('tabi_layer_sets')||'[]');}catch(e){return[];}}
-function saveLayerSets(a){try{localStorage.setItem('tabi_layer_sets',JSON.stringify(a));return true;}catch(e){showStatus('保存に失敗しました（ブラウザの保存容量超過の可能性）',false);hideStatusLater();return false;}}
+// ===== レイヤー保存のストレージ：IndexedDB（localStorageの数MB制限を回避＝大容量ルートも保存可能）。旧localStorageからは自動移行 =====
+let _lsDB=null,_lsMigrated=false;
+function lsDBOpen(){return new Promise((resolve,reject)=>{if(_lsDB)return resolve(_lsDB);if(!window.indexedDB)return reject(new Error('no-idb'));let req;try{req=indexedDB.open('tabi_layers',1);}catch(e){return reject(e);}req.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains('sets'))db.createObjectStore('sets',{keyPath:'id'});};req.onsuccess=e=>{_lsDB=e.target.result;resolve(_lsDB);};req.onerror=()=>reject(req.error||new Error('idb-open'));});}
+function idbAll(){return lsDBOpen().then(db=>new Promise((res,rej)=>{const r=db.transaction('sets','readonly').objectStore('sets').getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error);}));}
+function idbGet(id){return lsDBOpen().then(db=>new Promise((res,rej)=>{const r=db.transaction('sets','readonly').objectStore('sets').get(id);r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error);}));}
+function idbPut(set){return lsDBOpen().then(db=>new Promise((res,rej)=>{const tx=db.transaction('sets','readwrite');tx.objectStore('sets').put(set);tx.oncomplete=()=>res(true);tx.onerror=()=>rej(tx.error||new Error('idb-put'));tx.onabort=()=>rej(tx.error||new Error('idb-abort'));}));}
+function idbDel(id){return lsDBOpen().then(db=>new Promise((res,rej)=>{const tx=db.transaction('sets','readwrite');tx.objectStore('sets').delete(id);tx.oncomplete=()=>res(true);tx.onerror=()=>rej(tx.error);}));}
+async function ensureMigrated(){if(_lsMigrated)return;_lsMigrated=true;try{const old=JSON.parse(localStorage.getItem('tabi_layer_sets')||'[]');if(old&&old.length){for(const s of old){try{await idbPut(s);}catch(e){}}localStorage.removeItem('tabi_layer_sets');}}catch(e){}}
+async function getLayerSets(){try{await ensureMigrated();return await idbAll();}catch(e){try{return JSON.parse(localStorage.getItem('tabi_layer_sets')||'[]');}catch(_){return[];}}}
+function simplifyPath(path,maxPts){if(!path||path.length<=maxPts)return path;const out=[],step=path.length/maxPts;for(let i=0;i<path.length;i+=step)out.push(path[Math.floor(i)]);const last=path[path.length-1];if(out[out.length-1]!==last)out.push(last);return out;} // 長い経路は間引いて保存サイズを抑制（表示は概観として十分）
 function serializeCurrentLayer(){ // 現在のレイヤーを永続化可能な形へ（地図オブジェクトは除外）
-  const routes=savedRoutes.map(r=>({id:r.id,label:r.label,name:r.name||r.label,color:r.color,distKm:r.distKm,trafSec:r.trafSec,toll:r.toll,gas:r.gas,rental:r.rental||0,other:r.other,total:r.total,times:!!r.times,timesRank:r.timesRank||null,timesHours:(r.timesHours!=null?r.timesHours:null),timesNight:!!r.timesNight,people:r.people,manual:!!r.manual,visible:r.visible!==false,depTime:r.depTime||null,depTimeMode:r.depTimeMode||null,depTimeManual:!!r.depTimeManual,pts:r.pts||null,path:r.path||null}));
-  const pins=savedPins.map(p=>({id:p.id,name:p.name,lat:p.lat,lng:p.lng,sub:p.sub||'',visible:p.visible!==false,color:p.color||null}));
+  const routes=savedRoutes.map(r=>({id:r.id,label:r.label,name:r.name||r.label,color:r.color,distKm:r.distKm,trafSec:r.trafSec,toll:r.toll,gas:r.gas,rental:r.rental||0,other:r.other,total:r.total,times:!!r.times,timesRank:r.timesRank||null,timesHours:(r.timesHours!=null?r.timesHours:null),timesNight:!!r.timesNight,people:r.people,manual:!!r.manual,visible:r.visible!==false,depTime:r.depTime||null,depTimeMode:r.depTimeMode||null,depTimeManual:!!r.depTimeManual,pts:r.pts||null,path:r.path?simplifyPath(r.path,2000):null}));
+  const pins=savedPins.map(p=>({id:p.id,name:p.name,lat:p.lat,lng:p.lng,sub:p.sub||'',visible:p.visible!==false,color:p.color||null,note:p.note||''}));
   const buffers=bufferLayers.map(b=>({name:b.name,lat:b.center.lat,lng:b.center.lng}));
   return {routes,pins,buffers};
 }
-function saveCurrentLayerSet(){
+async function saveCurrentLayerSet(){
   const data=serializeCurrentLayer();
   if(!data.routes.length&&!data.pins.length&&!data.buffers.length){showStatus('保存するレイヤーがありません（ルートを保存・ピンを残す・距離円を追加してください）',false);hideStatusLater();return;}
-  const sets=getLayerSets();
+  let sets;try{sets=await getLayerSets();}catch(e){sets=[];}
   if(sets.length>=MAX_LAYER_SETS){showStatus('保存上限（'+MAX_LAYER_SETS+'件）に達しています。設定→「保存したレイヤー」で不要なものを削除してください',false);hideStatusLater();return;}
   const d=new Date(),z=n=>String(n).padStart(2,'0');
   const defName=(d.getMonth()+1)+'/'+d.getDate()+' '+z(d.getHours())+':'+z(d.getMinutes())+'のレイヤー';
   const name=(prompt('保存するレイヤーの名前',defName)||'').trim();
   if(!name)return;
-  sets.push({id:Date.now(),name,at:d.toISOString(),routes:data.routes,pins:data.pins,buffers:data.buffers});
-  if(saveLayerSets(sets)){showStatus('「'+name+'」にレイヤーを保存しました（ルート'+data.routes.length+'・ピン'+data.pins.length+'・距離円'+data.buffers.length+'）。設定→「保存したレイヤー」から参照',false);hideStatusLater();}
+  const set={id:Date.now(),name,at:d.toISOString(),routes:data.routes,pins:data.pins,buffers:data.buffers};
+  try{await idbPut(set);showStatus('「'+name+'」にレイヤーを保存しました（ルート'+data.routes.length+'・ピン'+data.pins.length+'・距離円'+data.buffers.length+'）。設定→「保存したレイヤー」から参照',false);hideStatusLater();}
+  catch(e){try{const arr=JSON.parse(localStorage.getItem('tabi_layer_sets')||'[]');arr.push(set);localStorage.setItem('tabi_layer_sets',JSON.stringify(arr));showStatus('「'+name+'」を保存しました',false);hideStatusLater();}catch(e2){showStatus('保存に失敗しました（'+((e2&&e2.name==='QuotaExceededError')?'保存容量が不足':'エラー')+'）。不要なルート/レイヤーを削除してお試しください',false);hideStatusLater();}}
 }
 function rebuildSavedRouteObj(r){ // 保存ルート1件を地図に復元（restoreStateの再構築と同等）
   let polys=[],markers=[];
@@ -1682,31 +1694,42 @@ function clearCurrentLayerObjects(){ // 現在のレイヤーの地図オブジ�
   savedPins.forEach(p=>{if(p.marker)p.marker.setMap(null);});savedPins.length=0;
   bufferLayers.forEach(b=>b.shapes.forEach(s=>s.setMap(null)));bufferLayers.length=0;document.getElementById('bufClear').style.display='none';
 }
-function loadLayerSet(id){ // 保存レイヤーを読み込み（現在のレイヤーを置換）
-  const sets=getLayerSets(),set=sets.find(s=>s.id===id);if(!set)return;
+async function loadLayerSet(id){ // 保存レイヤーを読み込み（現在のレイヤーを置換）
+  let set=null;try{set=await idbGet(id);}catch(e){}
+  if(!set){try{set=(JSON.parse(localStorage.getItem('tabi_layer_sets')||'[]')).find(s=>s.id===id);}catch(_){}}
+  if(!set)return;
   const cur=serializeCurrentLayer(),hasCur=cur.routes.length||cur.pins.length||cur.buffers.length;
   if(hasCur&&!confirm('現在のレイヤー（ルート'+cur.routes.length+'・ピン'+cur.pins.length+'・距離円'+cur.buffers.length+'）を、保存レイヤー「'+set.name+'」で置き換えます。よろしいですか？'))return;
   clearCurrentLayerObjects();
   (set.routes||[]).forEach(r=>savedRoutes.push(rebuildSavedRouteObj(r)));
-  (set.pins||[]).forEach(o=>{const pin={id:o.id||Date.now()+Math.floor(Math.random()*1e6),name:o.name,lat:o.lat,lng:o.lng,sub:o.sub||'',visible:o.visible!==false,color:o.color||null};pin.marker=makePinMarker(pin);if(pin.visible===false&&pin.marker)pin.marker.setMap(null);savedPins.push(pin);});
+  (set.pins||[]).forEach(o=>{const pin={id:o.id||Date.now()+Math.floor(Math.random()*1e6),name:o.name,lat:o.lat,lng:o.lng,sub:o.sub||'',visible:o.visible!==false,color:o.color||null,note:o.note||''};pin.marker=makePinMarker(pin);if(pin.visible===false&&pin.marker)pin.marker.setMap(null);savedPins.push(pin);});
   (set.buffers||[]).forEach(b=>{if(b.lat!=null&&b.lng!=null)drawBuffer(b.lat,b.lng,b.name);});
   persistPins();persistState();renderLayerPanel();renderSettlePanel();if(activeTab==='custom')buildCustomPanel();
   document.getElementById('lsOverlay').classList.remove('open');
   document.getElementById('layerPanel').classList.add('open');
   showStatus('レイヤー「'+set.name+'」を読み込みました（ルート'+(set.routes||[]).length+'・ピン'+(set.pins||[]).length+'・距離円'+(set.buffers||[]).length+'）',false);hideStatusLater();
 }
-function deleteLayerSet(id){
-  const sets=getLayerSets(),set=sets.find(s=>s.id===id);if(!set)return;
+async function deleteLayerSet(id){
+  let set=null;try{set=await idbGet(id);}catch(e){}
+  if(!set){try{set=(JSON.parse(localStorage.getItem('tabi_layer_sets')||'[]')).find(s=>s.id===id);}catch(_){}}
+  if(!set)return;
   if(!confirm('保存レイヤー「'+set.name+'」を削除します。よろしいですか？'))return;
-  saveLayerSets(sets.filter(s=>s.id!==id));renderLayerSets();
+  try{await idbDel(id);}catch(e){}
+  try{const arr=(JSON.parse(localStorage.getItem('tabi_layer_sets')||'[]')).filter(s=>s.id!==id);localStorage.setItem('tabi_layer_sets',JSON.stringify(arr));}catch(_){}
+  renderLayerSets();
 }
-function renameLayerSet(id){
-  const sets=getLayerSets(),set=sets.find(s=>s.id===id);if(!set)return;
-  const v=prompt('レイヤーの名前',set.name);if(v==null)return;set.name=(v.trim()||set.name);saveLayerSets(sets);renderLayerSets();
+async function renameLayerSet(id){
+  let set=null;try{set=await idbGet(id);}catch(e){}
+  if(!set)return;
+  const v=prompt('レイヤーの名前',set.name);if(v==null)return;set.name=(v.trim()||set.name);
+  try{await idbPut(set);}catch(e){}
+  renderLayerSets();
 }
-function renderLayerSets(){
+async function renderLayerSets(){
   const box=document.getElementById('lsList');if(!box)return;
-  const sets=getLayerSets().slice().sort((a,b)=>(b.id||0)-(a.id||0));
+  box.innerHTML='<div class="ls-empty">読み込み中…</div>';
+  let sets;try{sets=await getLayerSets();}catch(e){sets=[];}
+  sets=sets.slice().sort((a,b)=>(b.id||0)-(a.id||0));
   if(!sets.length){box.innerHTML='<div class="ls-empty">保存したレイヤーはありません。<br>レイヤーパネル右上の「保存」で、現在のレイヤー（ルート・ピン・距離円）を名前を付けて保存できます。</div>';return;}
   const fmtAt=iso=>{try{const d=new Date(iso),z=n=>String(n).padStart(2,'0');return d.getFullYear()+'/'+(d.getMonth()+1)+'/'+d.getDate()+' '+z(d.getHours())+':'+z(d.getMinutes());}catch(e){return'';}};
   box.innerHTML='<div class="ls-count">'+sets.length+' / '+MAX_LAYER_SETS+' 件</div>'+sets.map(s=>`<div class="ls-item"><div class="ls-main"><div class="ls-name">${escapeHtml(s.name)}</div><div class="ls-meta">${fmtAt(s.at)}　ルート${(s.routes||[]).length}・ピン${(s.pins||[]).length}・距離円${(s.buffers||[]).length}</div></div><button class="ls-load" data-id="${s.id}">読込</button><button class="ls-ren" data-id="${s.id}" title="名前を変更">✎</button><button class="ls-del" data-id="${s.id}" title="削除">✕</button></div>`).join('');
@@ -1714,7 +1737,7 @@ function renderLayerSets(){
   box.querySelectorAll('.ls-ren').forEach(b=>b.onclick=()=>renameLayerSet(+b.dataset.id));
   box.querySelectorAll('.ls-del').forEach(b=>b.onclick=()=>deleteLayerSet(+b.dataset.id));
 }
-function openLayerSets(){renderLayerSets();document.getElementById('lsOverlay').classList.add('open');}
+function openLayerSets(){document.getElementById('lsOverlay').classList.add('open');renderLayerSets();}
 const ROUTES_API_FIELDS=['routes.duration','routes.staticDuration','routes.distanceMeters','routes.polyline.encodedPolyline','routes.legs.distanceMeters','routes.legs.duration','routes.legs.staticDuration','routes.legs.steps.navigationInstruction','routes.legs.steps.distanceMeters','routes.legs.steps.staticDuration','routes.legs.steps.polyline.encodedPolyline','routes.travelAdvisory.speedReadingIntervals','routes.optimizedIntermediateWaypointIndex'].join(',');
 const MAX_INTERMEDIATES=25; // Google Routes APIの中間経由地上限（出発+25+目的=27地点/リクエスト）
 // ===== 区間（出発・目的地・帰宅で分割。経由地は区間内部）ごとの高速/下道優先 =====
@@ -3499,8 +3522,9 @@ function addSavedPin(o){ // {name,lat,lng,sub} → 常設ピンを追加（同�
 function removeSavedPin(id){const i=savedPins.findIndex(p=>p.id===id);if(i<0)return;if(savedPins[i].marker)savedPins[i].marker.setMap(null);savedPins.splice(i,1);persistPins();renderLayerPanel();if(activeTab==='custom')buildCustomPanel();}
 function toggleSavedPinVisible(id){const p=savedPins.find(x=>x.id===id);if(!p)return;p.visible=!p.visible;if(p.marker)p.marker.setMap(p.visible?map:null);persistPins();renderLayerPanel();}
 function clearSavedPins(){savedPins.forEach(p=>{if(p.marker)p.marker.setMap(null);});savedPins.length=0;persistPins();renderLayerPanel();if(activeTab==='custom')buildCustomPanel();}
-function persistPins(){try{localStorage.setItem('tabi_pins',JSON.stringify(savedPins.map(p=>({id:p.id,name:p.name,lat:p.lat,lng:p.lng,sub:p.sub,visible:p.visible!==false,color:p.color||null}))));}catch(e){}}
-function restorePins(){let a;try{a=JSON.parse(localStorage.getItem('tabi_pins')||'[]');}catch(e){a=[];}savedPins.forEach(p=>{if(p.marker)p.marker.setMap(null);});savedPins=(a||[]).map(o=>{const pin={id:o.id,name:o.name,lat:o.lat,lng:o.lng,sub:o.sub||'',visible:o.visible!==false,color:o.color||null};pin.marker=makePinMarker(pin);return pin;});}
+function persistPins(){try{localStorage.setItem('tabi_pins',JSON.stringify(savedPins.map(p=>({id:p.id,name:p.name,lat:p.lat,lng:p.lng,sub:p.sub,visible:p.visible!==false,color:p.color||null,note:p.note||''}))));}catch(e){}}
+function restorePins(){let a;try{a=JSON.parse(localStorage.getItem('tabi_pins')||'[]');}catch(e){a=[];}savedPins.forEach(p=>{if(p.marker)p.marker.setMap(null);});savedPins=(a||[]).map(o=>{const pin={id:o.id,name:o.name,lat:o.lat,lng:o.lng,sub:o.sub||'',visible:o.visible!==false,color:o.color||null,note:o.note||''};pin.marker=makePinMarker(pin);return pin;});}
+window.setPinNote=function(id,v){const p=savedPins.find(x=>x.id===id);if(p){p.note=(v||'').slice(0,300);persistPins();}}; // ピンのメモ（最大300字）を保存
 // 保存ピングループ（現在のピン一式に名前を付けて保存→いつでも一括描画）
 function getPinGroups(){try{return JSON.parse(localStorage.getItem('tabi_pin_groups')||'[]');}catch(e){return[];}}
 function savePinGroups(a){localStorage.setItem('tabi_pin_groups',JSON.stringify(a));}
@@ -3519,7 +3543,9 @@ function drawPinGroup(idx){const g=getPinGroups()[idx];if(!g)return;let n=0;g.pi
 function deletePinGroup(idx){const g=getPinGroups();if(!g[idx])return;if(!confirm(`保存済みピン「${g[idx].name}」を削除します（地図上のピンは消えません）`))return;g.splice(idx,1);savePinGroups(g);if(activeTab==='custom')buildCustomPanel();}
 window.keepPin=function(lat,lng,enc,encSub){const name=enc?decodeURIComponent(enc):'',sub=encSub?decodeURIComponent(encSub):'';removeTempPin();const pin=addSavedPin({name,lat,lng,sub});if(pin&&pin.marker){openKeptPopup(pin.marker);}showStatus('ピンを残しました（レイヤータブに表示・カスタムタブで一括保存できます）',false);hideStatusLater();};
 function openKeptPopup(m){const i=m._info,e=encodeURIComponent(i.name||'');
-  openInfo(m,`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest" onclick="window.routeTo(${i.lat},${i.lng},'${e}')">ルートに追加</button>${circleIsoBtns(i.lat,i.lng,i.name)}${i.id!=null?`<button class="pin-del-btn" onclick="window.delPin(${i.id})">ピンを削除</button>`:''}</div></div>`);
+  const note=i.id!=null?((savedPins.find(p=>p.id===i.id)||{}).note||''):'';
+  const noteHtml=i.id!=null?`<textarea class="pin-note" maxlength="300" placeholder="メモ（最大300字）" oninput="window.setPinNote(${i.id},this.value)">${escapeHtml(note)}</textarea>`:'';
+  openInfo(m,`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}${noteHtml}${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest" onclick="window.routeTo(${i.lat},${i.lng},'${e}')">ルートに追加</button>${circleIsoBtns(i.lat,i.lng,i.name)}${i.id!=null?`<button class="pin-del-btn" onclick="window.delPin(${i.id})">ピンを削除</button>`:''}</div></div>`);
 }
 window.delPin=function(id){infoWindow.close();removeSavedPin(id);showStatus('ピンを削除しました',false);hideStatusLater();};
 // ルートタブで地図上のピン情報を 出発地/経由地/目的地 に割り当てる（ポップアップ内に表示）
