@@ -60,6 +60,8 @@
   .evac-modes button{flex:1;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);font-size:13px;font-weight:800;cursor:pointer;}
   .evac-modes button.on{background:var(--accent);color:#fff;border-color:var(--accent);}
   .evac-meta{font-weight:700;min-height:18px;}
+  .evac-addroute{width:100%;margin:9px 0 2px;min-height:40px;border:none;border-radius:9px;background:#e03131;color:#fff;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 3px 12px rgba(224,49,49,.35);}
+  .evac-addroute:active{background:#b02020;}
   .evac-disc{font-size:10.5px;color:var(--muted);margin-top:8px;line-height:1.55;}
   #lcTime{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;font-weight:800;font-size:16.5px;letter-spacing:1.2px;color:var(--fg);line-height:1;}
   #lcDate{font-size:9.5px;letter-spacing:.8px;color:var(--muted);font-weight:700;line-height:1;display:flex;align-items:center;}
@@ -83,7 +85,31 @@
   .top-actions{display:flex;align-items:center;gap:8px;}
   .icon-btn .ib-lab{display:none;}
   #menuBtn{display:none;}
-  #rainBtn.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  #toolBtn.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  /* ===== 機能メニュー（レンチ） ===== */
+  #toolMenu{display:none;position:fixed;top:calc(58px + env(safe-area-inset-top));right:12px;z-index:1350;width:min(300px,90vw);max-height:74vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 16px 40px var(--shadow);padding:10px 12px 12px;}
+  #toolMenu.open{display:block;}
+  #toolMenu .tm-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
+  #toolMenu .tm-head b{font-size:14px;}
+  #toolMenu .tm-head button{border:none;background:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 4px;}
+  #toolMenu .tm-sec{font-size:10.5px;font-weight:800;color:var(--muted);letter-spacing:.03em;margin:9px 2px 5px;text-transform:none;}
+  .tm-item{display:flex;align-items:center;gap:10px;width:100%;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:11px;padding:9px 11px;margin-bottom:6px;cursor:pointer;text-align:left;}
+  .tm-item .tm-ic{flex:none;width:22px;height:22px;color:var(--muted);display:flex;align-items:center;justify-content:center;}
+  .tm-item .tm-ic .svgi{width:20px;height:20px;}
+  .tm-item .tm-lab{flex:1;min-width:0;font-size:13px;font-weight:700;line-height:1.25;}
+  .tm-item .tm-lab small{display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-top:1px;}
+  .tm-item .tm-sw{flex:none;width:38px;height:22px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);position:relative;transition:background .15s;}
+  .tm-item .tm-sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:transform .15s,background .15s;}
+  .tm-item.on{border-color:var(--accent);}
+  .tm-item.on .tm-ic{color:var(--accent);}
+  .tm-item.on .tm-sw{background:var(--accent);border-color:var(--accent);}
+  .tm-item.on .tm-sw::after{transform:translateX(16px);background:#fff;}
+  .tm-item.busy .tm-sw{opacity:.5;}
+  #toolMenu .tm-note{font-size:10.5px;color:var(--muted);line-height:1.5;margin-top:6px;padding-top:8px;border-top:1px solid var(--line);}
+  /* ===== 防災バナー ===== */
+  #disasterBanner{display:none;position:fixed;left:0;right:0;top:0;z-index:1650;padding:calc(8px + env(safe-area-inset-top)) 40px 9px 14px;font-weight:800;font-size:12.5px;color:#fff;line-height:1.45;box-shadow:0 6px 22px rgba(0,0,0,.35);}
+  #disasterBanner.show{display:block;}
+  #disasterBanner .db-x{position:absolute;right:9px;top:calc(8px + env(safe-area-inset-top));background:rgba(255,255,255,.28);border:none;color:#fff;border-radius:7px;width:26px;height:26px;font-size:14px;cursor:pointer;}
   .top-results{display:none;flex-direction:column;margin:8px 12px 0;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px var(--shadow);overflow:hidden;max-height:52vh;overflow-y:auto;}
   .top-results.show{display:flex;}
   .tr-item{display:flex;align-items:center;gap:11px;padding:12px 14px;border:none;background:none;color:var(--fg);text-align:left;cursor:pointer;border-bottom:1px solid var(--line);width:100%;}
@@ -96,7 +122,7 @@
   .tab{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:8px 14px;border-radius:999px;font-size:13px;font-weight:700;min-height:36px;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 3px 12px var(--shadow);}
   .tab .dot{width:8px;height:8px;border-radius:50%;}
   .tab.active{color:#fff;border-color:transparent;}
-  #customPanel{display:none;margin:8px 12px 0;border:1px solid var(--line);border-radius:16px;padding:10px 12px;background:var(--panel);box-shadow:0 10px 30px var(--shadow);gap:8px;flex-wrap:wrap;}
+  #customPanel{display:none;margin:8px 12px 0;border:1px solid var(--line);border-radius:16px;padding:10px 12px;background:var(--panel);box-shadow:0 10px 30px var(--shadow);gap:8px;flex-wrap:wrap;max-height:66vh;overflow-y:auto;}
   #customPanel.open{display:flex;}
   .chk{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:7px 12px;cursor:pointer;color:var(--fg);}
   .chk input{accent-color:var(--accent);width:16px;height:16px;} .chk .dot{width:10px;height:10px;border-radius:50%;}
@@ -175,6 +201,7 @@
   .sh-item:active{background:var(--surface-2);}
   /* ピン管理（カスタムタブ） */
   .pin-list,.pin-grp-list{display:flex;flex-direction:column;gap:5px;margin-bottom:8px;}
+  .pin-list{max-height:34vh;overflow-y:auto;}/* ピンが増えても「ピンを保存」ボタンが常に押せるよう一覧側を内部スクロール */
   .pin-row,.pin-grp{display:flex;align-items:center;gap:8px;}
   .pin-row .pin-dot{flex:none;width:11px;height:11px;border-radius:50%;background:#e64980;border:2px solid #fff;box-shadow:0 0 0 1px #e64980;}
   .pin-row .pin-go,.pin-grp .pin-grp-draw{flex:1;min-width:0;text-align:left;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:9px;padding:8px 11px;font-size:12.5px;font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -415,7 +442,7 @@
     #topActions .icon-btn{width:100%;height:auto;border:none;box-shadow:none;border-radius:10px;justify-content:flex-start;gap:11px;padding:11px 13px;font-size:19px;background:none;}
     #topActions .icon-btn:active{background:var(--surface-2);}
     #topActions .icon-btn .ib-lab{display:inline;font-size:13.5px;font-weight:700;}
-    #rainBtn.on{background:var(--accent-weak);color:var(--accent);border:none;}
+    #toolBtn.on{background:var(--accent-weak);color:var(--accent);border:none;}
     /* タブ：時計を左下へ移したので上部は全幅。横スクロールで全タブにアクセス可 */
     .tabs{max-width:100%;padding:8px 10px 4px;-webkit-overflow-scrolling:touch;}
     .tab{padding:7px 12px;font-size:12.5px;min-height:34px;}
@@ -447,7 +474,7 @@
     </div>
     <div class="top-actions" id="topActions">
       <button class="icon-btn" id="clearAllBtn" title="レイヤー・検索ピン・到達圏・距離円・ルートを消去（保存ピン・お気に入りは残す）" aria-label="すべて消去"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg><span class="ib-lab">全消去</span></button>
-      <button class="icon-btn" id="rainBtn" title="雨雲レーダー（気象庁ナウキャスト）" aria-label="雨雲レーダー"><svg class="svgi" viewBox="0 0 24 24"><path d="M7 15a5 5 0 0 1-.6-9.97A6 6 0 0 1 18 7.5 4 4 0 0 1 17.5 15H7z"/><path d="M9 17.5l-1 3M13 17.5l-1 3M17 17.5l-1 3"/></svg><span class="ib-lab">雨雲</span></button>
+      <button class="icon-btn" id="toolBtn" title="機能メニュー（雨雲・光害・防災）" aria-label="機能メニュー"><svg class="svgi" viewBox="0 0 24 24"><path d="M15.4 5.3a4.2 4.2 0 0 0-5.2 5.2l-6.3 6.3a1.9 1.9 0 1 0 2.7 2.7l6.3-6.3a4.2 4.2 0 0 0 5.2-5.2l-2.6 2.6-2.2-.6-.6-2.2z"/></svg><span class="ib-lab">機能</span></button>
       <button class="icon-btn" id="themeBtn" title="テーマ切替" aria-label="テーマ切替"><span class="ib-ic" id="themeIcon"><svg class="svgi" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg></span><span class="ib-lab">テーマ</span></button>
       <button class="icon-btn" id="setBtn" title="設定" aria-label="設定"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 5.5h7M15.5 5.5H20M4 12h3M11.5 12H20M4 18.5h9M17.5 18.5H20"/><circle cx="13" cy="5.5" r="2.1"/><circle cx="9" cy="12" r="2.1"/><circle cx="15" cy="18.5" r="2.1"/></svg><span class="ib-lab">設定</span></button>
     </div>
@@ -469,6 +496,17 @@
 </div>
 <div id="liveClock" title="現在時刻（NTP同期・JST）／タップで緊急避難"><span id="lcTime">--:--:--</span><span id="lcDate"></span><div id="speedChip"><b id="spdVal">--</b><span class="spd-u">km/h</span></div><span id="evacLabel">緊急避難</span></div>
 <div id="evacPanel"><div class="evac-h"><b>緊急避難（参考）</b><button id="evacClose" title="閉じる">✕</button></div><div id="evacBody"></div></div>
+<div id="toolMenu">
+  <div class="tm-head"><b>機能</b><button id="toolMenuClose" title="閉じる">✕</button></div>
+  <div class="tm-sec">地図に重ねる</div>
+  <button class="tm-item" id="tmRain"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M7 15a5 5 0 0 1-.6-9.97A6 6 0 0 1 18 7.5 4 4 0 0 1 17.5 15H7z"/><path d="M9 17.5l-1 3M13 17.5l-1 3M17 17.5l-1 3"/></svg></span><span class="tm-lab">雨雲レーダー<small>気象庁ナウキャスト</small></span><span class="tm-sw"></span></button>
+  <button class="tm-item" id="tmLP"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M12 3l2.1 4.6L19 8.3l-3.5 3.4.9 4.9L12 14.3 7.6 16.6l.9-4.9L5 8.3l4.9-.7z"/></svg></span><span class="tm-lab">光害マップ<small>夜空の明るさ・星空の目安</small></span><span class="tm-sw"></span></button>
+  <div class="tm-sec">防災（起動中は5分ごとに自動取得）</div>
+  <button class="tm-item" id="tmTsunami"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M2 15c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 2-2M2 19c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 2-2"/></svg></span><span class="tm-lab">津波情報<small>警報・注意報を沿岸に表示</small></span><span class="tm-sw"></span></button>
+  <button class="tm-item" id="tmQuake"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M3 12h3l2-6 3 12 3-9 2 3h5"/></svg></span><span class="tm-lab">地震（震度5弱以上）<small>観測県を30分ぬり分け表示</small></span><span class="tm-sw"></span></button>
+  <div class="tm-note">防災情報は気象庁の公開データを表示する<b>参考</b>です。避難は自治体の指示・標識に従ってください。</div>
+</div>
+<div id="disasterBanner"><span id="dbText"></span><button class="db-x" id="dbClose" title="閉じる">✕</button></div>
 <div id="status"></div>
 <div id="controls">
   <button class="fab ghost" id="locBtn" title="現在地へ"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.6"/><path d="M12 1.6V4M12 20v2.4M1.6 12H4M20 12h2.4"/></svg></button>
@@ -821,6 +859,10 @@ const IS_TOUCH=window.matchMedia('(hover:none) and (pointer:coarse)').matches; /
 let points=[], lastDistanceKm=null, lastDurationSec=null, lastEngine='', lastNexcoKm=0, lastShutokoKm=0, lastLegs=[];
 let lastTrafficSec=null, lastLegsTrafficSec=null, lastGBaseSec=null, lastLegSteps=[], lastFlatYen=0, lastFlatNames=[], lastRouteTimeline=[];
 let isoMinutes=[30,60,120], isoProfile='driving', isoCenter=null, restMin=120, rainLayer=null, rainOn=false, restReqId=0;
+let lpLayer=null, lpOn=false; // 光害マップ
+// 防災（津波・地震）状態
+let tsunamiOn=false, tsunamiTimer=null, tsunamiShapes=[], tsunamiGeo=null, tsunamiLastId='';
+let quakeOn=false, quakeTimer=null, quakeData=null, quakePrefTopo=null, quakeLastId='', quakeClearTimer=null;
 let depTimeManual=false; // 出発日時をユーザーが手動指定したらtrue（自動更新を停止）
 function setDepNow(){const e=document.getElementById('depTime');if(e){e.value=nowLocal();}depTimeManual=false;if(typeof lastDistanceKm!=='undefined'&&lastDistanceKm!=null)updateCost();}
 function touchDepTime(){if(depTimeManual)return;const e=document.getElementById('depTime');if(e)e.value=nowLocal();if(typeof lastDistanceKm!=='undefined'&&lastDistanceKm!=null)updateCost();}
@@ -880,7 +922,11 @@ window.initGMap=function(){
   map.addListener('dragstart',()=>{if(liveWatchId!=null&&liveFollow){liveFollow=false;liveFabUi();}}); // 地図ドラッグで追従解除（追跡は継続）
   applyTheme(localStorage.getItem('tabi_theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
   buildTabs(); updateGasNote();
-  google.maps.event.addListenerOnce(map,'idle',()=>{restoreState();setPlain();showStatus('検索、または下のチップで温泉郷・ルートなどを表示',false);hideStatusLater();});
+  google.maps.event.addListenerOnce(map,'idle',()=>{restoreState();setPlain();showStatus('検索、または下のチップで温泉郷・ルートなどを表示',false);hideStatusLater();
+    // 防災トグルの復元（地図準備後・起動中は5分毎に自動取得）
+    if(localStorage.getItem('tabi_tsunami_on')==='1')setTsunami(true);
+    if(localStorage.getItem('tabi_quake_on')==='1')setQuake(true);
+  });
 };
 // キー取得：端末localStorage（個別上書き）→ 配信時注入の共有キー の順。未置換プレースホルダ(__xxx__)は無視。
 function cfgKey(name){
@@ -2950,19 +2996,149 @@ function finalizeRests(list,box){
   wireRestCtl();renderItinerary();updateCost();
 }
 window.insertWp=function(lat,lng,enc){points.splice(Math.max(points.length-1,1),0,{lat:+(+lat).toFixed(6),lng:+(+lng).toFixed(6),label:enc?decodeURIComponent(enc):null});infoWindow.close();renderPoints();computeRoute();};
-// ===== 雨雲レーダー（気象庁 高解像度降水ナウキャスト hrpns タイル） =====
+// ===== 機能メニュー（レンチ）：雨雲・光害・防災（津波・地震）の集約 =====
+function removeOverlay(layer){if(layer&&map){const i=map.overlayMapTypes.getArray().indexOf(layer);if(i>=0)map.overlayMapTypes.removeAt(i);}}
+function updateToolBtn(){const b=document.getElementById('toolBtn');if(b)b.classList.toggle('on',rainOn||lpOn||tsunamiOn||quakeOn);}
+function renderToolMenu(){
+  const set=(id,on,busy)=>{const el=document.getElementById(id);if(!el)return;el.classList.toggle('on',!!on);el.classList.toggle('busy',!!busy);};
+  set('tmRain',rainOn);set('tmLP',lpOn);set('tmTsunami',tsunamiOn);set('tmQuake',quakeOn);updateToolBtn();
+}
+function toggleToolMenu(force){const m=document.getElementById('toolMenu');if(!m)return;const open=(force!=null)?force:!m.classList.contains('open');m.classList.toggle('open',open);if(open)renderToolMenu();}
+
+// ----- 雨雲レーダー（気象庁 高解像度降水ナウキャスト hrpns タイル） -----
 async function toggleRain(){
-  const btn=document.getElementById('rainBtn');
-  if(rainOn){if(rainLayer){const i=map.overlayMapTypes.getArray().indexOf(rainLayer);if(i>=0)map.overlayMapTypes.removeAt(i);}rainLayer=null;rainOn=false;btn.classList.remove('on');showStatus('雨雲レーダー OFF',false);hideStatusLater();return;}
+  if(rainOn){removeOverlay(rainLayer);rainLayer=null;rainOn=false;renderToolMenu();showStatus('雨雲レーダー OFF',false);hideStatusLater();return;}
   showStatus('雨雲レーダーを取得中…',true);
   try{
-    const tt=await (await fetch('https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N1.json')).json();
-    const cur=[...tt].reverse().find(x=>x.basetime===x.validtime)||tt[tt.length-1];
+    const tt=await (await fetch('https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N1.json',{cache:'no-store'})).json();
+    // tt は新しい順。予報(validtime>basetime)を除いた「最新の実況(basetime===validtime)」を先頭から採用
+    const cur=tt.find(x=>x.basetime===x.validtime)||tt[0];
     const bt=cur.basetime,vt=cur.validtime;
     rainLayer=new google.maps.ImageMapType({getTileUrl:(c,z)=>{const n=1<<z;if(c.y<0||c.y>=n)return null;const x=((c.x%n)+n)%n;return `https://www.jma.go.jp/bosai/jmatile/data/nowc/${bt}/none/${vt}/surf/hrpns/${z}/${x}/${c.y}.png`;},tileSize:new google.maps.Size(256,256),opacity:0.62,name:'rain',maxZoom:18,minZoom:0});
-    map.overlayMapTypes.push(rainLayer);rainOn=true;btn.classList.add('on');
+    map.overlayMapTypes.push(rainLayer);rainOn=true;renderToolMenu();
     const v=String(vt);const j=new Date(Date.UTC(+v.slice(0,4),+v.slice(4,6)-1,+v.slice(6,8),+v.slice(8,10),+v.slice(10,12))+9*3600000);const z=n=>String(n).padStart(2,'0');showStatus('雨雲レーダー ON（'+z(j.getUTCHours())+':'+z(j.getUTCMinutes())+' 時点・JST）',false);hideStatusLater();
   }catch(e){showStatus('雨雲レーダーの取得に失敗（接続/CORS）: '+e.message,false);hideStatusLater();}
+}
+
+// ----- 光害マップ（David J. Lorenz「World Atlas」タイル：Falchi et al. 2016 由来） -----
+// 1024pxタイル・標準XYZ(zoomOffset相当-2)。地図ズームzに対しタイルZ=z-2、ネイティブ2〜8。CORS *。空タイルは404=透過。
+function toggleLP(){
+  if(lpOn){removeOverlay(lpLayer);lpLayer=null;lpOn=false;renderToolMenu();showStatus('光害マップ OFF',false);hideStatusLater();return;}
+  if(!map){showStatus('地図の準備ができていません',false);hideStatusLater();return;}
+  lpLayer=new google.maps.ImageMapType({getTileUrl:(c,z)=>{const Z=z-2;if(Z<2||Z>8)return null;const n=1<<Z;if(c.y<0||c.y>=n)return null;const x=((c.x%n)+n)%n;return 'https://djlorenz.github.io/astronomy/image_tiles/tiles2024/tile_'+Z+'_'+x+'_'+c.y+'.png';},tileSize:new google.maps.Size(1024,1024),opacity:0.55,name:'lp',maxZoom:19,minZoom:0});
+  map.overlayMapTypes.push(lpLayer);lpOn=true;renderToolMenu();
+  showStatus('光害マップ ON（明るい=光害大／暗い=星空良好・広域〜ズーム10目安）',false);hideStatusLater();
+}
+
+// ===== 防災バナー（津波・地震で共用。津波を優先表示） =====
+let curTsunamiBanner=null, curQuakeBanner=null;
+function refreshDisasterBanner(){
+  const el=document.getElementById('disasterBanner'),tx=document.getElementById('dbText');if(!el||!tx)return;
+  const b=curTsunamiBanner||curQuakeBanner;
+  if(!b){el.classList.remove('show');return;}
+  tx.innerHTML=b.html;el.style.background=b.color;el.classList.add('show');
+}
+document.addEventListener('DOMContentLoaded',()=>{const x=document.getElementById('dbClose');if(x)x.onclick=()=>{document.getElementById('disasterBanner').classList.remove('show');};});
+
+// ===== 津波情報（気象庁 tsunami/data/list.json → 予報区ごとに沿岸を色分け） =====
+const TSU_COL={3:'#a11bbf',2:'#e60000',1:'#f2c200'}, TSU_LAB={3:'大津波警報',2:'津波警報',1:'津波注意報'};
+function tsuGrade(name){if(!name||name.indexOf('解除')>=0)return 0;if(name.indexOf('大津波')>=0)return 3;if(name.indexOf('津波警報')>=0)return 2;if(name.indexOf('津波注意')>=0)return 1;return 0;}
+function clearTsunamiShapes(){tsunamiShapes.forEach(s=>s.setMap(null));tsunamiShapes=[];curTsunamiBanner=null;refreshDisasterBanner();}
+async function ensureTsunamiGeo(){if(tsunamiGeo)return tsunamiGeo;tsunamiGeo=await (await fetch('https://www.jma.go.jp/bosai/common/const/geojson/tsunami.json',{cache:'force-cache'})).json();return tsunamiGeo;}
+function drawTsunami(items){
+  clearTsunamiShapes();
+  if(!map||!tsunamiGeo)return;
+  const codeF={};tsunamiGeo.features.forEach(f=>codeF[f.properties.code]=f);
+  let maxG=0;const names={3:[],2:[],1:[]};
+  items.forEach(it=>{const g=it.grade;if(g<1)return;if(g>maxG)maxG=g;names[g].push(it.name);
+    const f=codeF[it.code];if(!f)return;const col=TSU_COL[g];
+    const lines=f.geometry.type==='MultiLineString'?f.geometry.coordinates:[f.geometry.coordinates];
+    lines.forEach(line=>{const path=line.map(p=>({lat:p[1],lng:p[0]}));tsunamiShapes.push(new google.maps.Polyline({path,strokeColor:col,strokeWeight:5,strokeOpacity:.95,map,zIndex:20+g,clickable:false}));});
+  });
+  if(maxG>0){
+    let parts=[];[3,2,1].forEach(g=>{if(names[g].length)parts.push('<b>'+TSU_LAB[g]+'</b>：'+names[g].slice(0,6).join('、')+(names[g].length>6?' ほか':''));});
+    curTsunamiBanner={color:TSU_COL[maxG],html:'津波情報　'+parts.join('　／　')+'　<span style="font-weight:600;opacity:.9;">海岸・河口から離れ高台へ避難してください</span>'};
+  }else curTsunamiBanner=null;
+  refreshDisasterBanner();
+}
+async function pollTsunami(){
+  if(!tsunamiOn)return;
+  try{
+    const list=await (await fetch('https://www.jma.go.jp/bosai/tsunami/data/list.json',{cache:'no-store'})).json();
+    if(!list||!list.length){return;}
+    const top=list[0],id=top.json||top.ctt;
+    if(id===tsunamiLastId)return; // 変化なし
+    tsunamiLastId=id;
+    const detail=await (await fetch('https://www.jma.go.jp/bosai/tsunami/data/'+top.json,{cache:'no-store'})).json();
+    const fc=((detail.Body||{}).Tsunami||{}).Forecast||{};
+    let raw=fc.Item||[];if(!Array.isArray(raw))raw=[raw];
+    const items=raw.map(it=>({code:(it.Area||{}).Code,name:(it.Area||{}).Name,grade:tsuGrade(((it.Category||{}).Kind||{}).Name)})).filter(x=>x.code);
+    if(items.some(x=>x.grade>=1)){await ensureTsunamiGeo();drawTsunami(items);}
+    else{clearTsunamiShapes();} // 全て解除→消去
+  }catch(e){/* 取得失敗は静かに次回リトライ */}
+}
+function setTsunami(on){
+  tsunamiOn=on;localStorage.setItem('tabi_tsunami_on',on?'1':'0');
+  if(tsunamiTimer){clearInterval(tsunamiTimer);tsunamiTimer=null;}
+  if(on){renderToolMenu();pollTsunami();tsunamiTimer=setInterval(pollTsunami,300000);showStatus('津波情報の自動取得を開始（5分毎）。発表時に沿岸を色分け表示します',false);hideStatusLater();}
+  else{tsunamiLastId='';clearTsunamiShapes();renderToolMenu();showStatus('津波情報の自動取得を停止',false);hideStatusLater();}
+}
+
+// ===== 地震（最大震度5弱以上）：観測県を30分ぬり分け（都道府県ポリゴン topojson をインライン復号） =====
+const QUAKE_COL={'5-':'#f9a825','5+':'#f57c00','6-':'#e53935','6+':'#b71c1c','7':'#6a1b9a'};
+const INT_RANK={'1':1,'2':2,'3':3,'4':4,'5-':5,'5+':6,'6-':7,'6+':8,'7':9};
+const INT_LAB={'5-':'5弱','5+':'5強','6-':'6弱','6+':'6強','7':'7'};
+function tjDecode(topo){ // TopoJSON→GeoJSON（transform+デルタ復号）。dataofjapan/land japan.topojson 用
+  const t=topo.transform,A=topo.arcs;
+  const DEC=A.map(a=>{let x=0,y=0;return a.map(p=>{x+=p[0];y+=p[1];return [x*t.scale[0]+t.translate[0],y*t.scale[1]+t.translate[1]];});});
+  const arc=i=>{const rev=i<0;if(rev)i=~i;const a=DEC[i];return rev?a.slice().reverse():a;};
+  const ring=idxs=>{let c=[];idxs.forEach((ai,k)=>{let ln=arc(ai);if(k>0)ln=ln.slice(1);c=c.concat(ln);});return c;};
+  const poly=list=>list.map(ring);
+  const gc=topo.objects[Object.keys(topo.objects)[0]];
+  return {type:'FeatureCollection',features:gc.geometries.map(g=>{let coords;if(g.type==='Polygon')coords=poly(g.arcs);else if(g.type==='MultiPolygon')coords=g.arcs.map(poly);else coords=null;return {type:'Feature',properties:g.properties||{},geometry:coords?{type:g.type,coordinates:coords}:null};})};
+}
+async function ensureQuakeTopo(){if(quakePrefTopo)return quakePrefTopo;const topo=await (await fetch('https://raw.githubusercontent.com/dataofjapan/land/master/japan.topojson',{cache:'force-cache'})).json();quakePrefTopo=tjDecode(topo);return quakePrefTopo;}
+function ensureQuakeLayer(){if(!quakeData){quakeData=new google.maps.Data();quakeData.setStyle(f=>({fillColor:f.getProperty('col'),fillOpacity:0.4,strokeColor:'#8a8a8a',strokeWeight:2.2,strokeOpacity:0.95,clickable:false,zIndex:5}));}quakeData.setMap(map);}
+function clearQuake(){if(quakeData){quakeData.forEach(f=>quakeData.remove(f));quakeData.setMap(null);}if(quakeClearTimer){clearTimeout(quakeClearTimer);quakeClearTimer=null;}curQuakeBanner=null;refreshDisasterBanner();}
+function drawQuakeFill(prefColor){ // prefColor: {jisCodeInt: color}
+  ensureQuakeLayer();quakeData.forEach(f=>quakeData.remove(f));
+  quakePrefTopo.features.forEach(f=>{const col=prefColor[f.properties.id];if(!col)return;const added=quakeData.addGeoJson({type:'FeatureCollection',features:[f]});added.forEach(af=>af.setProperty('col',col));});
+}
+async function showQuake(top){
+  await ensureQuakeTopo();if(!map)return;
+  const detail=await (await fetch('https://www.jma.go.jp/bosai/quake/data/'+top.json,{cache:'no-store'})).json();
+  const obs=(((detail.Body||{}).Intensity||{}).Observation)||{};
+  let prefs=obs.Pref||[];if(!Array.isArray(prefs))prefs=[prefs];
+  const prefColor={};let maxInt='5-',maxRank=0,hitNames=[];
+  prefs.forEach(p=>{const mi=p.MaxInt;if(!mi||(INT_RANK[mi]||0)<5)return;const code=parseInt(p.Code,10);prefColor[code]=QUAKE_COL[mi]||'#f9a825';if((INT_RANK[mi]||0)>maxRank){maxRank=INT_RANK[mi];maxInt=mi;}hitNames.push((p.Name||'').replace(/(県|府|都|道)$/,''));});
+  if(!Object.keys(prefColor).length)return;
+  drawQuakeFill(prefColor);
+  curQuakeBanner={color:QUAKE_COL[maxInt]||'#b71c1c',html:'地震情報　最大震度<b>'+(INT_LAB[maxInt]||maxInt)+'</b>'+(top.anm?'（震源：'+top.anm+'）':'')+'　'+hitNames.slice(0,8).join('・')+(hitNames.length>8?' ほか':'')+'　<span style="font-weight:600;opacity:.9;">30分間ぬり分け表示</span>'};
+  refreshDisasterBanner();
+  // データ取得後30分で自動消去
+  if(quakeClearTimer)clearTimeout(quakeClearTimer);
+  quakeClearTimer=setTimeout(clearQuake,1800000);
+}
+async function pollQuake(){
+  if(!quakeOn)return;
+  try{
+    const list=await (await fetch('https://www.jma.go.jp/bosai/quake/data/list.json',{cache:'no-store'})).json();
+    if(!list||!list.length)return;
+    // 震度5弱以上の最新イベント
+    const ev=list.find(e=>e.json&&(INT_RANK[e.maxi]||0)>=5);
+    if(!ev)return;
+    const id=ev.json;
+    if(id===quakeLastId)return;
+    const atMs=ev.at?Date.parse(ev.at):0;
+    if(!atMs||Date.now()-atMs>1800000)return; // 30分より古い地震は表示しない（過去分の誤発火防止）
+    quakeLastId=id;await showQuake(ev);
+  }catch(e){/* 静かにリトライ */}
+}
+function setQuake(on){
+  quakeOn=on;localStorage.setItem('tabi_quake_on',on?'1':'0');
+  if(quakeTimer){clearInterval(quakeTimer);quakeTimer=null;}
+  if(on){renderToolMenu();pollQuake();quakeTimer=setInterval(pollQuake,300000);showStatus('地震情報の自動取得を開始（5分毎）。震度5弱以上で観測県をぬり分けます',false);hideStatusLater();}
+  else{quakeLastId='';clearQuake();renderToolMenu();showStatus('地震情報の自動取得を停止',false);hideStatusLater();}
 }
 // NEXCO：長距離逓減制（〜100km×1.0／100〜200km×0.75／200km〜×0.70）＋ターミナルチャージ150円×係数、消費税10%
 function nexcoTollCalc(km,factor,disc,offset){
@@ -3602,7 +3778,19 @@ document.getElementById('rsPeek').onclick=toggleRouteSheet;
 // 収納中はシートのどこをタップしても開く（グラブ/ピークだけでなく余白も。判定を広く）
 routeSheet.addEventListener('click',e=>{if(routeSheet.classList.contains('collapsed')&&!e.target.closest('button,input,a')){routeSheet.classList.remove('collapsed');if(lastDistanceKm!=null)updateCost();}});
 document.getElementById('rsClear').onclick=()=>{if(points.length>=2&&!confirm('ルートの地点と計算結果をクリアします。よろしいですか？'))return;didAutoCollapse=false;points=[];lastDistanceKm=lastDurationSec=null;lastFlatYen=0;lastFlatNames=[];lastLegSteps=[];lastRouteTimeline=[];lastRests=[];lastEvents=[];lastPointT=[];lastNexRuns=[];lastShuRuns=[];routeAlts=[];renderAltSelector();tollKmAuto=true;document.getElementById('tollKm').value='';document.getElementById('kinkoKm').value='0';clearArr(routeMarkers);clearArr(restMarkers);clearRouteLine();document.getElementById('rsResult').classList.remove('show');document.getElementById('restSec').style.display='none';document.getElementById('rsPeek').classList.remove('show');document.getElementById('rsDetails').style.display='none';routeSheet.classList.remove('collapsed');const lg=document.getElementById('routeLegend');if(lg)lg.style.display='none';renderPoints();};
-document.getElementById('rainBtn').onclick=toggleRain;
+// 機能メニュー（レンチ）：雨雲・光害・防災の集約
+(function(){
+  const tb=document.getElementById('toolBtn'),tm=document.getElementById('toolMenu');
+  if(tb)tb.onclick=(e)=>{e.stopPropagation();const ta=document.getElementById('topActions');if(ta)ta.classList.remove('open');toggleToolMenu();};
+  const wire=(id,fn)=>{const el=document.getElementById(id);if(el)el.onclick=fn;};
+  wire('toolMenuClose',()=>toggleToolMenu(false));
+  wire('tmRain',()=>toggleRain());
+  wire('tmLP',()=>toggleLP());
+  wire('tmTsunami',()=>setTsunami(!tsunamiOn));
+  wire('tmQuake',()=>setQuake(!quakeOn));
+  // メニュー外タップで閉じる
+  document.addEventListener('click',(e)=>{if(!tm||!tm.classList.contains('open'))return;if(tm.contains(e.target)||(tb&&tb.contains(e.target)))return;toggleToolMenu(false);});
+})();
 // 現在地：1回だけ現在地へ移動して表示（追跡はしない）
 document.getElementById('myLocFab').onclick=()=>{if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}showStatus('現在地を取得中…',true);navigator.geolocation.getCurrentPosition(pos=>{const la=pos.coords.latitude,ln=pos.coords.longitude;map.setCenter({lat:la,lng:ln});map.setZoom(15);statusEl.classList.remove('show');showCurrentLoc(la,ln,pos.coords.accuracy);},err=>{showStatus('現在地を取得できませんでした',false);hideStatusLater();},{enableHighAccuracy:true,timeout:8000});};
 // 追跡：リアルタイム追跡の開始→（ドラッグで追従解除時は）追従再開→停止
@@ -3678,10 +3866,12 @@ function showEvacResult(){ // 選択中の移動手段で「約10分圏内の最
   body.innerHTML='<div class="evac-modes"><button data-m="WALKING" class="'+(evacMode==='WALKING'?'on':'')+'">徒歩</button><button data-m="DRIVING" class="'+(evacMode==='DRIVING'?'on':'')+'">車</button></div>'
     +'<div class="evac-dest">'+oe+modeL+' 約10分圏内の最高地点：海抜 <b style="color:'+(safeIn?'#2f9e44':'#f08c00')+'">'+Math.round(dest.elev)+'m</b>'+(safeIn?'<span style="color:#2f9e44;font-weight:700;font-size:11px;">（40m以上）</span>':'<span style="color:#f08c00;font-weight:700;font-size:11px;">（40m未満）</span>')+'</div>'
     +'<div class="evac-meta" id="evacMeta">経路を計算中…</div>'
+    +'<button class="evac-addroute" id="evacAddRoute">この避難先をルートに設定して案内</button>'
     +(showSafe?'<div class="evac-warn">※ 約10分圏内に海抜40m以上がありません。<b>40m以上の最寄り（緑「40」・10分圏外の可能性）</b>への経路も表示します。</div><div class="evac-dest" style="margin-top:2px;">40m以上（最寄り）：海抜 <b style="color:#2f9e44">'+Math.round(evacSafe.elev)+'m</b></div><div class="evac-meta" id="evacSafeMeta">経路を計算中…</div>':'')
     +'<div class="evac-disc">※ この機能は<b>参考</b>です。「約10分圏」は直線距離の目安（'+modeL+'）で実際の所要は経路により前後します。標高40m以上でも安全とは限りません。実際は<b>自治体の避難指示・避難標識・ハザードマップ</b>に従い可能な限り高く内陸へ避難してください。標高：国土地理院。</div>';
   document.getElementById('evacPanel').classList.add('open');
   body.querySelectorAll('.evac-modes button').forEach(b=>b.onclick=()=>{if(evacBusy)return;evacMode=b.dataset.m;showEvacResult();}); // 移動手段の切替で圏内最高地点を再計算
+  const addBtn=document.getElementById('evacAddRoute');if(addBtn)addBtn.onclick=evacAddToRoute; // 避難先をルート欄に強制セットして案内
   fitEvac();
   evacRouteTo(dest,evacMode,'#e03131',6,'evacMeta',pl=>{evacRoute=pl;});                       // 主：10分圏内の最高地点への経路（赤）
   if(showSafe)evacRouteTo(evacSafe,evacMode,'#2f9e44',5,'evacSafeMeta',pl=>{evacSafeRoute=pl;}); // 副：40m以上最寄りへの経路（緑）
@@ -3698,6 +3888,26 @@ function evacRouteTo(dest,mode,color,weight,metaId,setPl){ // DirectionsService�
 function fitEvac(){if(!map||!evacOrigin)return;const b=new google.maps.LatLngBounds();b.extend(evacOrigin);if(evacDest)b.extend({lat:evacDest.lat,lng:evacDest.lng});if(evacSafeMarker&&evacSafe)b.extend({lat:evacSafe.lat,lng:evacSafe.lng});map.fitBounds(b,90);}
 function clearEvacMap(){[evacMarker,evacSafeMarker].forEach(m=>{if(m)m.setMap(null);});[evacRoute,evacSafeRoute].forEach(p=>{if(p)p.setMap(null);});evacMarker=evacSafeMarker=evacRoute=evacSafeRoute=null;}
 function closeEvac(){clearEvacMap();const p=document.getElementById('evacPanel');if(p)p.classList.remove('open');}
+function evacAddToRoute(){ // 避難先をルート欄に強制セット（ルートのみリセット。レイヤー・ピン等は保持）→現在地から案内
+  if(!evacOrigin||!evacDest){showStatus('避難先が未確定です。もう一度実行してください',false);hideStatusLater();return;}
+  const o={lat:evacOrigin.lat,lng:evacOrigin.lng},d={lat:evacDest.lat,lng:evacDest.lng,elev:evacDest.elev};
+  // --- ルート欄のみ強制リセット（rsClear 相当） ---
+  didAutoCollapse=false;
+  points=[];lastDistanceKm=lastDurationSec=null;lastFlatYen=0;lastFlatNames=[];lastLegSteps=[];lastRouteTimeline=[];lastRests=[];deletedRestTs=[];restStayOv={};lastEvents=[];lastPointT=[];lastNexRuns=[];lastShuRuns=[];routeAlts=[];window.editingVehicle=null;
+  renderAltSelector();
+  tollKmAuto=true;document.getElementById('tollKm').value='';document.getElementById('kinkoKm').value='0';
+  clearArr(routeMarkers);clearArr(restMarkers);clearRouteLine();
+  document.getElementById('rsResult').classList.remove('show');document.getElementById('restSec').style.display='none';document.getElementById('rsDetails').style.display='none';document.getElementById('rsPeek').classList.remove('show');
+  const itin=document.getElementById('itinSec');if(itin)itin.style.display='none';
+  // --- 現在地 → 避難先（高台）を投入して案内 ---
+  points=[{lat:+o.lat.toFixed(6),lng:+o.lng.toFixed(6),label:'現在地',stay:0},
+          {lat:+d.lat.toFixed(6),lng:+d.lng.toFixed(6),label:'避難先（高台 海抜'+Math.round(d.elev)+'m）',stay:0}];
+  closeEvac();
+  if(activeTab!=='route')selectTab('route');
+  routeSheet.classList.remove('collapsed');
+  renderPoints();computeRoute();
+  showStatus('ルートを避難先に置き換えました（現在地→高台）。経路を計算中…',false);hideStatusLater();
+}
 document.getElementById('layerBtn').onclick=()=>{const p=document.getElementById('layerPanel');document.getElementById('settlePanel').classList.remove('open');const o=p.classList.toggle('open');if(o)renderLayerPanel();};
 document.getElementById('settleBtn').onclick=()=>{const p=document.getElementById('settlePanel');document.getElementById('layerPanel').classList.remove('open');const o=p.classList.toggle('open');if(o)renderSettlePanel();};
 // ===== 画像出力：表示中の地図＋選択中レイヤーをStatic Maps APIで画像化し、上下に黒帯（たびマップ/日時・距離/時間/費用）を合成して保存 =====
