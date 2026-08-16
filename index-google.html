@@ -2998,21 +2998,25 @@ function finalizeRests(list,box){
 window.insertWp=function(lat,lng,enc){points.splice(Math.max(points.length-1,1),0,{lat:+(+lat).toFixed(6),lng:+(+lng).toFixed(6),label:enc?decodeURIComponent(enc):null});infoWindow.close();renderPoints();computeRoute();};
 // ===== 機能メニュー（レンチ）：雨雲・光害・防災（津波・地震）の集約 =====
 function removeOverlay(layer){if(layer&&map){const i=map.overlayMapTypes.getArray().indexOf(layer);if(i>=0)map.overlayMapTypes.removeAt(i);}}
-// タイルオーバーレイ（オーバーズーム対応）：ネイティブ最大ズーム(maxNative)を超えたら
-// 最深タイルをCSSで拡大表示し、拡大してもレイヤーが消えないようにする。空/404タイルは背景なし=透過。
+// タイルオーバーレイ（オーバーズーム対応）：配信が飛び飛びのズーム(step)や最大(maxNative)を超えたズームでも
+// 提供レベルへ切り下げた最深タイルをCSSで拡大表示し、どの縮尺でも消えないようにする。空/404は背景なし=透過。
+// cfg: {urlFn(z,x,y), maxNative, minNative, step(提供レベルの刻み・雨雲は偶数のみ=2/光害は全レベル=1), opacity, name}
 function makeOverzoomMapType(cfg){
-  const TS=256,maxN=cfg.maxNative,minN=cfg.minNative||0;
+  const TS=256,maxN=cfg.maxNative,minN=cfg.minNative||0,step=cfg.step||1;
   return {
     tileSize:new google.maps.Size(TS,TS),name:cfg.name,alt:cfg.name,maxZoom:22,minZoom:0,
     getTile(coord,zoom,doc){
       const div=doc.createElement('div');
       div.style.width=TS+'px';div.style.height=TS+'px';div.style.backgroundRepeat='no-repeat';
-      if(!coord||zoom<minN)return div;
+      if(!coord)return div;
+      let srcZ=Math.min(zoom,maxN);
+      if(srcZ<minN)return div;                       // ネイティブ最小未満（引きすぎ）＝データ無し
+      srcZ=srcZ-((srcZ-minN)%step);                  // 実際に配信されるレベルへ切り下げ（雨雲=偶数のみ 等）
       const world=1<<zoom,y=coord.y;
-      if(y<0||y>=world)return div;                 // 緯度範囲外
-      let x=coord.x%world;if(x<0)x+=world;          // 経度は東西ラップ
-      const srcZ=Math.min(zoom,maxN),dz=zoom-srcZ,N=1<<dz; // N=拡大倍率(1=ネイティブ)
-      const ax=Math.floor(x/N),ay=Math.floor(y/N); // 参照する最深タイル
+      if(y<0||y>=world)return div;                   // 緯度範囲外
+      let x=coord.x%world;if(x<0)x+=world;            // 経度は東西ラップ
+      const dz=zoom-srcZ,N=1<<dz;                     // N=拡大倍率(1=ネイティブ)
+      const ax=Math.floor(x/N),ay=Math.floor(y/N);   // 参照する提供レベルのタイル
       const url=cfg.urlFn(srcZ,ax,ay);
       if(url){
         div.style.backgroundImage='url("'+url+'")';
@@ -3041,19 +3045,19 @@ async function toggleRain(){
     // tt は新しい順。予報(validtime>basetime)を除いた「最新の実況(basetime===validtime)」を先頭から採用
     const cur=tt.find(x=>x.basetime===x.validtime)||tt[0];
     const bt=cur.basetime,vt=cur.validtime;
-    // hrpns はネイティブ最大ズーム10（z11以上は空タイル200で消える）→10でオーバーズーム
-    rainLayer=makeOverzoomMapType({maxNative:10,minNative:0,opacity:0.62,name:'rain',urlFn:(z,x,y)=>`https://www.jma.go.jp/bosai/jmatile/data/nowc/${bt}/none/${vt}/surf/hrpns/${z}/${x}/${y}.png`});
+    // hrpns の配信は偶数ズームのみ(4/6/8/10)。奇数z(5/7/9)や11以上は空タイル→提供レベルへ切り下げてオーバーズーム
+    rainLayer=makeOverzoomMapType({maxNative:10,minNative:4,step:2,opacity:0.62,name:'rain',urlFn:(z,x,y)=>`https://www.jma.go.jp/bosai/jmatile/data/nowc/${bt}/none/${vt}/surf/hrpns/${z}/${x}/${y}.png`});
     map.overlayMapTypes.push(rainLayer);rainOn=true;renderToolMenu();
     const v=String(vt);const j=new Date(Date.UTC(+v.slice(0,4),+v.slice(4,6)-1,+v.slice(6,8),+v.slice(8,10),+v.slice(10,12))+9*3600000);const z=n=>String(n).padStart(2,'0');showStatus('雨雲レーダー ON（'+z(j.getUTCHours())+':'+z(j.getUTCMinutes())+' 時点・JST）',false);hideStatusLater();
   }catch(e){showStatus('雨雲レーダーの取得に失敗（接続/CORS）: '+e.message,false);hideStatusLater();}
 }
 
 // ----- 光害マップ（David J. Lorenz「World Atlas」タイル：Falchi et al. 2016 由来） -----
-// 標準XYZ・ネイティブ2〜8（tile_{z}_{x}_{y}=1024px）。CORS *。z8超は最深タイルをオーバーズームで拡大表示。空タイルは404=透過。
+// 標準XYZ・tiles2024の実配信はネイティブ2〜6（z7以上は404）。z6超は最深(z6)タイルをオーバーズームで拡大表示。空/404は透過。
 function toggleLP(){
   if(lpOn){removeOverlay(lpLayer);lpLayer=null;lpOn=false;renderToolMenu();showStatus('光害マップ OFF',false);hideStatusLater();return;}
   if(!map){showStatus('地図の準備ができていません',false);hideStatusLater();return;}
-  lpLayer=makeOverzoomMapType({maxNative:8,minNative:2,opacity:0.55,name:'lp',urlFn:(z,x,y)=>'https://djlorenz.github.io/astronomy/image_tiles/tiles2024/tile_'+z+'_'+x+'_'+y+'.png'});
+  lpLayer=makeOverzoomMapType({maxNative:6,minNative:2,step:1,opacity:0.55,name:'lp',urlFn:(z,x,y)=>'https://djlorenz.github.io/astronomy/image_tiles/tiles2024/tile_'+z+'_'+x+'_'+y+'.png'});
   map.overlayMapTypes.push(lpLayer);lpOn=true;renderToolMenu();
   showStatus('光害マップ ON（明るい=光害大／暗い=星空良好・拡大にも追従）',false);hideStatusLater();
 }
