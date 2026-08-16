@@ -2998,6 +2998,33 @@ function finalizeRests(list,box){
 window.insertWp=function(lat,lng,enc){points.splice(Math.max(points.length-1,1),0,{lat:+(+lat).toFixed(6),lng:+(+lng).toFixed(6),label:enc?decodeURIComponent(enc):null});infoWindow.close();renderPoints();computeRoute();};
 // ===== 機能メニュー（レンチ）：雨雲・光害・防災（津波・地震）の集約 =====
 function removeOverlay(layer){if(layer&&map){const i=map.overlayMapTypes.getArray().indexOf(layer);if(i>=0)map.overlayMapTypes.removeAt(i);}}
+// タイルオーバーレイ（オーバーズーム対応）：ネイティブ最大ズーム(maxNative)を超えたら
+// 最深タイルをCSSで拡大表示し、拡大してもレイヤーが消えないようにする。空/404タイルは背景なし=透過。
+function makeOverzoomMapType(cfg){
+  const TS=256,maxN=cfg.maxNative,minN=cfg.minNative||0;
+  return {
+    tileSize:new google.maps.Size(TS,TS),name:cfg.name,alt:cfg.name,maxZoom:22,minZoom:0,
+    getTile(coord,zoom,doc){
+      const div=doc.createElement('div');
+      div.style.width=TS+'px';div.style.height=TS+'px';div.style.backgroundRepeat='no-repeat';
+      if(!coord||zoom<minN)return div;
+      const world=1<<zoom,y=coord.y;
+      if(y<0||y>=world)return div;                 // 緯度範囲外
+      let x=coord.x%world;if(x<0)x+=world;          // 経度は東西ラップ
+      const srcZ=Math.min(zoom,maxN),dz=zoom-srcZ,N=1<<dz; // N=拡大倍率(1=ネイティブ)
+      const ax=Math.floor(x/N),ay=Math.floor(y/N); // 参照する最深タイル
+      const url=cfg.urlFn(srcZ,ax,ay);
+      if(url){
+        div.style.backgroundImage='url("'+url+'")';
+        div.style.backgroundSize=(N*TS)+'px '+(N*TS)+'px';
+        div.style.backgroundPosition=(-(x-ax*N)*TS)+'px '+(-(y-ay*N)*TS)+'px';
+        if(cfg.opacity!=null)div.style.opacity=cfg.opacity;
+      }
+      return div;
+    },
+    releaseTile(){}
+  };
+}
 function updateToolBtn(){const b=document.getElementById('toolBtn');if(b)b.classList.toggle('on',rainOn||lpOn||tsunamiOn||quakeOn);}
 function renderToolMenu(){
   const set=(id,on,busy)=>{const el=document.getElementById(id);if(!el)return;el.classList.toggle('on',!!on);el.classList.toggle('busy',!!busy);};
@@ -3014,20 +3041,21 @@ async function toggleRain(){
     // tt は新しい順。予報(validtime>basetime)を除いた「最新の実況(basetime===validtime)」を先頭から採用
     const cur=tt.find(x=>x.basetime===x.validtime)||tt[0];
     const bt=cur.basetime,vt=cur.validtime;
-    rainLayer=new google.maps.ImageMapType({getTileUrl:(c,z)=>{const n=1<<z;if(c.y<0||c.y>=n)return null;const x=((c.x%n)+n)%n;return `https://www.jma.go.jp/bosai/jmatile/data/nowc/${bt}/none/${vt}/surf/hrpns/${z}/${x}/${c.y}.png`;},tileSize:new google.maps.Size(256,256),opacity:0.62,name:'rain',maxZoom:18,minZoom:0});
+    // hrpns はネイティブ最大ズーム10（z11以上は空タイル200で消える）→10でオーバーズーム
+    rainLayer=makeOverzoomMapType({maxNative:10,minNative:0,opacity:0.62,name:'rain',urlFn:(z,x,y)=>`https://www.jma.go.jp/bosai/jmatile/data/nowc/${bt}/none/${vt}/surf/hrpns/${z}/${x}/${y}.png`});
     map.overlayMapTypes.push(rainLayer);rainOn=true;renderToolMenu();
     const v=String(vt);const j=new Date(Date.UTC(+v.slice(0,4),+v.slice(4,6)-1,+v.slice(6,8),+v.slice(8,10),+v.slice(10,12))+9*3600000);const z=n=>String(n).padStart(2,'0');showStatus('雨雲レーダー ON（'+z(j.getUTCHours())+':'+z(j.getUTCMinutes())+' 時点・JST）',false);hideStatusLater();
   }catch(e){showStatus('雨雲レーダーの取得に失敗（接続/CORS）: '+e.message,false);hideStatusLater();}
 }
 
 // ----- 光害マップ（David J. Lorenz「World Atlas」タイル：Falchi et al. 2016 由来） -----
-// 1024pxタイル・標準XYZ(zoomOffset相当-2)。地図ズームzに対しタイルZ=z-2、ネイティブ2〜8。CORS *。空タイルは404=透過。
+// 標準XYZ・ネイティブ2〜8（tile_{z}_{x}_{y}=1024px）。CORS *。z8超は最深タイルをオーバーズームで拡大表示。空タイルは404=透過。
 function toggleLP(){
   if(lpOn){removeOverlay(lpLayer);lpLayer=null;lpOn=false;renderToolMenu();showStatus('光害マップ OFF',false);hideStatusLater();return;}
   if(!map){showStatus('地図の準備ができていません',false);hideStatusLater();return;}
-  lpLayer=new google.maps.ImageMapType({getTileUrl:(c,z)=>{const Z=z-2;if(Z<2||Z>8)return null;const n=1<<Z;if(c.y<0||c.y>=n)return null;const x=((c.x%n)+n)%n;return 'https://djlorenz.github.io/astronomy/image_tiles/tiles2024/tile_'+Z+'_'+x+'_'+c.y+'.png';},tileSize:new google.maps.Size(1024,1024),opacity:0.55,name:'lp',maxZoom:19,minZoom:0});
+  lpLayer=makeOverzoomMapType({maxNative:8,minNative:2,opacity:0.55,name:'lp',urlFn:(z,x,y)=>'https://djlorenz.github.io/astronomy/image_tiles/tiles2024/tile_'+z+'_'+x+'_'+y+'.png'});
   map.overlayMapTypes.push(lpLayer);lpOn=true;renderToolMenu();
-  showStatus('光害マップ ON（明るい=光害大／暗い=星空良好・広域〜ズーム10目安）',false);hideStatusLater();
+  showStatus('光害マップ ON（明るい=光害大／暗い=星空良好・拡大にも追従）',false);hideStatusLater();
 }
 
 // ===== 防災バナー（津波・地震で共用。津波を優先表示） =====
