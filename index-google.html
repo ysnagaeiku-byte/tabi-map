@@ -277,6 +277,17 @@
   .set-help{font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.55;} .set-help a{color:var(--accent);}
   .set-save{margin-top:10px;width:100%;min-height:44px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;}
   .set-msg{font-size:12px;color:var(--open);font-weight:700;margin-top:8px;min-height:16px;}
+  .share-row{display:flex;gap:8px;margin-top:10px;}
+  .share-row .set-save{margin-top:0;}
+  .share-pub{flex:1;}
+  .share-code-in{flex:1;text-transform:uppercase;letter-spacing:3px;font-weight:800;}
+  .share-imp{flex:none;width:auto;padding:0 20px;}
+  .share-code-box:empty{display:none;}
+  .share-code-box{margin-top:10px;}
+  .share-code-box .code{font-size:26px;font-weight:900;letter-spacing:5px;text-align:center;padding:12px;border:2px dashed var(--accent);border-radius:12px;color:var(--accent);background:var(--accent-weak);}
+  .share-code-box .code-cap{font-size:11px;color:var(--muted);text-align:center;margin-top:5px;}
+  .share-guide summary{font-size:11.5px;color:var(--accent);cursor:pointer;margin-top:10px;font-weight:700;}
+  .share-guide code{font-family:ui-monospace,Menlo,monospace;}
   #nokey{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;background:var(--bg);padding:24px;text-align:center;}
   #nokey.show{display:flex;}
   #nokey .box{max-width:420px;} #nokey h2{font-size:18px;} #nokey p{color:var(--muted);font-size:14px;line-height:1.7;}
@@ -600,7 +611,30 @@
   <div class="set-sec"><div class="set-label">到達圏マップ（Mapbox アクセストークン）</div><input id="mbxInput" placeholder="Mapbox public token (pk.xxx)" autocomplete="off" /><div class="set-help">「到達圏」タブで、任意地点から ○分で行ける範囲（アイソクロン）を描画します。<b>URL（リファラー）制限</b>の設定を推奨。トークンは端末内のみ保存。</div><button class="set-save" id="mbxSave">保存</button><div class="set-msg" id="mbxMsg"></div></div>
   <div class="set-sec"><div class="set-label">楽天トラベル連携</div><input id="rakInput" placeholder="楽天 applicationId" autocomplete="off" /><button class="set-save" id="rakSave">保存</button><div class="set-msg" id="rakMsg"></div></div>
   <div class="set-sec"><div class="set-label">高速・有料の回避（OpenRouteService）</div><input id="orsInput" placeholder="ORS APIキー" autocomplete="off" /><button class="set-save" id="orsSave">保存</button><div class="set-msg" id="orsMsg"></div></div>
-  <div class="set-sec" style="margin-bottom:0;"><div class="set-label">保存したレイヤー</div><button class="set-save" id="lsOpenBtn">保存したレイヤーを参照 / 読み込む</button><div class="set-help">現在のレイヤー（ルート・ピン・距離円）を<b>一括で名前を付けて保存</b>し、あとから呼び出せます（最大300件）。保存は<b>レイヤーパネル右上の「保存」</b>から行います。</div></div>
+  <div class="set-sec"><div class="set-label">保存したレイヤー</div><button class="set-save" id="lsOpenBtn">保存したレイヤーを参照 / 読み込む</button><div class="set-help">現在のレイヤー（ルート・ピン・距離円）を<b>一括で名前を付けて保存</b>し、あとから呼び出せます（最大300件）。保存は<b>レイヤーパネル右上の「保存」</b>から行います。</div></div>
+  <div class="set-sec" style="margin-bottom:0;"><div class="set-label">端末間で共有（共有コード）</div>
+    <input id="shareDbInput" placeholder="Firebase Database URL（https://xxxx-default-rtdb.firebaseio.com）" autocomplete="off" />
+    <button class="set-save" id="shareDbSave">保存先URLを登録</button>
+    <div class="share-row"><button class="set-save share-pub" id="sharePublish">この端末の内容を共有（コード発行）</button></div>
+    <div id="shareCodeBox" class="share-code-box"></div>
+    <div class="share-row"><input id="shareCodeInput" class="share-code-in" placeholder="共有コード（例 K7M2QP）" autocomplete="off" maxlength="8" /><button class="set-save share-imp" id="shareImport">読込</button></div>
+    <div class="set-msg" id="shareMsg"></div>
+    <div class="set-help">保存ピン・ピン集合・保存レイヤーを、<b>あなたのFirebase</b>に預けて別端末で読み込めます（<b>APIキー不要</b>・DBのURLのみ）。各端末で同じURLを登録してください。読込は既存に<b>追加</b>されます。</div>
+    <details class="share-guide"><summary>Firebaseの設定方法（初回のみ・約5分・無料）</summary><div class="set-help">
+      1. <b>console.firebase.google.com</b> で「プロジェクトを追加」（名前は任意・GoogleアナリティクスはOFFで可）。<br>
+      2. 左メニュー「構築」→<b>Realtime Database</b>→「データベースを作成」。ロケーションは任意、開始モードは<b>「ロックモード」</b>を選択。<br>
+      3. 作成後の<b>URL</b>（https://〜.firebaseio.com）を上の欄に貼り付けて「保存先URLを登録」。<br>
+      4. 「ルール」タブを開き、以下に置き換えて「公開」：<br>
+      <code style="display:block;white-space:pre;background:var(--surface-2);border-radius:8px;padding:8px;margin:6px 0;font-size:10.5px;overflow:auto;">{
+  "rules": {
+    "shares": {
+      "$c": { ".read": true, ".write": true }
+    }
+  }
+}</code>
+      これで /shares 以下だけが読み書き可能になります（共有コードを知る人のみ閲覧。他のデータは触れません）。同じURLを各端末の設定に登録すれば、発行したコードで読み込めます。
+    </div></details>
+  </div>
 </div></div>
 
 <div class="overlay" id="lsOverlay"><div class="modal">
@@ -3750,6 +3784,87 @@ function drawPinGroup(idx){const g=getPinGroups()[idx];if(!g)return;let n=0;g.pi
   showStatus(`「${g.name}」のピンを描画しました`,false);hideStatusLater();}
 function deletePinGroup(idx){const g=getPinGroups();if(!g[idx])return;if(!confirm(`保存済みピン「${g[idx].name}」を削除します（地図上のピンは消えません）`))return;g.splice(idx,1);savePinGroups(g);if(activeTab==='custom')buildCustomPanel();}
 window.keepPin=function(lat,lng,enc,encSub){const name=enc?decodeURIComponent(enc):'',sub=encSub?decodeURIComponent(encSub):'';removeTempPin();const pin=addSavedPin({name,lat,lng,sub});if(pin&&pin.marker){openKeptPopup(pin.marker);}showStatus('ピンを残しました（レイヤータブに表示・カスタムタブで一括保存できます）',false);hideStatusLater();};
+
+// ===== 端末間共有（共有コード方式・Firebase Realtime Database REST。APIキー不要＝DBのURLのみ） =====
+// 保存ピン(tabi_pins)・ピン集合(tabi_pin_groups)・保存レイヤー(IndexedDB tabi_layers) を /shares/<code> に預け、別端末でコード読込＝マージ取込
+function shareDbUrl(){
+  const inj=(window.__TABI_KEYS__||{}).share;
+  let u=(localStorage.getItem('tabi_share_db')||(inj&&!/^__.*__$/.test(inj)?inj:'')||'').trim();
+  if(!u)return '';
+  if(!/^https?:\/\//.test(u))u='https://'+u;
+  return u.replace(/\/+$/,''); // 末尾スラッシュ除去
+}
+function genShareCode(){const A='23456789ABCDEFGHJKMNPQRSTUVWXYZ';let s='';for(let i=0;i<6;i++)s+=A[Math.floor(Math.random()*A.length)];return s;} // 紛らわしい文字(0/1/I/L/O)を除いた6桁
+function shareMsg(t,ok){const m=document.getElementById('shareMsg');if(m){m.textContent=t;m.style.color=(ok===false)?'#e03131':'var(--open)';}}
+async function buildSharePayload(){
+  let layerSets=[];try{layerSets=await getLayerSets();}catch(e){layerSets=[];}
+  return {v:1,app:'tabi-map',created:new Date().toISOString(),
+    pins:savedPins.map(p=>({name:p.name,lat:p.lat,lng:p.lng,sub:p.sub||'',color:p.color||null,note:p.note||''})),
+    pinGroups:getPinGroups(),
+    layerSets:(layerSets||[]).map(s=>({name:s.name,at:s.at||null,routes:s.routes||[],pins:s.pins||[],buffers:s.buffers||[]}))};
+}
+async function sharePublish(){
+  const db=shareDbUrl();
+  if(!db){shareMsg('先に「保存先URL」を登録してください（Firebase Database URL）',false);return;}
+  const box=document.getElementById('shareCodeBox');if(box)box.innerHTML='';
+  shareMsg('アップロード中…');
+  try{
+    const payload=await buildSharePayload();
+    const body=JSON.stringify(payload);
+    if(body.length>4500000){shareMsg('データが大きすぎます（保存レイヤーを整理してから再試行）',false);return;}
+    const code=genShareCode();
+    const res=await fetch(db+'/shares/'+code+'.json',{method:'PUT',body});
+    if(!res.ok){const t=await res.text().catch(()=>'');throw new Error('HTTP '+res.status+(t?(' '+t.slice(0,120)):''));}
+    if(box){box.innerHTML='<div class="code">'+code+'</div><div class="code-cap">別端末で同じURLを登録し、このコードを入力→「読込」（タップでコピー）</div>';
+      const codeEl=box.querySelector('.code');if(codeEl)codeEl.onclick=()=>{try{navigator.clipboard.writeText(code);shareMsg('コードをコピーしました：'+code);}catch(e){shareMsg('コード：'+code);}};}
+    shareMsg('発行しました：'+code+'（ピン'+payload.pins.length+'・ピン集合'+payload.pinGroups.length+'・レイヤー'+payload.layerSets.length+'）');
+  }catch(e){shareMsg('アップロード失敗：'+e.message+'（URL/ルールをご確認ください）',false);}
+}
+async function shareImportRun(){
+  const db=shareDbUrl();
+  if(!db){shareMsg('先に「保存先URL」を登録してください',false);return;}
+  const raw=((document.getElementById('shareCodeInput')||{}).value||'').toUpperCase().replace(/[^0-9A-Z]/g,'');
+  if(raw.length<4){shareMsg('共有コードを入力してください',false);return;}
+  shareMsg('読み込み中…');
+  try{
+    const res=await fetch(db+'/shares/'+raw+'.json',{cache:'no-store'});
+    if(!res.ok)throw new Error('HTTP '+res.status);
+    const data=await res.json();
+    if(!data||typeof data!=='object'){shareMsg('コードが見つかりませんでした：'+raw,false);return;}
+    const np=(data.pins||[]).length,ng=(data.pinGroups||[]).length,nl=(data.layerSets||[]).length;
+    if(!confirm('共有データを取り込みます（既存に追加）。\nピン '+np+'件 / ピン集合 '+ng+'件 / 保存レイヤー '+nl+'件\nよろしいですか？'))return;
+    const added=await mergeSharedData(data);
+    shareMsg('取り込みました：ピン+'+added.pins+' / ピン集合+'+added.groups+' / レイヤー+'+added.layers);
+    showStatus('共有データを取り込みました（ピン+'+added.pins+'・ピン集合+'+added.groups+'・レイヤー+'+added.layers+'）',false);hideStatusLater();
+  }catch(e){shareMsg('読み込み失敗：'+e.message,false);}
+}
+async function mergeSharedData(data){
+  let ap=0,ag=0,al=0;
+  // ピン：同座標は重複としてスキップ（色/メモも保持）
+  (data.pins||[]).forEach(o=>{
+    if(o.lat==null||o.lng==null)return;
+    if(savedPins.some(p=>Math.abs(p.lat-o.lat)<1e-6&&Math.abs(p.lng-o.lng)<1e-6))return;
+    const pin={id:Date.now()+Math.floor(Math.random()*1e6),name:o.name||'地点',lat:o.lat,lng:o.lng,sub:o.sub||'',visible:true,color:o.color||null,note:o.note||''};
+    pin.marker=makePinMarker(pin);savedPins.push(pin);ap++;
+  });
+  if(ap)persistPins();
+  // ピン集合：同名はスキップ
+  const groups=getPinGroups(),gn=new Set(groups.map(g=>g.name));
+  (data.pinGroups||[]).forEach(g=>{if(g&&g.name&&!gn.has(g.name)){groups.push({name:g.name,pins:(g.pins||[]).map(p=>({name:p.name,lat:p.lat,lng:p.lng,sub:p.sub||''}))});gn.add(g.name);ag++;}});
+  if(ag)savePinGroups(groups);
+  // 保存レイヤー：同名+同時刻はスキップ、新IDで追加（上限考慮）
+  let existing=[];try{existing=await getLayerSets();}catch(e){existing=[];}
+  const key=s=>s.name+'|'+(s.at||''),have=new Set(existing.map(key));let count=existing.length;
+  for(const s of (data.layerSets||[])){
+    if(count>=MAX_LAYER_SETS)break;
+    if(!s||!s.name||have.has(key(s)))continue;
+    const set={id:Date.now()+Math.floor(Math.random()*1e6),name:s.name,at:s.at||new Date().toISOString(),routes:s.routes||[],pins:s.pins||[],buffers:s.buffers||[]};
+    try{await idbPut(set);have.add(key(s));count++;al++;}catch(e){}
+  }
+  renderLayerPanel();if(typeof renderSettlePanel==='function')renderSettlePanel();if(activeTab==='custom')buildCustomPanel();
+  if(typeof renderLayerSets==='function'){try{renderLayerSets();}catch(e){}}
+  return {pins:ap,groups:ag,layers:al};
+}
 function openKeptPopup(m){const i=m._info,e=encodeURIComponent(i.name||'');
   const note=i.id!=null?((savedPins.find(p=>p.id===i.id)||{}).note||''):'';
   const noteHtml=i.id!=null?`<textarea class="pin-note" maxlength="300" placeholder="メモ（最大300字）" oninput="window.setPinNote(${i.id},this.value)">${escapeHtml(note)}</textarea>`:'';
@@ -4061,6 +4176,8 @@ document.getElementById('setBtn').onclick=()=>{document.getElementById('gmapInpu
   const inj=window.__TABI_KEYS__||{};const ggInj=inj.gmap&&!/^__.*__$/.test(inj.gmap),mbInj=inj.mapbox&&!/^__.*__$/.test(inj.mapbox);
   document.getElementById('gmapInput').placeholder=ggInj?'共有キー設定済み（上書きする場合のみ入力）':'Google Maps APIキー';
   document.getElementById('mbxInput').placeholder=mbInj?'共有トークン設定済み（上書きする場合のみ入力）':'Mapbox public token (pk.xxx)';
+  document.getElementById('shareDbInput').value=localStorage.getItem('tabi_share_db')||'';
+  const scb=document.getElementById('shareCodeBox');if(scb)scb.innerHTML='';const sm=document.getElementById('shareMsg');if(sm)sm.textContent='';
   overlay.classList.add('open');};
 document.getElementById('setClose').onclick=()=>overlay.classList.remove('open');
 function updateAdvBtn(){const b=document.getElementById('advSearchBtn');if(!b)return;b.textContent=advSearch?'高度な検索：有効（タップで無効化）':'高度な検索を有効化';b.classList.toggle('on',advSearch);}
@@ -4071,6 +4188,11 @@ document.getElementById('gmapSave').onclick=()=>{const v=document.getElementById
 document.getElementById('rakSave').onclick=()=>{const v=document.getElementById('rakInput').value.trim();v?localStorage.setItem('tabi_rakuten_id',v):localStorage.removeItem('tabi_rakuten_id');document.getElementById('rakMsg').textContent=v?'保存しました':'解除しました';};
 document.getElementById('orsSave').onclick=()=>{const v=document.getElementById('orsInput').value.trim();v?localStorage.setItem('tabi_ors_id',v):localStorage.removeItem('tabi_ors_id');document.getElementById('orsMsg').textContent=v?'保存しました':'解除しました';updatePrefHint();if(points.length>=2)computeRoute();};
 document.getElementById('mbxSave').onclick=()=>{const v=document.getElementById('mbxInput').value.trim();v?localStorage.setItem('tabi_mapbox_key',v):localStorage.removeItem('tabi_mapbox_key');document.getElementById('mbxMsg').textContent=v?'保存しました':'解除しました';if(v&&activeTab==='iso'&&isoCenter)fetchIsochrone(isoCenter.lat,isoCenter.lng);};
+// 端末間共有（共有コード）の配線
+document.getElementById('shareDbSave').onclick=()=>{let v=document.getElementById('shareDbInput').value.trim();if(v&&!/^https?:\/\//.test(v))v='https://'+v;v=v.replace(/\/+$/,'');if(v)localStorage.setItem('tabi_share_db',v);else localStorage.removeItem('tabi_share_db');document.getElementById('shareDbInput').value=v;shareMsg(v?'保存先URLを登録しました':'保存先URLを解除しました');};
+document.getElementById('sharePublish').onclick=sharePublish;
+document.getElementById('shareImport').onclick=shareImportRun;
+document.getElementById('shareCodeInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();shareImportRun();}});
 function nowLocal(){const d=new Date();d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16);}
 document.getElementById('depTime').value=nowLocal();
 bootGoogle();
