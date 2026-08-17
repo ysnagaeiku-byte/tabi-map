@@ -99,6 +99,7 @@
   .tm-item .tm-lab{flex:1;min-width:0;font-size:13px;font-weight:700;line-height:1.25;}
   .tm-item .tm-lab small{display:block;font-size:10.5px;font-weight:600;color:var(--muted);margin-top:1px;}
   .tm-item .tm-sw{flex:none;width:38px;height:22px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line);position:relative;transition:background .15s;}
+  .tm-item .tm-ex{flex:none;font-size:11px;font-weight:800;color:var(--accent);border:1px solid var(--line);border-radius:8px;padding:4px 9px;}
   .tm-item .tm-sw::after{content:"";position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--muted);transition:transform .15s,background .15s;}
   .tm-item.on{border-color:var(--accent);}
   .tm-item.on .tm-ic{color:var(--accent);}
@@ -524,6 +525,9 @@
   <div class="tm-sec">地図に重ねる</div>
   <button class="tm-item" id="tmRain"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M7 15a5 5 0 0 1-.6-9.97A6 6 0 0 1 18 7.5 4 4 0 0 1 17.5 15H7z"/><path d="M9 17.5l-1 3M13 17.5l-1 3M17 17.5l-1 3"/></svg></span><span class="tm-lab">雨雲レーダー<small>気象庁ナウキャスト</small></span><span class="tm-sw"></span></button>
   <button class="tm-item" id="tmLP"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M12 3l2.1 4.6L19 8.3l-3.5 3.4.9 4.9L12 14.3 7.6 16.6l.9-4.9L5 8.3l4.9-.7z"/></svg></span><span class="tm-lab">光害マップ<small>夜空の明るさ・星空の目安</small></span><span class="tm-sw"></span></button>
+  <div class="tm-sec">道路交通</div>
+  <button class="tm-item" id="tmTraffic"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M5 20l2.5-16M19 20l-2.5-16M12 5v2.4M12 10.8v2.4M12 16.6v2.4"/></svg></span><span class="tm-lab">リアルタイム渋滞<small>Google交通情報（緑/橙/赤）</small></span><span class="tm-sw"></span></button>
+  <button class="tm-item" id="tmHighway"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M7.5 12h9"/></svg></span><span class="tm-lab">高速の通行止め・規制<small>公式のリアルタイム情報を開く</small></span><span class="tm-ex">開く</span></button>
   <div class="tm-sec">防災（起動中は5分ごとに自動取得）</div>
   <button class="tm-item" id="tmTsunami"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M2 15c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 2-2M2 19c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 2-2"/></svg></span><span class="tm-lab">津波情報<small>警報・注意報を沿岸に表示</small></span><span class="tm-sw"></span></button>
   <button class="tm-item" id="tmQuake"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M3 12h3l2-6 3 12 3-9 2 3h5"/></svg></span><span class="tm-lab">地震（震度5弱以上）<small>観測県を30分ぬり分け表示</small></span><span class="tm-sw"></span></button>
@@ -892,6 +896,7 @@ let points=[], lastDistanceKm=null, lastDurationSec=null, lastEngine='', lastNex
 let lastTrafficSec=null, lastLegsTrafficSec=null, lastGBaseSec=null, lastLegSteps=[], lastFlatYen=0, lastFlatNames=[], lastRouteTimeline=[];
 let isoMinutes=[30,60,120], isoProfile='driving', isoCenter=null, restMin=120, rainLayer=null, rainOn=false, restReqId=0;
 let lpLayer=null, lpOn=false; // 光害マップ
+let trafficLayer=null, trafficOn=false; // リアルタイム渋滞（Google TrafficLayer）
 // 防災（津波・地震）状態
 let tsunamiOn=false, tsunamiTimer=null, tsunamiShapes=[], tsunamiGeo=null, tsunamiLastId='';
 let quakeOn=false, quakeTimer=null, quakeData=null, quakePrefTopo=null, quakeLastId='', quakeClearTimer=null;
@@ -3061,10 +3066,10 @@ function makeOverzoomMapType(cfg){
     releaseTile(){}
   };
 }
-function updateToolBtn(){const b=document.getElementById('toolBtn');if(b)b.classList.toggle('on',rainOn||lpOn||tsunamiOn||quakeOn);}
+function updateToolBtn(){const b=document.getElementById('toolBtn');if(b)b.classList.toggle('on',rainOn||lpOn||trafficOn||tsunamiOn||quakeOn);}
 function renderToolMenu(){
   const set=(id,on,busy)=>{const el=document.getElementById(id);if(!el)return;el.classList.toggle('on',!!on);el.classList.toggle('busy',!!busy);};
-  set('tmRain',rainOn);set('tmLP',lpOn);set('tmTsunami',tsunamiOn);set('tmQuake',quakeOn);updateToolBtn();
+  set('tmRain',rainOn);set('tmLP',lpOn);set('tmTraffic',trafficOn);set('tmTsunami',tsunamiOn);set('tmQuake',quakeOn);updateToolBtn();
 }
 function toggleToolMenu(force){const m=document.getElementById('toolMenu');if(!m)return;const open=(force!=null)?force:!m.classList.contains('open');m.classList.toggle('open',open);if(open)renderToolMenu();}
 
@@ -3111,6 +3116,22 @@ function updateMapOverlayInfo(){
   }
   lg.innerHTML=html;lg.classList.toggle('show',!!html);
   at.innerHTML=attr.join('<br>');at.classList.toggle('show',attr.length>0);
+}
+
+// ----- リアルタイム渋滞（Google TrafficLayer：緑/橙/赤の混雑色＋通行止め描画。追加費用なし） -----
+function toggleTraffic(){
+  if(!map){showStatus('地図の準備ができていません',false);hideStatusLater();return;}
+  if(trafficOn){if(trafficLayer)trafficLayer.setMap(null);trafficOn=false;renderToolMenu();showStatus('リアルタイム渋滞 OFF',false);hideStatusLater();return;}
+  if(!trafficLayer)trafficLayer=new google.maps.TrafficLayer({autoRefresh:true});
+  trafficLayer.setMap(map);trafficOn=true;renderToolMenu();
+  showStatus('リアルタイム渋滞 ON（緑=順調／橙・赤=混雑。通行止めは道路が暗赤/破線表示）',false);hideStatusLater();
+}
+// ----- 高速道路の通行止め・規制（公式のリアルタイム情報を開く） -----
+// ※ 全国の高速道路の通行止め等の構造化フィードは無料・CORSで入手できないため、権威ある公式情報(JARTIC)をタップで開く
+function openHighwayInfo(){
+  toggleToolMenu(false);
+  try{window.open('https://www.jartic.or.jp/','_blank','noopener');}catch(e){location.href='https://www.jartic.or.jp/';}
+  showStatus('高速道路の交通情報（JARTIC）を開きました',false);hideStatusLater();
 }
 
 // ===== 防災バナー（津波・地震で共用。津波を優先表示） =====
@@ -3951,6 +3972,8 @@ document.getElementById('rsClear').onclick=()=>{if(points.length>=2&&!confirm('�
   wire('toolMenuClose',()=>toggleToolMenu(false));
   wire('tmRain',()=>toggleRain());
   wire('tmLP',()=>toggleLP());
+  wire('tmTraffic',()=>toggleTraffic());
+  wire('tmHighway',()=>openHighwayInfo());
   wire('tmTsunami',()=>setTsunami(!tsunamiOn));
   wire('tmQuake',()=>setQuake(!quakeOn));
   // メニュー外タップで閉じる
