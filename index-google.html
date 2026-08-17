@@ -110,6 +110,16 @@
   #disasterBanner{display:none;position:fixed;left:0;right:0;top:0;z-index:1650;padding:calc(8px + env(safe-area-inset-top)) 40px 9px 14px;font-weight:800;font-size:12.5px;color:#fff;line-height:1.45;box-shadow:0 6px 22px rgba(0,0,0,.35);}
   #disasterBanner.show{display:block;}
   #disasterBanner .db-x{position:absolute;right:9px;top:calc(8px + env(safe-area-inset-top));background:rgba(255,255,255,.28);border:none;color:#fff;border-radius:7px;width:26px;height:26px;font-size:14px;cursor:pointer;}
+  /* ===== 雨雲/光害 レイヤーの凡例（左下）＋出典（右下・極小） ===== */
+  #mapLegend{display:none;position:fixed;left:8px;bottom:calc(58px + env(safe-area-inset-bottom));z-index:1000;background:var(--panel-blur);backdrop-filter:blur(4px);border:1px solid var(--line);border-radius:9px;box-shadow:0 3px 12px var(--shadow);padding:6px 8px;max-width:min(52vw,220px);}
+  #mapLegend.show{display:block;}
+  #mapLegend .lg-block{margin:2px 0;}
+  #mapLegend .lg-ttl{font-size:9.5px;font-weight:800;color:var(--fg);margin-bottom:3px;}
+  #mapLegend .lg-bar{display:flex;height:8px;border-radius:2px;overflow:hidden;}
+  #mapLegend .lg-bar span{flex:1;}
+  #mapLegend .lg-scale{display:flex;justify-content:space-between;font-size:8px;color:var(--muted);margin-top:1px;font-weight:700;}
+  #mapAttrib{display:none;position:fixed;right:4px;bottom:calc(2px + env(safe-area-inset-bottom));z-index:1000;font-size:8.5px;line-height:1.25;color:var(--muted);text-align:right;background:var(--panel-blur);padding:1px 4px;border-radius:4px;max-width:60vw;pointer-events:none;}
+  #mapAttrib.show{display:block;}
   .top-results{display:none;flex-direction:column;margin:8px 12px 0;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px var(--shadow);overflow:hidden;max-height:52vh;overflow-y:auto;}
   .top-results.show{display:flex;}
   .tr-item{display:flex;align-items:center;gap:11px;padding:12px 14px;border:none;background:none;color:var(--fg);text-align:left;cursor:pointer;border-bottom:1px solid var(--line);width:100%;}
@@ -276,6 +286,8 @@
   .set-sec input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;font-size:14px;background:var(--surface);color:var(--fg);}
   .set-help{font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.55;} .set-help a{color:var(--accent);}
   .set-save{margin-top:10px;width:100%;min-height:44px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;}
+  .set-save.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:600;min-height:38px;font-size:13px;} /* 補助的な保存は控えめに（緩急） */
+  .set-save.ghost:active{background:var(--surface-2);}
   .set-msg{font-size:12px;color:var(--open);font-weight:700;margin-top:8px;min-height:16px;}
   .share-row{display:flex;gap:8px;margin-top:10px;}
   .share-row .set-save{margin-top:0;}
@@ -519,6 +531,8 @@
 </div>
 <div id="disasterBanner"><span id="dbText"></span><button class="db-x" id="dbClose" title="閉じる">✕</button></div>
 <div id="status"></div>
+<div id="mapLegend"></div>
+<div id="mapAttrib"></div>
 <div id="controls">
   <button class="fab ghost" id="locBtn" title="現在地へ"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><circle cx="12" cy="12" r="7.6"/><path d="M12 1.6V4M12 20v2.4M1.6 12H4M20 12h2.4"/></svg></button>
   <button class="fab primary" id="researchBtn">このエリアを検索</button>
@@ -608,32 +622,16 @@
   <div class="set-sec"><div class="set-label">バージョン切替</div><div class="ver-switch"><a href="index.html">無料版</a><a href="index-google.html" class="on">Google版</a><a href="track.html">研究版</a></div></div>
   <div class="set-sec"><div class="set-label">高度な検索</div><button class="adv-toggle" id="advSearchBtn">高度な検索を有効化</button><div class="set-help">オンにすると、ピンをタップした時に<b>営業時間・電話・ウェブサイト・写真</b>などの詳細情報を自動取得します（Google Placesの課金項目 Atmosphere/Contact Data が増えます）。<b>オフ（既定）</b>では基本情報のみ表示し、必要な時だけポップアップの<b>「＋詳細を取得」</b>ボタンで取得します。</div></div>
   <div class="set-sec"><div class="set-label">Google Maps APIキー（この版に必須）</div><input id="gmapInput" placeholder="Google Maps APIキー" autocomplete="off" /><div class="set-help">この版は地図表示・渋滞ETAにGoogleを使用（課金あり）。「Maps JavaScript API」＋「Directions API」＋<b>「Routes API」</b>（区間ごとの実渋滞表示に必須）を有効化し<b>HTTPリファラー制限</b>を設定。キーは端末内のみ保存。</div><button class="set-save" id="gmapSave">保存して再読込</button><div class="set-msg" id="gmapMsg"></div></div>
-  <div class="set-sec"><div class="set-label">到達圏マップ（Mapbox アクセストークン）</div><input id="mbxInput" placeholder="Mapbox public token (pk.xxx)" autocomplete="off" /><div class="set-help">「到達圏」タブで、任意地点から ○分で行ける範囲（アイソクロン）を描画します。<b>URL（リファラー）制限</b>の設定を推奨。トークンは端末内のみ保存。</div><button class="set-save" id="mbxSave">保存</button><div class="set-msg" id="mbxMsg"></div></div>
-  <div class="set-sec"><div class="set-label">楽天トラベル連携</div><input id="rakInput" placeholder="楽天 applicationId" autocomplete="off" /><button class="set-save" id="rakSave">保存</button><div class="set-msg" id="rakMsg"></div></div>
-  <div class="set-sec"><div class="set-label">高速・有料の回避（OpenRouteService）</div><input id="orsInput" placeholder="ORS APIキー" autocomplete="off" /><button class="set-save" id="orsSave">保存</button><div class="set-msg" id="orsMsg"></div></div>
-  <div class="set-sec"><div class="set-label">保存したレイヤー</div><button class="set-save" id="lsOpenBtn">保存したレイヤーを参照 / 読み込む</button><div class="set-help">現在のレイヤー（ルート・ピン・距離円）を<b>一括で名前を付けて保存</b>し、あとから呼び出せます（最大300件）。保存は<b>レイヤーパネル右上の「保存」</b>から行います。</div></div>
+  <div class="set-sec"><div class="set-label">到達圏マップ（Mapbox アクセストークン）</div><input id="mbxInput" placeholder="Mapbox public token (pk.xxx)" autocomplete="off" /><div class="set-help">「到達圏」タブで、任意地点から ○分で行ける範囲（アイソクロン）を描画します。<b>URL（リファラー）制限</b>の設定を推奨。トークンは端末内のみ保存。</div><button class="set-save ghost" id="mbxSave">保存</button><div class="set-msg" id="mbxMsg"></div></div>
+  <div class="set-sec"><div class="set-label">楽天トラベル連携</div><input id="rakInput" placeholder="楽天 applicationId" autocomplete="off" /><button class="set-save ghost" id="rakSave">保存</button><div class="set-msg" id="rakMsg"></div></div>
+  <div class="set-sec"><div class="set-label">高速・有料の回避（OpenRouteService）</div><input id="orsInput" placeholder="ORS APIキー" autocomplete="off" /><button class="set-save ghost" id="orsSave">保存</button><div class="set-msg" id="orsMsg"></div></div>
+  <div class="set-sec"><div class="set-label">保存したレイヤー</div><button class="set-save ghost" id="lsOpenBtn">保存したレイヤーを参照 / 読み込む</button><div class="set-help">現在のレイヤー（ルート・ピン・距離円）を<b>一括で名前を付けて保存</b>し、あとから呼び出せます（最大300件）。保存は<b>レイヤーパネル右上の「保存」</b>から行います。</div></div>
   <div class="set-sec" style="margin-bottom:0;"><div class="set-label">端末間で共有（共有コード）</div>
-    <input id="shareDbInput" placeholder="Firebase Database URL（https://xxxx-default-rtdb.firebaseio.com）" autocomplete="off" />
-    <button class="set-save" id="shareDbSave">保存先URLを登録</button>
-    <div class="share-row"><button class="set-save share-pub" id="sharePublish">この端末の内容を共有（コード発行）</button></div>
+    <button class="set-save share-pub" id="sharePublish">この端末の内容を共有（コード発行）</button>
     <div id="shareCodeBox" class="share-code-box"></div>
-    <div class="share-row"><input id="shareCodeInput" class="share-code-in" placeholder="共有コード（例 K7M2QP）" autocomplete="off" maxlength="8" /><button class="set-save share-imp" id="shareImport">読込</button></div>
+    <div class="share-row"><input id="shareCodeInput" class="share-code-in" placeholder="共有コード（例 K7M2QP）" autocomplete="off" maxlength="8" /><button class="set-save ghost share-imp" id="shareImport">読込</button></div>
     <div class="set-msg" id="shareMsg"></div>
-    <div class="set-help">保存ピン・ピン集合・保存レイヤーを、<b>あなたのFirebase</b>に預けて別端末で読み込めます（<b>APIキー不要</b>・DBのURLのみ）。各端末で同じURLを登録してください。読込は既存に<b>追加</b>されます。</div>
-    <details class="share-guide"><summary>Firebaseの設定方法（初回のみ・約5分・無料）</summary><div class="set-help">
-      1. <b>console.firebase.google.com</b> で「プロジェクトを追加」（名前は任意・GoogleアナリティクスはOFFで可）。<br>
-      2. 左メニュー「構築」→<b>Realtime Database</b>→「データベースを作成」。ロケーションは任意、開始モードは<b>「ロックモード」</b>を選択。<br>
-      3. 作成後の<b>URL</b>（https://〜.firebaseio.com）を上の欄に貼り付けて「保存先URLを登録」。<br>
-      4. 「ルール」タブを開き、以下に置き換えて「公開」：<br>
-      <code style="display:block;white-space:pre;background:var(--surface-2);border-radius:8px;padding:8px;margin:6px 0;font-size:10.5px;overflow:auto;">{
-  "rules": {
-    "shares": {
-      "$c": { ".read": true, ".write": true }
-    }
-  }
-}</code>
-      これで /shares 以下だけが読み書き可能になります（共有コードを知る人のみ閲覧。他のデータは触れません）。同じURLを各端末の設定に登録すれば、発行したコードで読み込めます。
-    </div></details>
+    <div class="set-help">保存ピン・ピン集合・保存レイヤーを、共有コードで別端末に引き継げます。片方で「共有」→表示されたコードを、もう片方で入力→「読込」（既存に<b>追加</b>）。</div>
   </div>
 </div></div>
 
@@ -3072,7 +3070,7 @@ function toggleToolMenu(force){const m=document.getElementById('toolMenu');if(!m
 
 // ----- 雨雲レーダー（気象庁 高解像度降水ナウキャスト hrpns タイル） -----
 async function toggleRain(){
-  if(rainOn){removeOverlay(rainLayer);rainLayer=null;rainOn=false;renderToolMenu();showStatus('雨雲レーダー OFF',false);hideStatusLater();return;}
+  if(rainOn){removeOverlay(rainLayer);rainLayer=null;rainOn=false;renderToolMenu();updateMapOverlayInfo();showStatus('雨雲レーダー OFF',false);hideStatusLater();return;}
   showStatus('雨雲レーダーを取得中…',true);
   try{
     const tt=await (await fetch('https://www.jma.go.jp/bosai/jmatile/data/nowc/targetTimes_N1.json',{cache:'no-store'})).json();
@@ -3081,7 +3079,7 @@ async function toggleRain(){
     const bt=cur.basetime,vt=cur.validtime;
     // hrpns の配信は偶数ズームのみ(4/6/8/10)。奇数z(5/7/9)や11以上は空タイル→提供レベルへ切り下げてオーバーズーム
     rainLayer=makeOverzoomMapType({maxNative:10,minNative:4,step:2,opacity:0.62,name:'rain',urlFn:(z,x,y)=>`https://www.jma.go.jp/bosai/jmatile/data/nowc/${bt}/none/${vt}/surf/hrpns/${z}/${x}/${y}.png`});
-    map.overlayMapTypes.push(rainLayer);rainOn=true;renderToolMenu();
+    map.overlayMapTypes.push(rainLayer);rainOn=true;renderToolMenu();updateMapOverlayInfo();
     const v=String(vt);const j=new Date(Date.UTC(+v.slice(0,4),+v.slice(4,6)-1,+v.slice(6,8),+v.slice(8,10),+v.slice(10,12))+9*3600000);const z=n=>String(n).padStart(2,'0');showStatus('雨雲レーダー ON（'+z(j.getUTCHours())+':'+z(j.getUTCMinutes())+' 時点・JST）',false);hideStatusLater();
   }catch(e){showStatus('雨雲レーダーの取得に失敗（接続/CORS）: '+e.message,false);hideStatusLater();}
 }
@@ -3089,11 +3087,30 @@ async function toggleRain(){
 // ----- 光害マップ（David J. Lorenz「World Atlas」タイル：Falchi et al. 2016 由来） -----
 // 標準XYZ・tiles2024の実配信はネイティブ2〜6（z7以上は404）。z6超は最深(z6)タイルをオーバーズームで拡大表示。空/404は透過。
 function toggleLP(){
-  if(lpOn){removeOverlay(lpLayer);lpLayer=null;lpOn=false;renderToolMenu();showStatus('光害マップ OFF',false);hideStatusLater();return;}
+  if(lpOn){removeOverlay(lpLayer);lpLayer=null;lpOn=false;renderToolMenu();updateMapOverlayInfo();showStatus('光害マップ OFF',false);hideStatusLater();return;}
   if(!map){showStatus('地図の準備ができていません',false);hideStatusLater();return;}
   lpLayer=makeOverzoomMapType({maxNative:6,minNative:2,step:1,opacity:0.55,name:'lp',urlFn:(z,x,y)=>'https://djlorenz.github.io/astronomy/image_tiles/tiles2024/tile_'+z+'_'+x+'_'+y+'.png'});
-  map.overlayMapTypes.push(lpLayer);lpOn=true;renderToolMenu();
+  map.overlayMapTypes.push(lpLayer);lpOn=true;renderToolMenu();updateMapOverlayInfo();
   showStatus('光害マップ ON（明るい=光害大／暗い=星空良好・拡大にも追従）',false);hideStatusLater();
+}
+// 雨雲/光害の凡例（左下）＋出典（右下・極小）を表示中だけ表示
+function updateMapOverlayInfo(){
+  const lg=document.getElementById('mapLegend'),at=document.getElementById('mapAttrib');if(!lg||!at)return;
+  let html='';const attr=[];
+  if(rainOn){
+    html+='<div class="lg-block"><div class="lg-ttl">雨雲（降水強度 mm/h）</div>'
+      +'<div class="lg-bar"><span style="background:#A0D2FF"></span><span style="background:#218CFF"></span><span style="background:#0041FF"></span><span style="background:#FAF500"></span><span style="background:#FF9900"></span><span style="background:#FF2800"></span><span style="background:#B40068"></span></div>'
+      +'<div class="lg-scale"><span>1</span><span>5</span><span>10</span><span>20</span><span>30</span><span>50+</span></div></div>';
+    attr.push('雨雲: 気象庁ナウキャスト');
+  }
+  if(lpOn){
+    html+='<div class="lg-block"><div class="lg-ttl">光害（夜空の明るさ）</div>'
+      +'<div class="lg-bar"><span style="background:#1b1b3a"></span><span style="background:#2f5fa0"></span><span style="background:#2f9e44"></span><span style="background:#f2d100"></span><span style="background:#ff8c00"></span><span style="background:#e02b2b"></span><span style="background:#ffffff"></span></div>'
+      +'<div class="lg-scale"><span>暗（星空良好）</span><span>明（光害大）</span></div></div>';
+    attr.push('光害: © D.J.Lorenz / Falchi et al. 2016');
+  }
+  lg.innerHTML=html;lg.classList.toggle('show',!!html);
+  at.innerHTML=attr.join('<br>');at.classList.toggle('show',attr.length>0);
 }
 
 // ===== 防災バナー（津波・地震で共用。津波を優先表示） =====
@@ -3787,9 +3804,10 @@ window.keepPin=function(lat,lng,enc,encSub){const name=enc?decodeURIComponent(en
 
 // ===== 端末間共有（共有コード方式・Firebase Realtime Database REST。APIキー不要＝DBのURLのみ） =====
 // 保存ピン(tabi_pins)・ピン集合(tabi_pin_groups)・保存レイヤー(IndexedDB tabi_layers) を /shares/<code> に預け、別端末でコード読込＝マージ取込
+const SHARE_DB_DEFAULT='https://trip-map-16ea7-default-rtdb.firebaseio.com'; // 共有先(Firebase RTDB)。URLは秘密情報ではなく、安全性はDBルールで担保
 function shareDbUrl(){
   const inj=(window.__TABI_KEYS__||{}).share;
-  let u=(localStorage.getItem('tabi_share_db')||(inj&&!/^__.*__$/.test(inj)?inj:'')||'').trim();
+  let u=(localStorage.getItem('tabi_share_db')||(inj&&!/^__.*__$/.test(inj)?inj:'')||SHARE_DB_DEFAULT).trim();
   if(!u)return '';
   if(!/^https?:\/\//.test(u))u='https://'+u;
   return u.replace(/\/+$/,''); // 末尾スラッシュ除去
@@ -4176,7 +4194,6 @@ document.getElementById('setBtn').onclick=()=>{document.getElementById('gmapInpu
   const inj=window.__TABI_KEYS__||{};const ggInj=inj.gmap&&!/^__.*__$/.test(inj.gmap),mbInj=inj.mapbox&&!/^__.*__$/.test(inj.mapbox);
   document.getElementById('gmapInput').placeholder=ggInj?'共有キー設定済み（上書きする場合のみ入力）':'Google Maps APIキー';
   document.getElementById('mbxInput').placeholder=mbInj?'共有トークン設定済み（上書きする場合のみ入力）':'Mapbox public token (pk.xxx)';
-  document.getElementById('shareDbInput').value=localStorage.getItem('tabi_share_db')||'';
   const scb=document.getElementById('shareCodeBox');if(scb)scb.innerHTML='';const sm=document.getElementById('shareMsg');if(sm)sm.textContent='';
   overlay.classList.add('open');};
 document.getElementById('setClose').onclick=()=>overlay.classList.remove('open');
@@ -4188,8 +4205,7 @@ document.getElementById('gmapSave').onclick=()=>{const v=document.getElementById
 document.getElementById('rakSave').onclick=()=>{const v=document.getElementById('rakInput').value.trim();v?localStorage.setItem('tabi_rakuten_id',v):localStorage.removeItem('tabi_rakuten_id');document.getElementById('rakMsg').textContent=v?'保存しました':'解除しました';};
 document.getElementById('orsSave').onclick=()=>{const v=document.getElementById('orsInput').value.trim();v?localStorage.setItem('tabi_ors_id',v):localStorage.removeItem('tabi_ors_id');document.getElementById('orsMsg').textContent=v?'保存しました':'解除しました';updatePrefHint();if(points.length>=2)computeRoute();};
 document.getElementById('mbxSave').onclick=()=>{const v=document.getElementById('mbxInput').value.trim();v?localStorage.setItem('tabi_mapbox_key',v):localStorage.removeItem('tabi_mapbox_key');document.getElementById('mbxMsg').textContent=v?'保存しました':'解除しました';if(v&&activeTab==='iso'&&isoCenter)fetchIsochrone(isoCenter.lat,isoCenter.lng);};
-// 端末間共有（共有コード）の配線
-document.getElementById('shareDbSave').onclick=()=>{let v=document.getElementById('shareDbInput').value.trim();if(v&&!/^https?:\/\//.test(v))v='https://'+v;v=v.replace(/\/+$/,'');if(v)localStorage.setItem('tabi_share_db',v);else localStorage.removeItem('tabi_share_db');document.getElementById('shareDbInput').value=v;shareMsg(v?'保存先URLを登録しました':'保存先URLを解除しました');};
+// 端末間共有（共有コード）の配線（保存先URLはソースに直書き＝各端末での登録不要）
 document.getElementById('sharePublish').onclick=sharePublish;
 document.getElementById('shareImport').onclick=shareImportRun;
 document.getElementById('shareCodeInput').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();shareImportRun();}});
