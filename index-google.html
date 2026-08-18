@@ -121,6 +121,25 @@
   #mapLegend .lg-scale{display:flex;justify-content:space-between;font-size:8px;color:var(--muted);margin-top:1px;font-weight:700;}
   #mapAttrib{display:none;position:fixed;right:4px;bottom:calc(2px + env(safe-area-inset-bottom));z-index:1000;font-size:8.5px;line-height:1.25;color:var(--muted);text-align:right;background:var(--panel-blur);padding:1px 4px;border-radius:4px;max-width:60vw;pointer-events:none;}
   #mapAttrib.show{display:block;}
+  /* ===== ピンの地名ラベル（ダブルクリックで表示・ドラッグ移動・3デザイン・昼夜対応） ===== */
+  .pl-conn{position:absolute;z-index:5;height:2px;transform-origin:0 50%;pointer-events:none;}
+  .pl-ring{position:absolute;z-index:5;width:40px;height:40px;margin:-20px 0 0 -20px;border-radius:50%;border:2.5px dashed #ff5a5a;pointer-events:none;animation:plspin 7s linear infinite;}
+  @keyframes plspin{to{transform:rotate(360deg);}}
+  .pin-label{position:absolute;z-index:6;font-weight:800;font-size:12.5px;white-space:nowrap;cursor:grab;user-select:none;-webkit-user-select:none;transform:translateY(-50%);line-height:1.2;touch-action:none;letter-spacing:.02em;}
+  .pin-label:active{cursor:grabbing;}
+  /* D1: 線＋丸＋太字（箱なし） */
+  .pin-label.pl-d1{background:none;padding-left:13px;}
+  .pin-label.pl-d1::before{content:'';position:absolute;left:0;top:50%;width:9px;height:9px;border-radius:50%;transform:translate(-50%,-50%);}
+  .pin-label.pl-d1.pl-dark{color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.95),0 0 2px rgba(0,0,0,.8);}
+  .pin-label.pl-d1.pl-dark::before{background:#fff;}
+  .pin-label.pl-d1.pl-light{color:#16181d;text-shadow:0 1px 2px rgba(255,255,255,.95);}
+  .pin-label.pl-d1.pl-light::before{background:#fff;border:2px solid #16181d;}
+  /* D2: 薄い背景の箱（夜=薄灰／昼=濃紺） */
+  .pin-label.pl-d2{padding:3px 9px;border-radius:6px;box-shadow:0 2px 9px rgba(0,0,0,.32);}
+  .pin-label.pl-d2.pl-dark{background:#c8ccd2;color:#15181d;}
+  .pin-label.pl-d2.pl-light{background:#1f4e5f;color:#fff;}
+  /* D3: 黒い箱＋回転する破線円（夜=赤系／昼=黒） */
+  .pin-label.pl-d3{padding:3px 10px;border-radius:5px;background:#000;color:#fff;box-shadow:0 2px 9px rgba(0,0,0,.45);}
   .top-results{display:none;flex-direction:column;margin:8px 12px 0;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px var(--shadow);overflow:hidden;max-height:52vh;overflow-y:auto;}
   .top-results.show{display:flex;}
   .tr-item{display:flex;align-items:center;gap:11px;padding:12px 14px;border:none;background:none;color:var(--fg);text-align:left;cursor:pointer;border-bottom:1px solid var(--line);width:100%;}
@@ -154,6 +173,7 @@
   .popup .links a,.popup .links button{text-decoration:none;font-size:12.5px;font-weight:700;cursor:pointer;padding:7px 11px;border-radius:9px;border:1px solid #e3e7ee;color:#16181d;background:#f1f4f8;}
   .popup .links a.rakuten{background:#bf0000;color:#fff;border-color:#bf0000;}
   .popup .links button.dest{background:#3b82f6;color:#fff;border-color:#3b82f6;}
+  .popup .links button.pin-clr-btn{color:#fff;border:none;font-weight:800;min-width:42px;text-shadow:0 1px 2px rgba(0,0,0,.4);}
   .popup .links a.nav{background:#3b6fff;color:#fff;border-color:#3b6fff;}
   .popup .route-act{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:9px 0 2px;padding:7px 8px;background:#eef4ff;border:1px solid #cdddff;border-radius:9px;}
   .popup .route-act .ra-lab{width:100%;font-size:11px;font-weight:800;color:#3b6fff;}
@@ -830,7 +850,10 @@ let map=null, infoWindow=null, placesSvc=null, curInfoMarker=null;
 function openInfo(m,html){
   if(curInfoMarker===m&&infoWindow&&infoWindow.getMap()){infoWindow.close();curInfoMarker=null;return false;}
   if(html!=null)infoWindow.setContent(html);
-  infoWindow.open(map,m);curInfoMarker=m;return true;
+  infoWindow.open(map,m);curInfoMarker=m;
+  // InfoWindowが自動で入力欄(メモ等)にフォーカスしないよう、開いた直後にフォーカスを外す
+  google.maps.event.addListenerOnce(infoWindow,'domready',()=>{const ae=document.activeElement;if(ae&&ae.closest&&ae.closest('.gm-style-iw')&&(ae.tagName==='TEXTAREA'||ae.tagName==='INPUT'))ae.blur();});
+  return true;
 }
 function closeInfo(){if(infoWindow)infoWindow.close();curInfoMarker=null;}
 let activeTab=null;
@@ -1423,15 +1446,20 @@ function taxOku(tx){return (tx/100000).toFixed(2)+'億円';}
 function renderOnsenGo(){clearArr(onsengoMarkers);
   [...ONSEN_GO].sort((a,b)=>(a.s||2)-(b.s||2)).forEach(o=>{const sc=onsenScale(o);
     const m=new google.maps.Marker({position:{lat:o.lat,lng:o.lng},map,icon:pinIcon(sc.c,sc.sz),label:{text:'♨',fontSize:Math.round(9+sc.sz*1.6)+'px',color:'#fff',fontWeight:'700'},title:o.name+'（'+sc.l+'）',zIndex:(o.s||2)});
-    m.addListener('click',()=>openInfo(m,onsengoPopup(o)));onsengoMarkers.push(m);});}
+    m._s=o.s||2;m.addListener('click',()=>openInfo(m,onsengoPopup(o)));onsengoMarkers.push(m);});
+  if(!renderOnsenGo._lod){renderOnsenGo._lod=true;if(map)map.addListener('zoom_changed',applyOnsenLod);} // ズームで表示密度を調整（一度だけ登録）
+  applyOnsenLod();}
+// 引き（低ズーム）ではピンが重なるので、規模の大きい温泉から順に表示（LOD）。ズームインで徐々に増える
+function onsenLodMin(z){return z>=9?1:z>=8?2:z>=7?3:z>=6?4:5;}
+function applyOnsenLod(){if(!onsenLayerOn||!map)return;const min=onsenLodMin(map.getZoom()||6);onsengoMarkers.forEach(m=>{const s=m._s||2;if(m.getVisible()!==(s>=min))m.setVisible(s>=min);});}
 function onsengoPopup(o){const q=encodeURIComponent(o.name);const sc=onsenScale(o);const taxTxt=o.tax?`入湯税 ${taxOku(o.tax)}/年（2023年度・全国上位）`:'入湯税データ非公表';return `<div class="popup"><h3>♨ ${escapeHtml(o.name)}</h3><div class="meta">${escapeHtml(o.area)}${o.note?(' ・ '+escapeHtml(o.note)):''}</div><div class="meta" style="margin-top:3px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${sc.c};margin-right:5px;vertical-align:middle;"></span><b>規模：${sc.l}</b>・${taxTxt}</div>${routeActionsHtml(o.lat,o.lng,o.name)}<div class="links"><button class="dest" onclick="window.setDest(${o.lat},${o.lng},'${encodeURIComponent(o.name)}')">ここへ</button><button onclick="window.ogNearby(${o.lat},${o.lng})">周辺の温泉</button>${circleIsoBtns(o.lat,o.lng,o.name)}<a class="rakuten" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+楽天トラベル">宿(楽天)</a><a class="official" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+ゆこゆこ">♨ ゆこゆこ</a><a class="official" target="_blank" rel="noopener" href="https://ja.wikipedia.org/wiki/${q}">詳細</a></div></div>`;}
 window.ogNearby=function(lat,lng){infoWindow.close();map.setCenter({lat,lng});map.setZoom(14);selectTab('onsen');};
 
-// ===== 距離円バッファ（レイヤー管理・複数同時描画・5〜30km） =====
+// ===== 距離円バッファ（レイヤー管理・複数同時描画・5〜30・50km） =====
 let bufferLayers=[]; // {id,name,center,shapes[],visible}
 function drawBuffer(lat,lng,name){
   const id=Date.now()+Math.floor(Math.random()*1000);const shapes=[];
-  [5,10,15,20,25,30].forEach(km=>{
+  [5,10,15,20,25,30,50].forEach(km=>{
     shapes.push(new google.maps.Circle({center:{lat,lng},radius:km*1000,strokeColor:cssvar('--accent'),strokeWeight:1.5,strokeOpacity:.7,fillOpacity:0,map,clickable:false,zIndex:1}));
     shapes.push(new google.maps.Marker({position:{lat:lat+km/111,lng},map,clickable:false,icon:{path:google.maps.SymbolPath.CIRCLE,scale:0.01,fillOpacity:0,strokeOpacity:0},label:{text:km+'km',fontSize:'10px',fontWeight:'700',color:cssvar('--accent')}}));
   });
@@ -1777,7 +1805,7 @@ async function getLayerSets(){try{await ensureMigrated();return await idbAll();}
 function simplifyPath(path,maxPts){if(!path||path.length<=maxPts)return path;const out=[],step=path.length/maxPts;for(let i=0;i<path.length;i+=step)out.push(path[Math.floor(i)]);const last=path[path.length-1];if(out[out.length-1]!==last)out.push(last);return out;} // 長い経路は間引いて保存サイズを抑制（表示は概観として十分）
 function serializeCurrentLayer(){ // 現在のレイヤーを永続化可能な形へ（地図オブジェクトは除外）
   const routes=savedRoutes.map(r=>({id:r.id,label:r.label,name:r.name||r.label,color:r.color,distKm:r.distKm,trafSec:r.trafSec,toll:r.toll,gas:r.gas,rental:r.rental||0,other:r.other,total:r.total,times:!!r.times,timesRank:r.timesRank||null,timesHours:(r.timesHours!=null?r.timesHours:null),timesNight:!!r.timesNight,people:r.people,manual:!!r.manual,visible:r.visible!==false,depTime:r.depTime||null,depTimeMode:r.depTimeMode||null,depTimeManual:!!r.depTimeManual,pts:r.pts||null,path:r.path?simplifyPath(r.path,2000):null}));
-  const pins=savedPins.map(p=>({id:p.id,name:p.name,lat:p.lat,lng:p.lng,sub:p.sub||'',visible:p.visible!==false,color:p.color||null,note:p.note||''}));
+  const pins=savedPins.map(p=>({id:p.id,name:p.name,lat:p.lat,lng:p.lng,sub:p.sub||'',visible:p.visible!==false,color:p.color||null,note:p.note||'',label:p.label||null}));
   const buffers=bufferLayers.map(b=>({name:b.name,lat:b.center.lat,lng:b.center.lng}));
   return {routes,pins,buffers};
 }
@@ -1807,7 +1835,7 @@ function rebuildSavedRouteObj(r){ // 保存ルート1件を地図に復元（res
 }
 function clearCurrentLayerObjects(){ // 現在のレイヤーの地図オブジェクトを除去
   savedRoutes.forEach(r=>{(r.polys||[]).forEach(p=>p.setMap(null));(r.markers||[]).forEach(m=>m.setMap(null));});savedRoutes.length=0;
-  savedPins.forEach(p=>{if(p.marker)p.marker.setMap(null);});savedPins.length=0;
+  savedPins.forEach(p=>{if(p.marker)p.marker.setMap(null);removePinLabel(p.id);});savedPins.length=0;
   bufferLayers.forEach(b=>b.shapes.forEach(s=>s.setMap(null)));bufferLayers.length=0;document.getElementById('bufClear').style.display='none';
 }
 async function loadLayerSet(id){ // 保存レイヤーを読み込み（現在のレイヤーを置換）
@@ -1818,7 +1846,7 @@ async function loadLayerSet(id){ // 保存レイヤーを読み込み（現在�
   if(hasCur&&!confirm('現在のレイヤー（ルート'+cur.routes.length+'・ピン'+cur.pins.length+'・距離円'+cur.buffers.length+'）を、保存レイヤー「'+set.name+'」で置き換えます。よろしいですか？'))return;
   clearCurrentLayerObjects();
   (set.routes||[]).forEach(r=>savedRoutes.push(rebuildSavedRouteObj(r)));
-  (set.pins||[]).forEach(o=>{const pin={id:o.id||Date.now()+Math.floor(Math.random()*1e6),name:o.name,lat:o.lat,lng:o.lng,sub:o.sub||'',visible:o.visible!==false,color:o.color||null,note:o.note||''};pin.marker=makePinMarker(pin);if(pin.visible===false&&pin.marker)pin.marker.setMap(null);savedPins.push(pin);});
+  (set.pins||[]).forEach(o=>{const pin={id:o.id||Date.now()+Math.floor(Math.random()*1e6),name:o.name,lat:o.lat,lng:o.lng,sub:o.sub||'',visible:o.visible!==false,color:o.color||null,note:o.note||'',label:o.label||null};pin.marker=makePinMarker(pin);if(pin.visible===false&&pin.marker)pin.marker.setMap(null);savedPins.push(pin);if(pin.label&&pin.label.on&&pin.visible!==false)pinLabels[pin.id]=makePinLabel(pin);});
   (set.buffers||[]).forEach(b=>{if(b.lat!=null&&b.lng!=null)drawBuffer(b.lat,b.lng,b.name);});
   persistPins();persistState();renderLayerPanel();renderSettlePanel();if(activeTab==='custom')buildCustomPanel();
   document.getElementById('lsOverlay').classList.remove('open');
@@ -3886,17 +3914,82 @@ function pinHaloIcon(color){
     +'<circle cx="17" cy="17" r="10.5" fill="none" stroke="'+color+'" stroke-width="1.4" stroke-opacity="0.9"/></svg>';
   return {url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),scaledSize:new google.maps.Size(34,34),anchor:new google.maps.Point(17,17)};
 }
-function makePinMarker(o){const m=new google.maps.Marker({position:{lat:o.lat,lng:o.lng},map:(o.visible!==false)?map:null,icon:pinHaloIcon(o.color||'#e6197a'),zIndex:66,title:o.name||''});m._info={lat:o.lat,lng:o.lng,name:o.name,sub:o.sub,id:o.id};m.addListener('click',()=>openKeptPopup(m));return m;}
+function makePinMarker(o){const m=new google.maps.Marker({position:{lat:o.lat,lng:o.lng},map:(o.visible!==false)?map:null,icon:pinHaloIcon(o.color||'#e6197a'),zIndex:66,title:o.name||''});m._info={lat:o.lat,lng:o.lng,name:o.name,sub:o.sub,id:o.id};
+  let ct=null; // シングルクリック=情報ポップアップ／ダブルクリック=地名ラベル切替（250ms猶予で誤発火防止）
+  m.addListener('click',()=>{if(ct)clearTimeout(ct);ct=setTimeout(()=>{ct=null;openKeptPopup(m);},250);});
+  m.addListener('dblclick',()=>{if(ct){clearTimeout(ct);ct=null;}togglePinLabel(o);});
+  return m;}
+
+// ===== ピンの地名ラベル（ダブルクリックで表示。OverlayViewで箱＋コネクタ線＋回転破線円を描画。ドラッグ移動・タップでデザイン切替・ダブルタップで名称編集） =====
+const pinLabels={}; // pin.id -> OverlayView
+function labelStyle(design,dark){ // コネクタ線・破線円の色（箱はCSSクラス側）
+  if(design===2)return {conn:dark?'#c8ccd2':'#1f4e5f',dash:false,ring:null};
+  if(design===3)return {conn:dark?'#ff5a5a':'#111111',dash:true,ring:dark?'#ff5a5a':'#111111'};
+  return {conn:dark?'#ffffff':'#16181d',dash:false,ring:null}; // D1
+}
+function labelText(pin){return (pin.label&&pin.label.text)||pin.name||'地点';}
+function makePinLabel(pin){
+  const ov=new google.maps.OverlayView();
+  let dragging=false,moved=false,sx=0,sy=0,spx=null,lastTap=0;
+  ov.onAdd=function(){
+    const pane=this.getPanes().overlayMouseTarget;
+    const conn=document.createElement('div');conn.className='pl-conn';
+    const ring=document.createElement('div');ring.className='pl-ring';
+    const box=document.createElement('div');box.className='pin-label';
+    pane.appendChild(conn);pane.appendChild(ring);pane.appendChild(box);
+    this._conn=conn;this._ring=ring;this._box=box;
+    const ptr=e=>({x:(e.touches?e.touches[0]:e).clientX,y:(e.touches?e.touches[0]:e).clientY});
+    const onMove=(e)=>{if(!dragging)return;e.preventDefault();const p=ptr(e),dx=p.x-sx,dy=p.y-sy;if(Math.abs(dx)>4||Math.abs(dy)>4)moved=true;const proj=ov.getProjection();if(!proj||!spx)return;const ll=proj.fromDivPixelToLatLng(new google.maps.Point(spx.x+dx,spx.y+dy));pin.label.ll={lat:ll.lat(),lng:ll.lng()};ov.draw();};
+    const onUp=()=>{document.removeEventListener('pointermove',onMove);document.removeEventListener('pointerup',onUp);box.style.cursor='grab';if(!dragging)return;dragging=false;
+      if(moved){persistPins();return;}
+      const now=Date.now();
+      if(now-lastTap<320){lastTap=0;if(ov._tt){clearTimeout(ov._tt);ov._tt=null;}editLabelText(pin,ov);} // ダブルタップ=編集
+      else{lastTap=now;ov._tt=setTimeout(()=>{ov._tt=null;cyclePinLabelDesign(pin,ov);},320);}}; // シングルタップ=デザイン切替
+    const onDown=(e)=>{e.stopPropagation();e.preventDefault();dragging=true;moved=false;const p=ptr(e);sx=p.x;sy=p.y;const proj=ov.getProjection();spx=proj?proj.fromLatLngToDivPixel(new google.maps.LatLng(pin.label.ll.lat,pin.label.ll.lng)):null;box.style.cursor='grabbing';document.addEventListener('pointermove',onMove);document.addEventListener('pointerup',onUp);};
+    box.addEventListener('pointerdown',onDown);
+  };
+  ov.draw=function(){
+    const proj=this.getProjection();if(!proj||!this._box)return;
+    const pinPx=proj.fromLatLngToDivPixel(new google.maps.LatLng(pin.lat,pin.lng));
+    if(!pin.label.ll){const ll=proj.fromDivPixelToLatLng(new google.maps.Point(pinPx.x+54,pinPx.y-36));pin.label.ll={lat:ll.lat(),lng:ll.lng()};persistPins();}
+    const lPx=proj.fromLatLngToDivPixel(new google.maps.LatLng(pin.label.ll.lat,pin.label.ll.lng));
+    const design=(pin.label.design||1),dark=(currentTheme==='dark'),st=labelStyle(design,dark);
+    const box=this._box,conn=this._conn,ring=this._ring;
+    box.textContent=labelText(pin);box.className='pin-label pl-d'+design+(dark?' pl-dark':' pl-light');
+    box.style.left=lPx.x+'px';box.style.top=lPx.y+'px';
+    const dx=lPx.x-pinPx.x,dy=lPx.y-pinPx.y,len=Math.hypot(dx,dy),ang=Math.atan2(dy,dx)*180/Math.PI;
+    conn.style.left=pinPx.x+'px';conn.style.top=pinPx.y+'px';conn.style.width=len+'px';conn.style.transform='rotate('+ang+'deg)';
+    if(st.dash){conn.style.height='0';conn.style.background='none';conn.style.borderTop='2px dashed '+st.conn;}
+    else{conn.style.borderTop='none';conn.style.height='2px';conn.style.background=st.conn;}
+    if(st.ring){ring.style.display='block';ring.style.left=pinPx.x+'px';ring.style.top=pinPx.y+'px';ring.style.borderColor=st.ring;}
+    else ring.style.display='none';
+  };
+  ov.onRemove=function(){[this._conn,this._ring,this._box].forEach(el=>{if(el&&el.parentNode)el.parentNode.removeChild(el);});this._conn=this._ring=this._box=null;if(this._tt){clearTimeout(this._tt);this._tt=null;}};
+  ov.setMap(map);
+  return ov;
+}
+function cyclePinLabelDesign(pin,ov){pin.label.design=((pin.label.design||1)%3)+1;persistPins();if(ov)ov.draw();}
+function editLabelText(pin,ov){const v=prompt('地図に表示する名称（空欄でピン名に戻す）',(pin.label&&pin.label.text)||pin.name||'');if(v==null)return;pin.label.text=v.trim();persistPins();if(ov)ov.draw();}
+function togglePinLabel(pin){
+  if(!pin||pin.id==null)return;if(!pin.label)pin.label={};
+  if(pinLabels[pin.id]){pinLabels[pin.id].setMap(null);delete pinLabels[pin.id];pin.label.on=false;persistPins();showStatus('地名ラベルを非表示にしました',false);hideStatusLater();return;}
+  pin.label.on=true;if(!pin.label.design)pin.label.design=1;if(pin.label.text==null)pin.label.text='';
+  pinLabels[pin.id]=makePinLabel(pin);persistPins();
+  showStatus('地名ラベルを表示（ドラッグで移動／タップでデザイン切替／ダブルタップで名称編集）',false);hideStatusLater();
+}
+function removePinLabel(id){if(pinLabels[id]){pinLabels[id].setMap(null);delete pinLabels[id];}}
 function addSavedPin(o){ // {name,lat,lng,sub} → 常設ピンを追加（同座標の重複は無視）
   if(savedPins.some(p=>Math.abs(p.lat-o.lat)<1e-6&&Math.abs(p.lng-o.lng)<1e-6))return savedPins.find(p=>Math.abs(p.lat-o.lat)<1e-6&&Math.abs(p.lng-o.lng)<1e-6);
   const pin={id:Date.now()+Math.floor(Math.random()*1000),name:o.name||'地点',lat:o.lat,lng:o.lng,sub:o.sub||'',visible:true};
   pin.marker=makePinMarker(pin);savedPins.push(pin);persistPins();renderLayerPanel();if(activeTab==='custom')buildCustomPanel();return pin;
 }
-function removeSavedPin(id){const i=savedPins.findIndex(p=>p.id===id);if(i<0)return;if(savedPins[i].marker)savedPins[i].marker.setMap(null);savedPins.splice(i,1);persistPins();renderLayerPanel();if(activeTab==='custom')buildCustomPanel();}
-function toggleSavedPinVisible(id){const p=savedPins.find(x=>x.id===id);if(!p)return;p.visible=!p.visible;if(p.marker)p.marker.setMap(p.visible?map:null);persistPins();renderLayerPanel();}
-function clearSavedPins(){savedPins.forEach(p=>{if(p.marker)p.marker.setMap(null);});savedPins.length=0;persistPins();renderLayerPanel();if(activeTab==='custom')buildCustomPanel();}
-function persistPins(){try{localStorage.setItem('tabi_pins',JSON.stringify(savedPins.map(p=>({id:p.id,name:p.name,lat:p.lat,lng:p.lng,sub:p.sub,visible:p.visible!==false,color:p.color||null,note:p.note||''}))));}catch(e){}}
-function restorePins(){let a;try{a=JSON.parse(localStorage.getItem('tabi_pins')||'[]');}catch(e){a=[];}savedPins.forEach(p=>{if(p.marker)p.marker.setMap(null);});savedPins=(a||[]).map(o=>{const pin={id:o.id,name:o.name,lat:o.lat,lng:o.lng,sub:o.sub||'',visible:o.visible!==false,color:o.color||null,note:o.note||''};pin.marker=makePinMarker(pin);return pin;});}
+function removeSavedPin(id){const i=savedPins.findIndex(p=>p.id===id);if(i<0)return;if(savedPins[i].marker)savedPins[i].marker.setMap(null);removePinLabel(id);savedPins.splice(i,1);persistPins();renderLayerPanel();if(activeTab==='custom')buildCustomPanel();}
+function toggleSavedPinVisible(id){const p=savedPins.find(x=>x.id===id);if(!p)return;p.visible=!p.visible;if(p.marker)p.marker.setMap(p.visible?map:null);if(pinLabels[id])pinLabels[id].setMap(p.visible?map:null);persistPins();renderLayerPanel();}
+function clearSavedPins(){savedPins.forEach(p=>{if(p.marker)p.marker.setMap(null);removePinLabel(p.id);});savedPins.length=0;persistPins();renderLayerPanel();if(activeTab==='custom')buildCustomPanel();}
+function persistPins(){try{localStorage.setItem('tabi_pins',JSON.stringify(savedPins.map(p=>({id:p.id,name:p.name,lat:p.lat,lng:p.lng,sub:p.sub,visible:p.visible!==false,color:p.color||null,note:p.note||'',label:p.label||null}))));}catch(e){}}
+function restorePins(){let a;try{a=JSON.parse(localStorage.getItem('tabi_pins')||'[]');}catch(e){a=[];}Object.keys(pinLabels).forEach(removePinLabel);savedPins.forEach(p=>{if(p.marker)p.marker.setMap(null);});savedPins=(a||[]).map(o=>{const pin={id:o.id,name:o.name,lat:o.lat,lng:o.lng,sub:o.sub||'',visible:o.visible!==false,color:o.color||null,note:o.note||'',label:o.label||null};pin.marker=makePinMarker(pin);return pin;});
+  savedPins.forEach(pin=>{if(pin.label&&pin.label.on&&pin.visible!==false)pinLabels[pin.id]=makePinLabel(pin);}); // 地名ラベルの復元
+}
 window.setPinNote=function(id,v){const p=savedPins.find(x=>x.id===id);if(p){p.note=(v||'').slice(0,300);persistPins();}}; // ピンのメモ（最大300字）を保存
 // 保存ピングループ（現在のピン一式に名前を付けて保存→いつでも一括描画）
 function getPinGroups(){try{return JSON.parse(localStorage.getItem('tabi_pin_groups')||'[]');}catch(e){return[];}}
@@ -3998,10 +4091,15 @@ async function mergeSharedData(data){
   return {pins:ap,groups:ag,layers:al};
 }
 function openKeptPopup(m){const i=m._info,e=encodeURIComponent(i.name||'');
-  const note=i.id!=null?((savedPins.find(p=>p.id===i.id)||{}).note||''):'';
+  const sp=i.id!=null?savedPins.find(p=>p.id===i.id):null;
+  const note=(sp&&sp.note)||'';const col=(sp&&sp.color)||'#e6197a';
   const noteHtml=i.id!=null?`<textarea class="pin-note" maxlength="300" placeholder="メモ（最大300字）" oninput="window.setPinNote(${i.id},this.value)">${escapeHtml(note)}</textarea>`:'';
-  openInfo(m,`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}${noteHtml}${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest" onclick="window.routeTo(${i.lat},${i.lng},'${e}')">ルートに追加</button>${circleIsoBtns(i.lat,i.lng,i.name)}${i.id!=null?`<button class="pin-del-btn" onclick="window.delPin(${i.id})">ピンを削除</button>`:''}</div></div>`);
+  const colorBtn=i.id!=null?`<button class="pin-clr-btn" style="background:${col}" title="ピンの色を変更" onclick="window.pinColorPick(${i.id},this)">色</button>`:'';
+  openInfo(m,`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}${noteHtml}${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest" onclick="window.routeTo(${i.lat},${i.lng},'${e}')">ルートに追加</button>${circleIsoBtns(i.lat,i.lng,i.name)}${colorBtn}${i.id!=null?`<button class="pin-del-btn" onclick="window.delPin(${i.id})">ピンを削除</button>`:''}</div></div>`);
 }
+window.pinColorPick=function(id,btn){const p=savedPins.find(x=>x.id===id);if(!p)return;
+  openColorPalette(btn,p.color||'#e6197a',c=>{p.color=c;if(p.marker)p.marker.setIcon(pinHaloIcon(c));if(btn)btn.style.background=c; // 色のみ変更・サイズは維持
+    const sw=document.querySelector('#layerList .pin-lysw[data-id="'+id+'"]');if(sw)sw.style.borderColor=c;persistPins();});};
 window.delPin=function(id){infoWindow.close();removeSavedPin(id);showStatus('ピンを削除しました',false);hideStatusLater();};
 // ルートタブで地図上のピン情報を 出発地/経由地/目的地 に割り当てる（ポップアップ内に表示）
 function routeActionsHtml(lat,lng,name){const e=encodeURIComponent(name||'');return `<div class="route-act"><span class="ra-lab">このピンをルートに：</span><button onclick="window.routeUse(${lat},${lng},'${e}','start')">出発地</button><button onclick="window.routeUse(${lat},${lng},'${e}','via')">経由地</button><button onclick="window.routeUse(${lat},${lng},'${e}','end')">目的地</button></div>`;}
