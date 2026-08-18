@@ -301,6 +301,21 @@
   .share-code-box .code-cap{font-size:11px;color:var(--muted);text-align:center;margin-top:5px;}
   .share-guide summary{font-size:11.5px;color:var(--accent);cursor:pointer;margin-top:10px;font-weight:700;}
   .share-guide code{font-family:ui-monospace,Menlo,monospace;}
+  /* ===== SA/PA検索モーダル ===== */
+  .sapa-search-box{position:sticky;top:0;background:var(--panel);padding-bottom:9px;margin-bottom:2px;z-index:1;}
+  .sapa-search-box input,.sapa-search-box select{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font-size:14px;background:var(--surface);color:var(--fg);margin-bottom:8px;}
+  .sapa-attrs{display:flex;flex-wrap:wrap;gap:7px;}
+  .sapa-attr{display:flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;border:1px solid var(--line);background:var(--surface-2);border-radius:9px;padding:6px 10px;cursor:pointer;color:var(--fg);}
+  .sapa-attr input{accent-color:var(--accent);width:15px;height:15px;}
+  .sapa-count{font-size:11.5px;color:var(--muted);font-weight:700;margin-top:9px;}
+  #sapaResults{max-height:56vh;overflow-y:auto;}
+  .sapa-card{border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:8px;background:var(--surface);}
+  .sapa-card h3{margin:0 0 2px;font-size:14.5px;color:var(--fg);}
+  .sapa-card .sc-meta{font-size:11.5px;color:var(--muted);margin-bottom:6px;}
+  .sapa-card .sc-lv{font-size:12.5px;font-weight:700;color:var(--fg);margin-top:4px;}
+  .sapa-card .sc-lv b{color:var(--c-sapa);font-size:15px;}
+  .sapa-card .sc-g{display:inline-block;font-size:11.5px;color:var(--accent);font-weight:700;text-decoration:none;margin-top:7px;}
+  .sapa-empty{font-size:13px;color:var(--muted);padding:16px 4px;text-align:center;}
   #nokey{position:fixed;inset:0;z-index:3000;display:none;align-items:center;justify-content:center;background:var(--bg);padding:24px;text-align:center;}
   #nokey.show{display:flex;}
   #nokey .box{max-width:420px;} #nokey h2{font-size:18px;} #nokey p{color:var(--muted);font-size:14px;line-height:1.7;}
@@ -528,10 +543,11 @@
   <div class="tm-sec">道路交通</div>
   <button class="tm-item" id="tmTraffic"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M5 20l2.5-16M19 20l-2.5-16M12 5v2.4M12 10.8v2.4M12 16.6v2.4"/></svg></span><span class="tm-lab">リアルタイム渋滞<small>Google交通情報（緑/橙/赤）</small></span><span class="tm-sw"></span></button>
   <button class="tm-item" id="tmHighway"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M7.5 12h9"/></svg></span><span class="tm-lab">高速の通行止め・規制<small>公式のリアルタイム情報を開く</small></span><span class="tm-ex">開く</span></button>
-  <div class="tm-sec">防災（起動中は5分ごとに自動取得）</div>
+  <button class="tm-item" id="tmSapa"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/></svg></span><span class="tm-lab">SA/PA検索<small>路線・名称・施設(温泉/コンビニ等)で探す</small></span><span class="tm-ex">開く</span></button>
+  <div class="tm-sec">防災（リアルタイム受信）</div>
   <button class="tm-item" id="tmTsunami"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M2 15c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 2-2M2 19c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 2-2"/></svg></span><span class="tm-lab">津波情報<small>警報・注意報を沿岸に表示</small></span><span class="tm-sw"></span></button>
   <button class="tm-item" id="tmQuake"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M3 12h3l2-6 3 12 3-9 2 3h5"/></svg></span><span class="tm-lab">地震（震度5弱以上）<small>観測県を30分ぬり分け表示</small></span><span class="tm-sw"></span></button>
-  <div class="tm-note">防災情報は気象庁の公開データを表示する<b>参考</b>です。避難は自治体の指示・標識に従ってください。</div>
+  <div class="tm-note">防災情報は気象庁の公開データを表示する<b>参考</b>です（即時受信: P2P地震情報）。避難は自治体の指示・標識に従ってください。</div>
 </div>
 <div id="disasterBanner"><span id="dbText"></span><button class="db-x" id="dbClose" title="閉じる">✕</button></div>
 <div id="status"></div>
@@ -642,6 +658,22 @@
 <div class="overlay" id="lsOverlay"><div class="modal">
   <div class="modal-h"><b>保存したレイヤー</b><button id="lsClose">✕</button></div>
   <div class="set-sec" style="margin-bottom:0;"><div id="lsList"></div></div>
+</div></div>
+
+<div class="overlay" id="sapaOverlay"><div class="modal">
+  <div class="modal-h"><b>SA/PA検索</b><button id="sapaClose">✕</button></div>
+  <div class="sapa-search-box">
+    <input id="sapaQ" placeholder="名称・県で検索（例: 海老名／談合坂／静岡）" autocomplete="off" />
+    <select id="sapaRoad"><option value="">すべての路線</option></select>
+    <div class="sapa-attrs">
+      <label class="sapa-attr"><input type="checkbox" data-a="bath">温泉・入浴</label>
+      <label class="sapa-attr"><input type="checkbox" data-a="conv">コンビニ</label>
+      <label class="sapa-attr"><input type="checkbox" data-a="gas">ガソリン</label>
+      <label class="sapa-attr"><input type="checkbox" data-a="rest">レストラン</label>
+    </div>
+    <div class="sapa-count" id="sapaCount"></div>
+  </div>
+  <div id="sapaResults"></div>
 </div></div>
 
 <div id="nokey"><div class="box"><h2>たびマップ（ドライブサポートツール）</h2><p>この版は <b>Google Maps APIキー</b> が必要です。<br>右上のメニューから「設定」を開きキーを入力してください。<br>（無料版は <a href="index.html">こちら</a>）</p><button class="set-save" style="max-width:200px;margin:14px auto 0;" onclick="document.getElementById('overlay').classList.add('open')">キーを入力</button></div></div>
@@ -900,6 +932,7 @@ let trafficLayer=null, trafficOn=false; // リアルタイム渋滞（Google Tra
 // 防災（津波・地震）状態
 let tsunamiOn=false, tsunamiTimer=null, tsunamiShapes=[], tsunamiGeo=null, tsunamiLastId='';
 let quakeOn=false, quakeTimer=null, quakeData=null, quakePrefTopo=null, quakeLastId='', quakeClearTimer=null;
+let p2pWs=null, p2pReconnectTimer=null; // P2P地震情報 WebSocket（即時プッシュ受信）
 let depTimeManual=false; // 出発日時をユーザーが手動指定したらtrue（自動更新を停止）
 function setDepNow(){const e=document.getElementById('depTime');if(e){e.value=nowLocal();}depTimeManual=false;if(typeof lastDistanceKm!=='undefined'&&lastDistanceKm!=null)updateCost();}
 function touchDepTime(){if(depTimeManual)return;const e=document.getElementById('depTime');if(e)e.value=nowLocal();if(typeof lastDistanceKm!=='undefined'&&lastDistanceKm!=null)updateCost();}
@@ -2885,6 +2918,41 @@ function sapaItinHtml(d){
   return '<div class="itin-sapa"><span class="itf-row">'+fac+'</span><span class="itin-score">Lv.<b style="color:'+lvColor(d.score)+'">'+d.score+'</b></span><span class="itin-park">駐車'+d.total+'台</span><span class="itin-park">基礎 Lv.'+d.base+'</span></div>';
 }
 
+// ===== SA/PA検索：内蔵データ(SAPA_ROWS)を 路線・名称/県・施設(温泉/コンビニ/ガソリン/レストラン) で検索 =====
+let _sapaObjs=null;
+function sapaObjs(){if(!_sapaObjs)_sapaObjs=SAPA_ROWS.map(sapaRowObj);return _sapaObjs;}
+function sapaSearchCard(d){
+  const g=encodeURIComponent((d.name||'').replace(/（.*?）/g,'')+' '+(d.road||''));
+  return '<div class="sapa-card"><h3>'+escapeHtml(d.name)+'</h3>'
+    +'<div class="sc-meta">'+escapeHtml(d.road)+'・'+escapeHtml(d.pref)+'</div>'
+    +'<div class="popup">'+sapaFacRow(d)+'</div>'
+    +'<div class="sc-lv">規模 Lv.<b>'+d.score+'</b>（基礎 Lv.'+d.base+'）／駐車 '+d.total+'台</div>'
+    +'<a class="sc-g" target="_blank" rel="noopener" href="https://www.google.com/search?q='+g+'">詳細をWeb検索 ›</a></div>';
+}
+function renderSapaResults(){
+  const q=(document.getElementById('sapaQ').value||'').trim();
+  const road=document.getElementById('sapaRoad').value;
+  const attrs=[].slice.call(document.querySelectorAll('#sapaOverlay .sapa-attr input:checked')).map(c=>c.dataset.a);
+  let rows=sapaObjs();
+  if(road)rows=rows.filter(d=>d.road===road);
+  if(q)rows=rows.filter(d=>(d.name&&d.name.indexOf(q)>=0)||(d.pref&&d.pref.indexOf(q)>=0)||(d.road&&d.road.indexOf(q)>=0));
+  if(attrs.length)rows=rows.filter(d=>attrs.every(a=>!!d[a]));
+  rows=rows.slice().sort((a,b)=>(b.score-a.score)||(b.total-a.total));
+  const total=rows.length,LIM=80,show=rows.slice(0,LIM);
+  document.getElementById('sapaCount').textContent=total+'件'+(total>LIM?'（規模の大きい順に上位'+LIM+'件を表示）':'');
+  document.getElementById('sapaResults').innerHTML=show.map(sapaSearchCard).join('')||'<div class="sapa-empty">該当するSA/PAがありません。条件をゆるめてください。</div>';
+}
+function openSapaSearch(){
+  toggleToolMenu(false);
+  const sel=document.getElementById('sapaRoad');
+  if(sel&&sel.options.length<=1){ // 路線プルダウンを一度だけ生成
+    const roads=Array.from(new Set(SAPA_ROWS.map(r=>r[1]))).sort((a,b)=>a.localeCompare(b,'ja'));
+    sel.insertAdjacentHTML('beforeend',roads.map(r=>'<option value="'+escapeHtml(r)+'">'+escapeHtml(r)+'</option>').join(''));
+  }
+  document.getElementById('sapaOverlay').classList.add('open');
+  renderSapaResults();
+}
+
 // ===== 休憩提案：連続運転時間ごとにルート沿いのSA/PA・道の駅・コンビニを提案 =====
 // 高速はstep単位のtimelineが粗い（1ステップ数十km）ため、密なfullPathへ時刻を補間した休憩用パスを構築（キャッシュ）
 let _restPath=null,_restPathKey='';
@@ -3184,8 +3252,8 @@ async function pollTsunami(){
 function setTsunami(on){
   tsunamiOn=on;localStorage.setItem('tabi_tsunami_on',on?'1':'0');
   if(tsunamiTimer){clearInterval(tsunamiTimer);tsunamiTimer=null;}
-  if(on){renderToolMenu();pollTsunami();tsunamiTimer=setInterval(pollTsunami,300000);showStatus('津波情報の自動取得を開始（5分毎）。発表時に沿岸を色分け表示します',false);hideStatusLater();}
-  else{tsunamiLastId='';clearTsunamiShapes();renderToolMenu();showStatus('津波情報の自動取得を停止',false);hideStatusLater();}
+  if(on){renderToolMenu();pollTsunami();tsunamiTimer=setInterval(pollTsunami,300000);p2pEnsure();showStatus('津波情報をリアルタイム受信中。発表時に沿岸を色分け表示します',false);hideStatusLater();}
+  else{tsunamiLastId='';clearTsunamiShapes();renderToolMenu();p2pMaybeClose();showStatus('津波情報の受信を停止',false);hideStatusLater();}
 }
 
 // ===== 地震（最大震度5弱以上）：観測県を30分ぬり分け（都道府県ポリゴン topojson をインライン復号） =====
@@ -3241,8 +3309,33 @@ async function pollQuake(){
 function setQuake(on){
   quakeOn=on;localStorage.setItem('tabi_quake_on',on?'1':'0');
   if(quakeTimer){clearInterval(quakeTimer);quakeTimer=null;}
-  if(on){renderToolMenu();pollQuake();quakeTimer=setInterval(pollQuake,300000);showStatus('地震情報の自動取得を開始（5分毎）。震度5弱以上で観測県をぬり分けます',false);hideStatusLater();}
-  else{quakeLastId='';clearQuake();renderToolMenu();showStatus('地震情報の自動取得を停止',false);hideStatusLater();}
+  if(on){renderToolMenu();pollQuake();quakeTimer=setInterval(pollQuake,300000);p2pEnsure();showStatus('地震情報をリアルタイム受信中。震度5弱以上で観測県をぬり分けます',false);hideStatusLater();}
+  else{quakeLastId='';clearQuake();renderToolMenu();p2pMaybeClose();showStatus('地震情報の受信を停止',false);hideStatusLater();}
+}
+// ===== P2P地震情報 WebSocket：地震(551)/津波(552)の発表を即時プッシュ受信し、JMA由来の描画を即トリガ =====
+// 描画は既存のpollQuake/pollTsunami(気象庁データ)を使用。WSは「即時トリガ」の役割。5分ポーリングはフォールバックとして併存。
+function p2pEnsure(){
+  if(!(quakeOn||tsunamiOn))return;
+  if(p2pWs&&(p2pWs.readyState===0||p2pWs.readyState===1))return; // 接続中/接続済み
+  try{p2pWs=new WebSocket('wss://api.p2pquake.net/v2/ws');}catch(e){return;}
+  p2pWs.onmessage=(ev)=>{
+    let d;try{d=JSON.parse(ev.data);}catch(e){return;}
+    if(d.code===551&&quakeOn){ // 地震情報：最大震度5弱以上(maxScale>=45)なら即描画トリガ
+      const ms=((d.earthquake||{}).maxScale)||0;if(ms>=45)disasterRealtimeTrigger(pollQuake);
+    }else if(d.code===552&&tsunamiOn){ // 津波予報：即描画トリガ（解除含む・drawTsunamiが判定）
+      disasterRealtimeTrigger(pollTsunami);
+    }
+  };
+  p2pWs.onclose=()=>{p2pWs=null;if((quakeOn||tsunamiOn)){if(p2pReconnectTimer)clearTimeout(p2pReconnectTimer);p2pReconnectTimer=setTimeout(p2pEnsure,15000);}}; // 自動再接続
+  p2pWs.onerror=()=>{try{p2pWs&&p2pWs.close();}catch(e){}};
+}
+function p2pMaybeClose(){
+  if(quakeOn||tsunamiOn)return; // どちらか有効なら維持
+  if(p2pReconnectTimer){clearTimeout(p2pReconnectTimer);p2pReconnectTimer=null;}
+  if(p2pWs){try{p2pWs.onclose=null;p2pWs.close();}catch(e){}p2pWs=null;}
+}
+function disasterRealtimeTrigger(pollFn){ // 即時＋数回リトライ（気象庁フィードが追いつくまで）。各pollは内部で重複描画を防止
+  pollFn();[10000,25000,50000].forEach(ms=>setTimeout(()=>{ if(pollFn===pollQuake?quakeOn:tsunamiOn) pollFn(); },ms));
 }
 // NEXCO：長距離逓減制（〜100km×1.0／100〜200km×0.75／200km〜×0.70）＋ターミナルチャージ150円×係数、消費税10%
 function nexcoTollCalc(km,factor,disc,offset){
@@ -3974,6 +4067,7 @@ document.getElementById('rsClear').onclick=()=>{if(points.length>=2&&!confirm('�
   wire('tmLP',()=>toggleLP());
   wire('tmTraffic',()=>toggleTraffic());
   wire('tmHighway',()=>openHighwayInfo());
+  wire('tmSapa',()=>openSapaSearch());
   wire('tmTsunami',()=>setTsunami(!tsunamiOn));
   wire('tmQuake',()=>setQuake(!quakeOn));
   // メニュー外タップで閉じる
@@ -4162,6 +4256,15 @@ document.getElementById('layerClose').onclick=()=>document.getElementById('layer
 document.getElementById('lySaveSetBtn').onclick=saveCurrentLayerSet; // レイヤーを一括で名前を付けて保存
 document.getElementById('lsOpenBtn').onclick=openLayerSets;           // 設定→保存したレイヤーを参照
 document.getElementById('lsClose').onclick=()=>document.getElementById('lsOverlay').classList.remove('open');
+// SA/PA検索モーダルの配線
+(function(){
+  const ov=document.getElementById('sapaOverlay');if(!ov)return;
+  document.getElementById('sapaClose').onclick=()=>ov.classList.remove('open');
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.remove('open');});
+  const q=document.getElementById('sapaQ');if(q)q.addEventListener('input',renderSapaResults);
+  const rd=document.getElementById('sapaRoad');if(rd)rd.addEventListener('change',renderSapaResults);
+  ov.querySelectorAll('.sapa-attr input').forEach(c=>c.addEventListener('change',renderSapaResults));
+})();
 document.getElementById('lsOverlay').addEventListener('click',e=>{if(e.target.id==='lsOverlay')document.getElementById('lsOverlay').classList.remove('open');});
 document.getElementById('useLoc').onclick=()=>{if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}showStatus('現在地を取得中…',true);navigator.geolocation.getCurrentPosition(pos=>{statusEl.classList.remove('show');showCurrentLoc(pos.coords.latitude,pos.coords.longitude,pos.coords.accuracy);addPoint(pos.coords.latitude,pos.coords.longitude,'現在地');},err=>{showStatus('現在地を取得できませんでした',false);hideStatusLater();},{enableHighAccuracy:true,timeout:8000});};
 document.getElementById('prefSeg').addEventListener('click',(e)=>{const btn=e.target.closest('button');if(!btn)return;routePref=btn.dataset.p;[...e.currentTarget.children].forEach(b=>b.classList.toggle('on',b===btn));points.forEach(p=>{if(p)delete p.segPref;});updatePrefHint();if(points.length>=2)computeRoute();}); // 全体ボタンは区間別の上書きを解除して全区間に適用
