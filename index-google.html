@@ -633,6 +633,43 @@
     .txm-subs b{font-size:13px;}
     .txm-acts button{font-size:11.5px;}
   }
+  /* ===== 走行支援ナビ（案内カード） ===== */
+  #navCard{display:none;position:fixed;top:calc(140px + env(safe-area-inset-top));left:8px;right:12px;max-width:560px;z-index:1130;
+    background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 32px var(--shadow);overflow:hidden;}
+  #navCard.open{display:block;}
+  .nv-main{display:flex;align-items:center;gap:11px;background:var(--accent);color:#fff;padding:10px 12px;}
+  .nv-ic{flex:none;width:42px;height:42px;display:flex;align-items:center;justify-content:center;}
+  .nv-ic svg{width:40px;height:40px;fill:none;stroke:#fff;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;}
+  .nv-txt{flex:1;min-width:0;}
+  .nv-d{display:flex;align-items:baseline;gap:8px;}
+  .nv-d b{font-size:25px;font-weight:800;line-height:1.05;font-variant-numeric:tabular-nums;letter-spacing:.01em;}
+  .nv-d span{font-size:15px;font-weight:800;}
+  .nv-sub{font-size:11.5px;opacity:.92;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .nv-next{display:none;align-items:center;gap:7px;padding:5px 12px;background:var(--surface-2);font-size:11px;color:var(--muted);font-weight:700;}
+  .nv-next.show{display:flex;}
+  .nv-next svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;flex:none;}
+  .nv-next b{color:var(--fg);}
+  .nv-foot{display:flex;align-items:center;gap:8px;padding:7px 10px 8px 12px;}
+  .nv-stat{min-width:0;}
+  .nv-stat i{display:block;font-style:normal;font-size:8.5px;color:var(--muted);letter-spacing:.03em;}
+  .nv-stat b{font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap;}
+  .nv-sp{flex:1;}
+  .nv-btn{flex:none;min-height:32px;padding:0 9px;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--fg);font-size:11.5px;font-weight:800;cursor:pointer;}
+  .nv-btn:active{background:var(--surface-2);}
+  .nv-btn.on{background:var(--accent-weak);border-color:var(--accent);color:var(--accent);}
+  .nv-btn.x{color:var(--muted);padding:0 10px;font-size:13px;}
+  .nv-warn{display:none;padding:6px 12px 8px;font-size:11.5px;font-weight:700;color:#fff;background:#e8590c;}
+  #navCard.off-route .nv-warn{display:block;}
+  #navCard.off-route .nv-main{background:#e8590c;}
+  .nav-start-btn{width:100%;min-height:44px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-weight:800;font-size:13.5px;cursor:pointer;margin:0 0 8px;box-shadow:0 3px 12px rgba(59,111,255,.28);}
+  .nav-start-btn:active{filter:brightness(.94);}
+  .nav-gmap-btn{width:100%;min-height:40px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--fg);font-weight:700;font-size:12.5px;cursor:pointer;margin:0 0 8px;}
+  @media(max-width:600px){
+    #navCard{top:calc(104px + env(safe-area-inset-top));left:6px;right:6px;}
+    .nv-d b{font-size:23px;}
+    .nv-ic,.nv-ic svg{width:36px;height:36px;}
+    .nv-btn{font-size:11px;padding:0 8px;}
+  }
 </style>
 </head>
 <body>
@@ -703,6 +740,27 @@
 <button id="imgBtn" title="表示中の地図・レイヤーを画像で保存" aria-label="画像出力"><svg class="svgi" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="m4 17 5-5 4 4 3-3 4 4"/></svg><small>画像出力</small></button>
 <div id="layerPanel"><div class="ly-head"><span>レイヤー</span><button id="lySaveSetBtn" class="ly-save-set" title="現在のレイヤー（ルート・ピン・距離円）を名前を付けて保存">保存</button><button id="layerClose">✕</button></div><div id="layerList"></div></div>
 <div id="settlePanel"><div class="ly-head"><span>複数車両 割り勘決算</span><button id="settleClose">✕</button></div><div id="settleList"></div></div>
+<!-- 走行支援ナビ（案内カード）。画面上部だけを使い、地図操作を妨げない -->
+<div id="navCard">
+  <div class="nv-main">
+    <div class="nv-ic" id="nvIc"></div>
+    <div class="nv-txt">
+      <div class="nv-d"><b id="nvDist">--</b><span id="nvAct">案内中</span></div>
+      <div class="nv-sub" id="nvSub">目的地へ案内しています</div>
+    </div>
+  </div>
+  <div class="nv-next" id="nvNext"></div>
+  <div class="nv-foot">
+    <div class="nv-stat"><i>残り</i><b id="nvRemain">--</b></div>
+    <div class="nv-stat"><i>所要</i><b id="nvTime">--</b></div>
+    <div class="nv-stat"><i>到着予定</i><b id="nvEta">--:--</b></div>
+    <span class="nv-sp"></span>
+    <button class="nv-btn on" id="nvVoice" title="音声案内のON/OFF">音声</button>
+    <button class="nv-btn" id="nvGmap" title="Googleマップで案内を開始">Gマップ</button>
+    <button class="nv-btn x" id="nvStop" title="案内を終了">✕</button>
+  </div>
+  <div class="nv-warn" id="nvWarn">ルートを外れました。再探索しています…</div>
+</div>
 <!-- タクシーメーター（追跡ボタンの演出。画面の一部だけを使う据付メーター風パネル） -->
 <div id="taxiMeter" class="dock-b">
   <div class="txm-grip" id="txmGrip" title="たたむ／ひらく"></div>
@@ -770,6 +828,8 @@
   </div>
   <button id="saveRouteBtn" style="width:100%;min-height:42px;border:none;border-radius:11px;background:#0ca678;color:#fff;font-weight:700;font-size:13px;cursor:pointer;margin:10px 0 8px;">このルートを保存（車両として登録・割り勘へ）</button>
   <button id="schedBtn" style="width:100%;min-height:42px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--fg);font-weight:700;font-size:13px;cursor:pointer;margin:0 0 8px;">工程表を作成（印刷・PDF保存）</button>
+  <button id="navStartBtn" class="nav-start-btn">ナビ開始（走行支援・音声案内）</button>
+  <button id="navGmapBtn" class="nav-gmap-btn">Googleマップで案内を開始（本格ナビへ引き継ぎ）</button>
   <button id="gmapsBtn" class="gmaps-btn">Googleマップでこのルートを開く（ナビ・渋滞）</button>
   <div id="segExport" style="display:none;align-items:center;gap:6px;margin:-4px 0 12px;flex-wrap:wrap;">
     <span style="font-size:12px;color:var(--muted);font-weight:700;">区間だけ出力:</span>
@@ -1444,7 +1504,7 @@ function startLiveLoc(){
   speedChip(true);
   liveWatchId=navigator.geolocation.watchPosition(pos=>{
     const la=pos.coords.latitude,ln=pos.coords.longitude,acc=pos.coords.accuracy;
-    updateLiveLoc(la,ln,acc);updateSpeed(pos);try{taxiOnFix(pos);}catch(e){}
+    updateLiveLoc(la,ln,acc);updateSpeed(pos);try{taxiOnFix(pos);}catch(e){}try{navOnFix(pos);}catch(e){}
     if(!liveFirstFix){liveFirstFix=true;statusEl.classList.remove('show');map.setCenter({lat:la,lng:ln});if(map.getZoom()<15)map.setZoom(16);
       showStatus('リアルタイム追跡中（ドラッグで追従解除・ボタン再タップで停止）',false);hideStatusLater();
       if(activeTab&&activeTab!=='route'&&activeTab!=='iso'&&activeTab!=='onsengo')runSearch();
@@ -1459,6 +1519,7 @@ function stopLiveLoc(){
   if(liveWatchId!=null){try{navigator.geolocation.clearWatch(liveWatchId);}catch(e){}}
   liveWatchId=null;liveFollow=true;liveFabUi();speedChip(false);
   try{taxiOnTrackStop();}catch(e){}  // 走行中だったメーターは精算（領収書）
+  try{if(navOn)navStop('追跡の終了にともない走行支援ナビを終了しました');}catch(e){}
 }
 function addPoiMarker(lat,lng,cat,tags){
   const c=CATS[cat]||{emoji:''},color=catColor(cat);
@@ -1751,6 +1812,7 @@ function applyRoute(d){
   if(tollKmAuto){document.getElementById('tollKm').value=lastNexcoKm.toFixed(1);document.getElementById('kinkoKm').value=lastNexcoKinkoKm.toFixed(1);}
   if(!priceManual)applyNationalAvg(); // ルート計算時に全国平均燃料代を反映（手動上書き時を除く）
   updateCost();suggestRests();setTimeout(maybeCollapse,450);
+  try{if(navOn)navRebuild();}catch(e){}        // 案内中の再探索・ルート変更に追従
 }
 function renderAltSelector(){
   const el=document.getElementById('altSel');if(!el)return;
@@ -2161,12 +2223,13 @@ function parseRoutesAPI(route){
       if(/JCT|ジャンクション/.test(instr))events.push({t:tStart,type:'jct',name:evName(instr)});
       prevHw=hw;
       let sp=[];try{if(s.polyline&&s.polyline.encodedPolyline)sp=dec(s.polyline.encodedPolyline);}catch(e){}
-      if(sp.length){for(let k=0;k<sp.length;k++){const ri=gi+k;if(ri<n)cls[ri]=hw?'hw':'normal';}gi+=sp.length-1;const last=sp[sp.length-1];cum+=(parseDur(s.staticDuration)||0)*ratio;timeline.push({lat:last.lat(),lng:last.lng(),t:cum});}
+      const ssec=(parseDur(s.staticDuration)||0)*ratio, i0=gi;   // i0/i1=このステップがfullPathのどの範囲か（走行支援ナビの進捗計算用）
+      if(sp.length){for(let k=0;k<sp.length;k++){const ri=gi+k;if(ri<n)cls[ri]=hw?'hw':'normal';}gi+=sp.length-1;const last=sp[sp.length-1];cum+=ssec;timeline.push({lat:last.lat(),lng:last.lng(),t:cum});}
       if(c==='nexco'&&!fr){const fk=kinkoFrac(sp);lnK+=dm*fk;lnC+=dm*(1-fk); // 大都市近郊区間を頂点ごとに按分
         if(!curNex||tStart-curNex.t1>120){curNex={t0:tStart,t1:cum,km:0,kinkoKm:0};nexRuns.push(curNex);} // 120秒未満の途切れ(ランプ等の誤分類)は同一走行に連結
         curNex.t1=cum;curNex.km+=dm/1000;curNex.kinkoKm+=dm*fk/1000;}
       else if(c==='shutoko'&&!fr){if(!curShu||tStart-curShu.t1>120){curShu={t0:tStart,t1:cum,km:0};shuRuns.push(curShu);}curShu.t1=cum;curShu.km+=dm/1000;}
-      stepInfo.push({html:instr.replace(/<[^>]+>/g,''),dist:dm,klass,maneuver:(s.navigationInstruction&&s.navigationInstruction.maneuver)||''});
+      stepInfo.push({html:instr.replace(/<[^>]+>/g,''),dist:dm,klass,maneuver:(s.navigationInstruction&&s.navigationInstruction.maneuver)||'',i0,i1:gi,sec:ssec});
     });
     legArr.push({km:(l.distanceMeters||0)/1000,sec:ls,nexcoKm:(lnC+lnK)/1000,nexcoKinkoKm:lnK/1000,shutokoKm:lsh/1000});legSteps.push(stepInfo);pointT.push(cum);
   });
@@ -2230,6 +2293,7 @@ function computeRouteLegacy(fellback){
     statusEl.classList.remove('show');
     if(tollKmAuto){document.getElementById('tollKm').value=lastNexcoKm.toFixed(1);document.getElementById('kinkoKm').value=lastNexcoKinkoKm.toFixed(1);}
     updateCost();suggestRests();setTimeout(maybeCollapse,450);
+    try{if(navOn)navRebuild();}catch(e){}        // 案内中の再探索に追従（旧API経由の場合）
     if(fellback){showStatus('簡易表示中：区間ごとの実渋滞表示には Routes API の有効化が必要です',false);hideStatusLater();}
   });
 }
@@ -4765,6 +4829,222 @@ function toggleWeatherMode(){
   }).catch(()=>{showStatus('都道府県データの取得に失敗しました',false);hideStatusLater();});
 }
 
+
+/* ===== 走行支援ナビ（提案A）＋ Googleマップへの案内受け渡し（提案C） ======================
+   追跡(watchPosition)の測位をルート上に投影して、次の案内・残り距離/時間・到着予定を表示し、
+   音声で読み上げ、ルートを外れたら現在地から自動で再探索する「走行支援」モード。
+   ※Google Maps Platform規約（Google製品・機能の再現禁止）に配慮し、Googleマップ同等の
+     ターンバイターン・ナビの再現（車線案内・交差点拡大図・制限速度等）は行わない。
+     本格的な案内が必要なときは「Gマップ」ボタンでGoogleマップへ引き継ぐ。 */
+const NAV_OFF_M=55;           // ルート外と判定する距離(m)
+const NAV_OFF_HITS=3;         // 連続この回数外れたら再探索
+const NAV_REROUTE_WAIT=15000; // 再探索の最短間隔(ms)
+const NAV_MAN={TURN_LEFT:'左折',TURN_RIGHT:'右折',TURN_SLIGHT_LEFT:'斜め左',TURN_SLIGHT_RIGHT:'斜め右',
+  TURN_SHARP_LEFT:'鋭く左折',TURN_SHARP_RIGHT:'鋭く右折',UTURN_LEFT:'Uターン',UTURN_RIGHT:'Uターン',
+  STRAIGHT:'直進',NAME_CHANGE:'直進',DEPART:'出発',MERGE:'合流',RAMP_LEFT:'左のランプ',RAMP_RIGHT:'右のランプ',
+  FORK_LEFT:'左へ分岐',FORK_RIGHT:'右へ分岐',ROUNDABOUT_LEFT:'環状交差点',ROUNDABOUT_RIGHT:'環状交差点',
+  FERRY:'フェリー',FERRY_TRAIN:'フェリー',DEST:'目的地'};
+const NAV_IC={
+  TURN_LEFT:'M16 21v-8a4 4 0 0 0-4-4H6M10 5 6 9l4 4',
+  TURN_RIGHT:'M8 21v-8a4 4 0 0 1 4-4h6M14 5l4 4-4 4',
+  TURN_SLIGHT_LEFT:'M15 21v-7a4 4 0 0 0-1.2-2.9L9 6.6M9 6.6h4.4M9 6.6V11',
+  TURN_SLIGHT_RIGHT:'M9 21v-7a4 4 0 0 1 1.2-2.9L15 6.6M15 6.6h-4.4M15 6.6V11',
+  TURN_SHARP_LEFT:'M15 21v-5.5a4 4 0 0 0-4-4H7M11 8 7 11.5 11 15',
+  TURN_SHARP_RIGHT:'M9 21v-5.5a4 4 0 0 1 4-4h4M13 8l4 3.5-4 3.5',
+  UTURN_LEFT:'M17 21v-9a5 5 0 0 0-10 0v3M3.5 12 7 15.5l3.5-3.5',
+  UTURN_RIGHT:'M7 21v-9a5 5 0 0 1 10 0v3M13.5 12 17 15.5l3.5-3.5',
+  STRAIGHT:'M12 21V4M7 9l5-5 5 5',
+  MERGE:'M12 21v-7.5a5 5 0 0 0-2-4L7 7M12 13.5a5 5 0 0 1 2-4L17 7M14 4h3.6v3.6',
+  FORK_LEFT:'M12 21v-6l-4-4V6M8 6H5.2M8 6v2.8M14 12l2-2V6',
+  FORK_RIGHT:'M12 21v-6l4-4V6M16 6h2.8M16 6v2.8M10 12 8 10V6',
+  RAMP_LEFT:'M16 21v-6a7 7 0 0 0-7-7H6M10 4 6 8l4 4',
+  RAMP_RIGHT:'M8 21v-6a7 7 0 0 1 7-7h3M14 4l4 4-4 4',
+  ROUNDABOUT_LEFT:'M12 21v-6M12 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8M16 7h4M20 7v4',
+  ROUNDABOUT_RIGHT:'M12 21v-6M12 15a4 4 0 1 0 0-8 4 4 0 0 0 0 8M8 7H4M4 7v4',
+  DEST:'M12 22s7-7.8 7-12.4A7 7 0 1 0 5 9.6C5 14.2 12 22 12 22M12 7v5'};
+let navOn=false,navSteps=[],navPath=[],navCum=[],navTotalM=0,navIdx=0,navVert=0,navAlong=0,navDev=0;
+let navOffHits=0,navRerouteAt=0,navVoiceOn=true,navWake=null,navRemainM=0,navRemainSec=0,navDrawIdx=-1;
+
+function navManJP(m){return NAV_MAN[m]||'直進';}
+function navIcon(m){return '<svg viewBox="0 0 24 24"><path d="'+(NAV_IC[m]||NAV_IC.STRAIGHT)+'"/></svg>';}
+function navFmtM(m){return m<1000?Math.max(0,Math.round(m/10)*10)+'m':(m/1000).toFixed(m<10000?1:0)+'km';}
+function navFmtSec(s){const m=Math.max(0,Math.round(s/60));return m<60?m+'分':Math.floor(m/60)+'時間'+String(m%60).padStart(2,'0')+'分';}
+function navClock(t){const d=new Date(t);return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+// 点Pと線分ABの距離（日本の緯度なら平面近似で十分）。t=線分上の位置(0-1)、len=線分長
+function navSegDist(p,a,b){
+  const kx=111320*Math.cos(p.lat*Math.PI/180),ky=110540;
+  const ax=(a.lng-p.lng)*kx,ay=(a.lat-p.lat)*ky,bx=(b.lng-p.lng)*kx,by=(b.lat-p.lat)*ky;
+  const dx=bx-ax,dy=by-ay,L2=dx*dx+dy*dy;
+  let t=L2>0?-(ax*dx+ay*dy)/L2:0;t=t<0?0:(t>1?1:t);
+  const px=ax+t*dx,py=ay+t*dy;
+  return {d:Math.sqrt(px*px+py*py),t:t,len:Math.sqrt(L2)};
+}
+// 計算済みルート(lastFullPath/lastLegSteps)から案内ステップを組み立てる
+function navRebuild(){
+  const path=(typeof lastFullPath!=='undefined'&&lastFullPath)||[];
+  if(path.length<2||!lastLegSteps||!lastLegSteps.length){navSteps=[];navPath=[];navCum=[];navTotalM=0;return false;}
+  navPath=path;navCum=new Array(path.length);navCum[0]=0;
+  for(let i=1;i<path.length;i++)navCum[i]=navCum[i-1]+distMeters(path[i-1],path[i]);
+  navTotalM=navCum[path.length-1];
+  const out=[];let run=0,prev=0;
+  lastLegSteps.forEach((steps,li)=>{(steps||[]).forEach(st=>{
+    let e;
+    if(typeof st.i1==='number'&&st.i1>0&&st.i1<path.length)e=navCum[st.i1];   // Routes APIのstep polyline範囲
+    else{run+=(st.dist||0);e=run;}                                            // 旧API等：距離の累積で代用
+    e=Math.max(prev,Math.min(e,navTotalM));prev=e;
+    out.push({rawText:(st.html||'').trim(),rawMan:st.maneuver||'',text:'',man:'',dist:st.dist||0,sec:st.sec||0,klass:st.klass||'normal',endCum:e,leg:li,said:0});
+  });});
+  if(!out.length)return false;
+  out[out.length-1].endCum=navTotalM;
+  // Routes APIの案内はステップ「開始地点」の操作。走行中に知りたいのは「次のステップの操作」なので1つずらす
+  for(let i=0;i<out.length;i++){const nx=out[i+1];out[i].man=nx?nx.rawMan:'DEST';out[i].text=nx?nx.rawText:'まもなく目的地です';}
+  if(!out.some(s=>s.sec>0)){            // 秒が無い場合は所要時間を距離按分
+    const tot=(lastTrafficSec||lastDurationSec||0);let p=0;
+    if(tot>0&&navTotalM>0)out.forEach(s=>{s.sec=(s.endCum-p)/navTotalM*tot;p=s.endCum;});
+  }
+  navSteps=out;navIdx=0;navVert=0;navOffHits=0;navDrawIdx=-1;
+  navRemainM=navTotalM;navRemainSec=(lastTrafficSec||lastDurationSec||0);
+  const card=document.getElementById('navCard');if(card)card.classList.remove('off-route');
+  navRender();
+  return true;
+}
+// 現在地をルート上に投影（直前の位置の近くを優先して探索、大きく外れたら全体から）
+function navProject(lat,lng){
+  const n=navPath.length;if(n<2)return null;
+  const p={lat:lat,lng:lng};let best=null;
+  const scan=(a,b)=>{for(let i=a;i<=b;i++){const r=navSegDist(p,navPath[i],navPath[i+1]);if(!best||r.d<best.d)best={d:r.d,t:r.t,len:r.len,i:i};}};
+  scan(Math.max(0,navVert-25),Math.min(n-2,navVert+400));
+  if(!best||best.d>NAV_OFF_M*2){best=null;scan(0,n-2);}
+  if(!best)return null;
+  navVert=best.i;
+  return {dev:best.d,along:Math.min(navTotalM,navCum[best.i]+best.t*best.len)};
+}
+function navOnFix(pos){
+  if(!navOn||!navSteps.length)return;
+  if((pos.coords.accuracy||0)>90)return;
+  const pr=navProject(pos.coords.latitude,pos.coords.longitude);if(!pr)return;
+  navDev=pr.dev;navAlong=pr.along;
+  while(navIdx<navSteps.length-1&&navSteps[navIdx].endCum-navAlong<=1)navIdx++;
+  navRemainM=Math.max(0,navTotalM-navAlong);
+  const st=navSteps[navIdx],st0=navIdx>0?navSteps[navIdx-1].endCum:0,len=Math.max(1,st.endCum-st0);
+  let sec=st.sec*Math.max(0,Math.min(1,(st.endCum-navAlong)/len));
+  for(let i=navIdx+1;i<navSteps.length;i++)sec+=navSteps[i].sec;
+  navRemainSec=sec;
+  if(navRemainM<40){navArrive();return;}
+  if(navDev>NAV_OFF_M)navOffHits++;else navOffHits=0;
+  const card=document.getElementById('navCard');if(card)card.classList.toggle('off-route',navOffHits>=NAV_OFF_HITS);
+  if(navOffHits>=NAV_OFF_HITS&&Date.now()-navRerouteAt>NAV_REROUTE_WAIT)navReroute(pos.coords.latitude,pos.coords.longitude);
+  navMaybeSpeak();navRender();
+}
+function navSpeak(t){
+  if(!t)return;
+  try{if(!('speechSynthesis' in window))return;
+    const u=new SpeechSynthesisUtterance(t);u.lang='ja-JP';u.rate=1.05;
+    window.speechSynthesis.cancel();window.speechSynthesis.speak(u);
+  }catch(e){}
+}
+function navMaybeSpeak(){
+  if(!navVoiceOn||!navSteps.length)return;
+  const st=navSteps[navIdx];if(!st)return;
+  const st0=navIdx>0?navSteps[navIdx-1].endCum:0,d=st.endCum-navAlong,last=(navIdx===navSteps.length-1);
+  const hw=(st.klass==='nexco'||st.klass==='shutoko');
+  const TH=hw?[2000,700,150]:[1000,300,60],minLen=hw?2600:1300;
+  for(let k=0;k<TH.length;k++){
+    if(st.said&(1<<k))continue;
+    if(k===0&&(st.endCum-st0)<minLen){st.said|=1;continue;}   // 短い区間では遠方案内をしない
+    if(d>TH[k])break;
+    let kk=k;for(let j=k;j<TH.length;j++)if(TH[j]>=d){st.said|=(1<<j);kk=j;}  // 現在距離より遠い案内はまとめて消化（連続再生の防止）
+    const what=last?'目的地':navManJP(st.man);
+    navSpeak(kk===TH.length-1?('まもなく'+what+'です'):(navFmtM(d)+'先、'+what+'です'));
+    break;
+  }
+}
+// 次に向かう地点のindex（通過済みの経由地を除く）
+function navNextPointIdx(){
+  if(!navOn||!navSteps.length||!points.length)return 1;
+  const legEnd=[];navSteps.forEach(s=>{legEnd[s.leg]=Math.max(legEnd[s.leg]||0,s.endCum);});
+  let idx=1;
+  for(let k=0;k<legEnd.length;k++)if(legEnd[k]!=null&&legEnd[k]<=navAlong+30)idx=k+2;
+  return Math.max(1,Math.min(idx,points.length-1));
+}
+function navReroute(lat,lng){
+  navRerouteAt=Date.now();
+  const rest=points.slice(navNextPointIdx());
+  if(!rest.length){navStop('目的地が見つからないため案内を終了しました');return;}
+  points=[{lat:+lat.toFixed(6),lng:+lng.toFixed(6),label:'現在地（再探索）',stay:0}].concat(rest);
+  renderPoints();computeRoute();                 // 完了後に applyRoute → navRebuild で案内を作り直す
+  showStatus('ルートを外れました。現在地から再探索しています…',true);
+}
+function navRender(){
+  const card=document.getElementById('navCard');if(!card||!card.classList.contains('open'))return;
+  const st=navSteps[navIdx];if(!st)return;
+  const last=(navIdx===navSteps.length-1),man=last?'DEST':st.man;
+  const set=(id,v)=>{const e=document.getElementById(id);if(e&&e.textContent!==v)e.textContent=v;};
+  if(navDrawIdx!==navIdx){                        // アイコン等は案内が変わった時だけ描き直す
+    navDrawIdx=navIdx;
+    const ic=document.getElementById('nvIc');if(ic)ic.innerHTML=navIcon(man);
+    const nx=document.getElementById('nvNext'),n2=navSteps[navIdx+1];
+    if(nx){
+      if(n2&&!last){nx.classList.add('show');
+        nx.innerHTML='<span>その先</span>'+navIcon((navIdx+1===navSteps.length-1)?'DEST':n2.man)+'<b>'+navManJP(n2.man)+'</b><span>'+escapeHtml((n2.text||'').slice(0,26))+'</span>';}
+      else nx.classList.remove('show');
+    }
+    set('nvAct',last?'目的地':navManJP(st.man));
+    set('nvSub',st.text||'');
+  }
+  set('nvDist',navFmtM(Math.max(0,st.endCum-navAlong)));
+  set('nvRemain',navFmtM(navRemainM));
+  set('nvTime',navFmtSec(navRemainSec));
+  set('nvEta',navClock(Date.now()+navRemainSec*1000));
+}
+async function navWakeOn(){try{if('wakeLock' in navigator){navWake=await navigator.wakeLock.request('screen');navWake.addEventListener('release',()=>{navWake=null;});}}catch(e){}}
+function navWakeOff(){try{if(navWake){navWake.release();navWake=null;}}catch(e){}}
+function navStart(){
+  if(!lastLegSteps||!lastLegSteps.length||!(typeof lastFullPath!=='undefined'&&lastFullPath&&lastFullPath.length>1)){
+    showStatus('先にルートを計算してください（2地点以上を設定）',false);hideStatusLater();return;}
+  if(!navRebuild()){showStatus('このルートでは案内できません。ルートを再計算してください',false);hideStatusLater();return;}
+  navOn=true;navOffHits=0;navRerouteAt=0;
+  const card=document.getElementById('navCard');if(card){card.classList.add('open');card.classList.remove('off-route');}
+  try{if(taxiCfg.dock==='t'){taxiCfg.dock='b';taxiSave();const t=document.getElementById('taxiMeter');if(t){t.classList.remove('dock-t');t.classList.add('dock-b');taxiOffset();}}}catch(e){}
+  if(liveWatchId==null)startLiveLoc();else{liveFollow=true;liveFabUi();}
+  if(map.getZoom()<15)map.setZoom(16);
+  navWakeOn();
+  navSpeak('案内を開始します。目的地まで約'+navFmtM(navTotalM)+'、'+navFmtSec(lastTrafficSec||lastDurationSec||0)+'です');
+  navRender();
+  showStatus('走行支援ナビを開始しました（音声案内・ルート逸脱で自動再探索）',false);hideStatusLater();
+}
+function navStop(msg){
+  if(!navOn&&!msg)return;
+  navOn=false;navDrawIdx=-1;
+  const card=document.getElementById('navCard');if(card)card.classList.remove('open','off-route');
+  try{window.speechSynthesis.cancel();}catch(e){}
+  navWakeOff();
+  if(msg){showStatus(msg,false);hideStatusLater();}
+}
+function navArrive(){if(!navOn)return;navSpeak('目的地周辺です。案内を終了します');navStop('目的地に到着しました（案内を終了しました）');}
+// 【C】本格的なターンバイターン案内はGoogleマップへ引き継ぐ（現在地から・通過済みの経由地は除く）
+function navHandoff(){
+  if(!points||points.length<1){showStatus('先に目的地を設定してください',false);hideStatusLater();return;}
+  const dst=points[points.length-1];
+  const mid=points.slice(navOn?navNextPointIdx():1,-1).slice(0,9).map(p=>p.lat+','+p.lng).join('|');
+  let url='https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination='+dst.lat+','+dst.lng;
+  if(mid)url+='&waypoints='+encodeURIComponent(mid);
+  window.open(url,'_blank','noopener');
+  showStatus('Googleマップで案内を開始します（出発地は端末の現在地）',false);hideStatusLater();
+}
+(function(){
+  const on=(id,fn)=>{const b=document.getElementById(id);if(b)b.onclick=fn;};
+  on('navStartBtn',()=>navStart());
+  on('navGmapBtn',()=>navHandoff());
+  on('nvStop',()=>navStop('走行支援ナビを終了しました'));
+  on('nvGmap',()=>navHandoff());
+  on('nvVoice',()=>{navVoiceOn=!navVoiceOn;
+    const b=document.getElementById('nvVoice');if(b)b.classList.toggle('on',navVoiceOn);
+    try{localStorage.setItem('tabi_nav_voice',navVoiceOn?'1':'0');}catch(e){}
+    if(navVoiceOn)navSpeak('音声案内をオンにしました');else{try{window.speechSynthesis.cancel();}catch(e){}}});
+  try{if(localStorage.getItem('tabi_nav_voice')==='0'){navVoiceOn=false;const b=document.getElementById('nvVoice');if(b)b.classList.remove('on');}}catch(e){}
+  document.addEventListener('visibilitychange',()=>{if(navOn&&document.visibilityState==='visible'&&!navWake)navWakeOn();});
+})();
 
 /* ===== タクシーメーター（「追跡」ボタンの演出機能） ==========================
    東京の公示運賃（普通車・上限運賃）の体系をそのまま再現したパロディ表示。
