@@ -568,11 +568,10 @@
   .txm-fare{position:relative;display:flex;align-items:flex-end;gap:5px;}
   .txm-cur{font-size:14px;font-weight:800;color:#ffb02e;opacity:.8;padding-bottom:6px;}
   .txm-digits{position:relative;flex:1;min-width:0;}
-  #txmFare{display:block;font-size:38px;line-height:1.05;font-weight:800;letter-spacing:1.5px;color:#ffc451;text-shadow:0 0 13px rgba(255,176,46,.5);font-variant-numeric:tabular-nums;text-align:right;transform-origin:100% 50%;}
-  #txmFare.dim{color:#5a6a4f;text-shadow:none;}
-  .txm-ghost{position:absolute;inset:0;font-size:38px;line-height:1.05;font-weight:800;letter-spacing:1.5px;color:#ffb02e;opacity:.06;text-align:right;pointer-events:none;}
+  #txmFare{display:block;font-size:38px;line-height:1.05;font-weight:900;letter-spacing:1.5px;color:#ffffff;text-shadow:0 0 14px rgba(255,255,255,.4);font-variant-numeric:tabular-nums;text-align:right;transform-origin:100% 50%;}
+  #txmFare.dim{color:#6a7580;text-shadow:none;}
   #txmFare.bump{animation:txmBump .34s ease;}
-  @keyframes txmBump{0%{transform:scale(1);}26%{transform:scale(1.06);text-shadow:0 0 22px rgba(255,206,97,.95);}100%{transform:scale(1);}}
+  @keyframes txmBump{0%{transform:scale(1);}26%{transform:scale(1.06);text-shadow:0 0 24px rgba(255,255,255,.95);}100%{transform:scale(1);}}
   .txm-yen{font-size:12px;font-weight:800;color:#ffb02e;opacity:.78;padding-bottom:6px;}
   .txm-pop{position:absolute;left:28px;top:3px;font-size:11px;font-weight:800;color:#ffdf9c;opacity:0;pointer-events:none;}
   .txm-pop.go{animation:txmPop 1.1s ease;}
@@ -623,12 +622,12 @@
   #taxiMeter.mini{padding-bottom:7px;}
   #taxiMeter.mini .txm-subs,#taxiMeter.mini .txm-acts,#taxiMeter.mini .txm-disc,#taxiMeter.mini .txm-tbl,#taxiMeter.mini .txm-rcpt,#taxiMeter.mini .txm-area{display:none;}
   #taxiMeter.mini .txm-lcd{display:block;padding:4px 9px 5px;}
-  #taxiMeter.mini #txmFare,#taxiMeter.mini .txm-ghost{font-size:22px;}
+  #taxiMeter.mini #txmFare{font-size:22px;}
   #taxiMeter.mini .txm-lamps{margin-bottom:4px;}
   @media(max-width:600px){
     #taxiMeter{left:6px;right:62px;padding:0 8px 8px;}
     #taxiMeter.dock-t{top:calc(104px + env(safe-area-inset-top));}
-    #txmFare,.txm-ghost{font-size:32px;}
+    #txmFare{font-size:32px;}
     .txm-lamp{font-size:9.5px;padding:3px 5px;}
     .txm-subs b{font-size:13px;}
     .txm-acts button{font-size:11.5px;}
@@ -775,7 +774,7 @@
   <div class="txm-lcd">
     <div class="txm-fare">
       <span class="txm-cur">¥</span>
-      <span class="txm-digits"><span class="txm-ghost" aria-hidden="true">8,888</span><b id="txmFare">0</b></span>
+      <span class="txm-digits"><b id="txmFare">0</b></span>
       <span class="txm-yen">円</span>
       <span class="txm-pop" id="txmPop">+100</span>
     </div>
@@ -829,8 +828,7 @@
   <button id="saveRouteBtn" style="width:100%;min-height:42px;border:none;border-radius:11px;background:#0ca678;color:#fff;font-weight:700;font-size:13px;cursor:pointer;margin:10px 0 8px;">このルートを保存（車両として登録・割り勘へ）</button>
   <button id="schedBtn" style="width:100%;min-height:42px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--fg);font-weight:700;font-size:13px;cursor:pointer;margin:0 0 8px;">工程表を作成（印刷・PDF保存）</button>
   <button id="navStartBtn" class="nav-start-btn">ナビ開始（走行支援・音声案内）</button>
-  <button id="navGmapBtn" class="nav-gmap-btn">Googleマップで案内を開始（本格ナビへ引き継ぎ）</button>
-  <button id="gmapsBtn" class="gmaps-btn">Googleマップでこのルートを開く（ナビ・渋滞）</button>
+  <button id="gmapsBtn" class="gmaps-btn">Googleマップで案内を開始（ルートを引き継ぎ）</button>
   <div id="segExport" style="display:none;align-items:center;gap:6px;margin:-4px 0 12px;flex-wrap:wrap;">
     <span style="font-size:12px;color:var(--muted);font-weight:700;">区間だけ出力:</span>
     <select id="segFrom" class="seg-sel"></select><span style="color:var(--muted);">→</span><select id="segTo" class="seg-sel"></select>
@@ -4672,7 +4670,7 @@ function updateTimeModeUI(){
 }
 document.getElementById('timeModeSeg').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;timeMode=b.dataset.tm;updateTimeModeUI();if(lastDistanceKm!=null)updateCost();persistState();});
 document.getElementById('applyDisc').addEventListener('change',updateCost);
-document.getElementById('gmapsBtn').onclick=()=>openInGoogleMaps(points);
+document.getElementById('gmapsBtn').onclick=()=>navHandoff();
 document.getElementById('segBtn').onclick=()=>{const a=+document.getElementById('segFrom').value,b=+document.getElementById('segTo').value;if(!(a<b)){showStatus('起点は終点より前に',false);hideStatusLater();return;}openInGoogleMaps(points.slice(a,b+1));};
 document.getElementById('researchBtn').onclick=()=>{runSearch();refreshLineLayers();};
 document.getElementById('locBtn').onclick=()=>{if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}showStatus('現在地を取得中…',true);navigator.geolocation.getCurrentPosition(pos=>{const la=pos.coords.latitude,ln=pos.coords.longitude;map.setCenter({lat:la,lng:ln});map.setZoom(15);statusEl.classList.remove('show');showCurrentLoc(la,ln,pos.coords.accuracy);runSearch();},err=>{showStatus('現在地を取得できませんでした',false);hideStatusLater();},{enableHighAccuracy:true,timeout:8000});};
@@ -5024,18 +5022,21 @@ function navStop(msg){
 function navArrive(){if(!navOn)return;navSpeak('目的地周辺です。案内を終了します');navStop('目的地に到着しました（案内を終了しました）');}
 // 【C】本格的なターンバイターン案内はGoogleマップへ引き継ぐ（現在地から・通過済みの経由地は除く）
 function navHandoff(){
-  if(!points||points.length<1){showStatus('先に目的地を設定してください',false);hideStatusLater();return;}
+  if(!points||points.length<2){showStatus('2地点以上を設定してください',false);hideStatusLater();return;}
   const dst=points[points.length-1];
-  const mid=points.slice(navOn?navNextPointIdx():1,-1).slice(0,9).map(p=>p.lat+','+p.lng).join('|');
+  // 案内中＝現在地から残りの経由地へ（出発地を省略するとGoogleマップがターンバイターンで開始）
+  // 案内前＝計画どおり出発地から（Googleマップ側でルート確認→案内開始）
+  const from=navOn?navNextPointIdx():1;
+  const mid=points.slice(from,-1).slice(0,9).map(p=>p.lat+','+p.lng).join('|');
   let url='https://www.google.com/maps/dir/?api=1&travelmode=driving&dir_action=navigate&destination='+dst.lat+','+dst.lng;
+  if(!navOn)url+='&origin='+points[0].lat+','+points[0].lng;
   if(mid)url+='&waypoints='+encodeURIComponent(mid);
   window.open(url,'_blank','noopener');
-  showStatus('Googleマップで案内を開始します（出発地は端末の現在地）',false);hideStatusLater();
+  showStatus(navOn?'Googleマップで案内を開始します（現在地から）':'Googleマップでこのルートを開きます',false);hideStatusLater();
 }
 (function(){
   const on=(id,fn)=>{const b=document.getElementById(id);if(b)b.onclick=fn;};
   on('navStartBtn',()=>navStart());
-  on('navGmapBtn',()=>navHandoff());
   on('nvStop',()=>navStop('走行支援ナビを終了しました'));
   on('nvGmap',()=>navHandoff());
   on('nvVoice',()=>{navVoiceOn=!navVoiceOn;
@@ -5066,6 +5067,7 @@ let taxiCfg={area:'tokyo23',night:'auto',meet:false,wait:true,far:true,vib:true,
 let taxiState='idle';                             // idle=空車 / run=賃走 / paid=支払
 let taxiAdv=0,taxiAdvBase=0,taxiDist=0,taxiSlowMs=0,taxiUnits=0,taxiFare=0,taxiFareShown=-1;
 let taxiT0=0,taxiT1=0,taxiFix=null,taxiFixT=0,taxiTimer=null,taxiTickT=0,taxiAuto=false,taxiFolded=false;
+let taxiPaused=false,taxiPauseAt=0,taxiPauseMs=0;   // 追跡OFF中は一時停止（内容は保持。リセットはメーター内の操作だけ）
 
 function taxiArea(){return TAXI_AREAS[taxiCfg.area]||TAXI_AREAS.tokyo23;}
 function taxiLoad(){
@@ -5093,6 +5095,7 @@ function taxiFmt(n){return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g
 function taxiMS(s){return Math.floor(s/60)+'分'+(s%60?(s%60)+'秒':'');}
 function taxiDurJ(ms){const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return (h?h+'時間':'')+m+'分'+String(x).padStart(2,'0')+'秒';}
 function taxiHMS(ms){const s=Math.max(0,Math.floor(ms/1000)),h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60,p=n=>String(n).padStart(2,'0');return h?h+':'+p(m)+':'+p(x):m+':'+p(x);}
+function taxiElapsed(){const end=(taxiState==='paid')?taxiT1:((taxiPaused&&taxiPauseAt)?taxiPauseAt:Date.now());return Math.max(0,end-taxiT0-taxiPauseMs);}
 function taxiSpeedNow(){if(taxiFixT&&Date.now()-taxiFixT>15000)return 0;return (typeof spdEMA==='number'&&spdEMA!=null&&isFinite(spdEMA))?Math.max(0,spdEMA):0;}
 function taxiSet(id,v){const e=document.getElementById(id);if(e&&e.textContent!==v)e.textContent=v;}
 
@@ -5105,7 +5108,7 @@ function taxiRender(){
   const f=document.getElementById('txmFare');
   if(f){f.textContent=taxiFmt(taxiState==='idle'?0:taxiFare);f.classList.toggle('dim',taxiState==='idle');}
   taxiSet('txmDist',(taxiDist/1000).toFixed(2));
-  taxiSet('txmTime',taxiHMS(taxiState==='idle'?0:((taxiState==='paid'?taxiT1:Date.now())-taxiT0)));
+  taxiSet('txmTime',taxiHMS(taxiState==='idle'?0:taxiElapsed()));
   taxiSet('txmSpd',String(Math.round(taxiSpeedNow())));
   let nxt='--';
   if(taxiState!=='idle'){const tgt=(taxiAdv<=A.initM)?A.initM:(A.initM+taxiUnits*A.stepM);nxt=String(Math.max(0,Math.round((tgt-taxiAdv)/taxiMul())));}
@@ -5130,9 +5133,14 @@ function taxiOffset(){ // 下に出しているときはFAB・時計・凡例を
   const on=el&&el.classList.contains('open')&&el.classList.contains('dock-b');
   document.documentElement.style.setProperty('--tmoff',on?(el.offsetHeight+34)+'px':'0px');
 }
+function taxiPause(){if(taxiPaused)return;taxiPaused=true;taxiPauseAt=Date.now();}
+function taxiResume(){
+  if(taxiPaused&&taxiPauseAt)taxiPauseMs+=Date.now()-taxiPauseAt;   // 止まっていた時間は所要時間から除く
+  taxiPaused=false;taxiPauseAt=0;taxiTickT=0;taxiFix=null;          // 再開時は距離の基準点を取り直す（空白期間の移動を積まない）
+}
 function taxiTickFn(){
   const now=Date.now(),dt=taxiTickT?Math.min(6000,now-taxiTickT):0;taxiTickT=now;
-  if(taxiState==='run'&&dt>0){
+  if(taxiState==='run'&&!taxiPaused&&dt>0){
     const A=taxiArea();
     if(taxiCfg.wait&&taxiSpeedNow()<=TAXI_SLOW_KMH){taxiSlowMs+=dt;taxiAdd(A.stepM*(dt/1000)/A.slowSec);} // 時間距離併用運賃
     taxiCalc();taxiBump();
@@ -5141,7 +5149,7 @@ function taxiTickFn(){
 }
 // 追跡のフィックスごとに走行距離を積む（精度の悪い点・GPSの揺らぎ・ワープは捨てる）
 function taxiOnFix(pos){
-  const el=document.getElementById('taxiMeter');if(!el||!el.classList.contains('open'))return;
+  const el=document.getElementById('taxiMeter');if(!el||!el.classList.contains('open')||taxiPaused)return;
   const t=pos.timestamp||Date.now(),acc=pos.coords.accuracy||0;
   if(taxiAuto&&taxiState==='idle'){taxiAuto=false;taxiStart();}
   if(acc>80){taxiFix=null;taxiFixT=t;taxiRender();return;}
@@ -5174,19 +5182,21 @@ function taxiHide(){
 }
 function taxiStart(){
   taxiState='run';taxiAdv=0;taxiAdvBase=0;taxiDist=0;taxiSlowMs=0;taxiUnits=0;taxiT0=Date.now();taxiT1=0;taxiFix=null;
+  taxiPaused=false;taxiPauseAt=0;taxiPauseMs=0;
   const el=document.getElementById('taxiMeter');if(el)el.classList.remove('show-rcpt');
   taxiCalc();taxiFareShown=taxiFare;taxiRender();requestAnimationFrame(taxiOffset);
   showStatus('タクシーメーター：賃走を開始しました（メーター '+taxiFmt(taxiFare)+'円）',false);hideStatusLater();
 }
 function taxiSettle(){
   if(taxiState!=='run')return;
-  taxiState='paid';taxiT1=Date.now();taxiCalc();
+  taxiState='paid';taxiT1=(taxiPaused&&taxiPauseAt)?taxiPauseAt:Date.now();taxiPaused=false;taxiPauseAt=0;taxiCalc();
   const el=document.getElementById('taxiMeter');
   if(el){taxiFolded=false;el.classList.remove('mini','show-tbl');el.classList.add('show-rcpt');}
   taxiBuildRcpt();taxiRender();requestAnimationFrame(taxiOffset);
 }
 function taxiReset(){
   taxiState='idle';taxiAdv=0;taxiAdvBase=0;taxiDist=0;taxiSlowMs=0;taxiUnits=0;taxiFare=0;taxiFareShown=-1;taxiT0=0;taxiT1=0;taxiFix=null;
+  taxiPaused=false;taxiPauseAt=0;taxiPauseMs=0;
   const el=document.getElementById('taxiMeter');if(el)el.classList.remove('show-rcpt');
   taxiRender();requestAnimationFrame(taxiOffset);
 }
@@ -5205,7 +5215,7 @@ function taxiBuildRcpt(){
   if(disc>0)h+=row('遠距離割引（1割）','-'+taxiFmt(disc)+'円');
   if(meet>0)h+=row('迎車回送料金',taxiFmt(meet)+'円');
   h+='<div class="txm-rc-t"><span>合計</span><b>¥'+taxiFmt(unten-disc+meet)+'</b></div>';
-  h+='<div class="txm-rc-n">走行 '+(taxiDist/1000).toFixed(2)+'km ／ 所要 '+taxiDurJ(taxiT1-taxiT0)+'（うち時間距離併用の対象 '+taxiDurJ(taxiSlowMs)+'）<br>'+A.name+'／'+(night>0?'深夜早朝割増あり':'昼間料金')+'<br>たびマップ タクシーメーター（パロディ演出・領収書としての効力はありません）</div>';
+  h+='<div class="txm-rc-n">走行 '+(taxiDist/1000).toFixed(2)+'km ／ 所要 '+taxiDurJ(taxiElapsed())+'（うち時間距離併用の対象 '+taxiDurJ(taxiSlowMs)+'）<br>'+A.name+'／'+(night>0?'深夜早朝割増あり':'昼間料金')+'<br>たびマップ タクシーメーター（パロディ演出・領収書としての効力はありません）</div>';
   w.innerHTML=h;
 }
 function taxiBuildTbl(){
@@ -5240,16 +5250,13 @@ function taxiBuildTbl(){
   bind('txmSegVib',v=>{taxiCfg.vib=(v==='1');if(taxiCfg.vib&&navigator.vibrate){try{navigator.vibrate(14);}catch(e){}}});
 }
 // 追跡の開始・停止に連動
-function taxiOnTrackStart(){if(!taxiOn)return;if(taxiState==='paid')taxiReset();taxiShow(true);}
-function taxiOnTrackStop(){
-  if(taxiState==='run'){taxiSettle();showStatus('タクシーメーター：精算しました（領収書を表示）',false);hideStatusLater();}
-  else if(taxiState==='idle')taxiHide();
-}
+function taxiOnTrackStart(){if(!taxiOn)return;taxiShow(taxiState==='idle');taxiResume();}
+function taxiOnTrackStop(){taxiPause();taxiHide();}   // 内容はそのまま保持（精算もリセットもしない）
 function taxiToggleEnabled(){
   taxiOn=!taxiOn;taxiSave();renderToolMenu();
-  if(!taxiOn){taxiHide();showStatus('タクシーメーター OFF',false);hideStatusLater();return;}
+  if(!taxiOn){taxiPause();taxiHide();showStatus('タクシーメーター OFF（運賃は保持。再表示すると続きから）',false);hideStatusLater();return;}
   if(liveWatchId==null){startLiveLoc();showStatus('タクシーメーター ON：追跡を開始して運賃を計算します',false);}
-  else{taxiShow(taxiState==='idle');showStatus('タクシーメーター ON',false);}
+  else{taxiShow(taxiState==='idle');taxiResume();showStatus('タクシーメーター ON',false);}
   hideStatusLater();
 }
 (function(){
@@ -5262,8 +5269,8 @@ function taxiToggleEnabled(){
   on('txmPay',()=>{if(taxiState==='run')taxiSettle();else if(taxiState==='paid'){el.classList.toggle('show-rcpt');requestAnimationFrame(taxiOffset);}});
   on('txmTblBtn',()=>{el.classList.toggle('show-tbl');requestAnimationFrame(taxiOffset);});
   on('txmDock',()=>{taxiCfg.dock=(taxiCfg.dock==='t')?'b':'t';taxiSave();el.classList.toggle('dock-t',taxiCfg.dock==='t');el.classList.toggle('dock-b',taxiCfg.dock!=='t');requestAnimationFrame(taxiOffset);});
-  on('txmClose',()=>{const was=(taxiState==='run');if(was)taxiSettle();taxiHide();
-    showStatus((was?'タクシーメーターを精算して閉じました':'タクシーメーターを閉じました')+'（レンチ→タクシーメーターで再表示）',false);hideStatusLater();});
+  on('txmClose',()=>{taxiOn=false;taxiSave();try{renderToolMenu();}catch(e){}taxiPause();taxiHide();
+    showStatus('タクシーメーターを閉じました（運賃は保持。レンチ→タクシーメーターで続きから再表示）',false);hideStatusLater();});
   window.addEventListener('resize',()=>requestAnimationFrame(taxiOffset));
 })();
 </script>
