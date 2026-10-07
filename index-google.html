@@ -725,8 +725,11 @@
   <button class="tm-item" id="tmTaxi"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="11.5" rx="2"/><path d="M8 5h8M9.6 5v3M14.4 5v3"/><path d="M6.6 12.4h7M6.6 15.6h4"/></svg></span><span class="tm-lab">タクシーメーター<small>追跡中の走行距離・待ち時間を東京の運賃体系で表示（パロディ）</small></span><span class="tm-sw"></span></button>
   <div id="festSec" style="display:none;">
     <div class="tm-sec">試験用（学園祭）</div>
-    <div class="seg" id="festBaseSeg" style="margin-bottom:7px;"><button data-b="map" class="on">標準</button><button data-b="sat">航空</button><button data-b="gsi">地理院</button><button data-b="3d">3D</button></div>
+    <div class="seg" id="festBaseSeg" style="margin-bottom:7px;"><button data-b="map" class="on">標準</button><button data-b="sat">航空写真</button><button data-b="3d">3D</button></div>
     <button class="tm-item" id="tmFestCampus"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M9.5 21v-5h5v5"/></svg></span><span class="tm-lab">キャンパス詳細<small>専修大学生田キャンパスの建物27棟と名称</small></span><span class="tm-sw"></span></button>
+    <button class="tm-item" id="tmFestWay"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M5 21 9 3M19 21 15 3M10.5 8h3M10 13h4M9.5 18h5"/></svg></span><span class="tm-lab">構内の動線<small>車両が通れる道（一方通行は矢印）・歩道・階段</small></span><span class="tm-sw"></span></button>
+    <button class="tm-item" id="tmFestFac"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.4"/></svg></span><span class="tm-lab">構内の施設<small>門・自販機・ATMなど（名称はズーム18以上）</small></span><span class="tm-sw"></span></button>
+    <button class="tm-item" id="tmFestWalk"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="13" cy="4.2" r="2"/><path d="M11 21l2-6-3-3 1.5-5L14 9l3 1.5M10 12l-3 3"/></svg></span><span class="tm-lab">駅からの徒歩ルート<small>向ヶ丘遊園駅→構内入口の距離・所要時間</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestOsm"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><rect x="3" y="10" width="7" height="10"/><rect x="14" y="5" width="7" height="15"/><path d="M3 20h18"/></svg></span><span class="tm-lab">周辺の建物<small>表示中の範囲をOpenStreetMapから取得</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestFit"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 9V4h5M20 15v5h-5M20 9V4h-5M4 15v5h5"/></svg></span><span class="tm-lab">対象エリアへ戻る<small>キャンパス〜向ヶ丘遊園駅を表示</small></span><span class="tm-ex">移動</span></button>
   </div>
@@ -886,6 +889,7 @@
   <div class="set-sec"><div class="set-label">バージョン切替</div><div class="ver-switch"><a href="index-google.html" id="verGoogle" class="on">Google版</a><a href="index-senshu.html" id="verTest">試験用</a><a href="track.html">研究版</a></div></div>
   <div class="set-sec"><div class="set-label">高度な検索</div><button class="adv-toggle" id="advSearchBtn">高度な検索を有効化</button><div class="set-help">オンにすると、ピンをタップした時に<b>営業時間・電話・ウェブサイト・写真</b>などの詳細情報を自動取得します（Google Placesの課金項目 Atmosphere/Contact Data が増えます）。<b>オフ（既定）</b>では基本情報のみ表示し、必要な時だけポップアップの<b>「＋詳細を取得」</b>ボタンで取得します。</div></div>
   <div class="set-sec"><div class="set-label">Google Maps APIキー（この版に必須）</div><input id="gmapInput" placeholder="Google Maps APIキー" autocomplete="off" /><div class="set-help">この版は地図表示・渋滞ETAにGoogleを使用（課金あり）。「Maps JavaScript API」＋「Directions API」＋<b>「Routes API」</b>（区間ごとの実渋滞表示に必須）を有効化し<b>HTTPリファラー制限</b>を設定。キーは端末内のみ保存。</div><button class="set-save" id="gmapSave">保存して再読込</button><div class="set-msg" id="gmapMsg"></div></div>
+  <div class="set-sec" id="festSetSec" style="display:none;"><div class="set-label">試験用ページ：3D（ベクター地図）</div><input id="festMapIdInput" placeholder="Map ID（Google Cloud の地図管理で作成）" autocomplete="off" /><button class="set-save" id="festMapIdSave">保存して再読込</button><div class="set-msg" id="festMapIdMsg"></div><div class="set-help">Google Cloud の<b>地図管理</b>で「JavaScript・<b>ベクター</b>」のMap IDを作成し（<b>傾斜</b>と<b>回転</b>を有効化）ここに貼ると、3Dで建物が立体表示されます。Map IDは秘密情報ではありません。<b>ベクター地図では配色がCloud側のスタイルに従う</b>ため、当方の建物・道路強調スタイルは <a href="fest-map-style.json" target="_blank" rel="noopener">fest-map-style.json</a> をCloudのスタイルエディタに読み込んで再現してください。</div></div>
   <div class="set-sec"><div class="set-label">到達圏マップ（Mapbox アクセストークン）</div><input id="mbxInput" placeholder="Mapbox public token (pk.xxx)" autocomplete="off" /><div class="set-help">「到達圏」タブで、任意地点から ○分で行ける範囲（アイソクロン）を描画します。<b>URL（リファラー）制限</b>の設定を推奨。トークンは端末内のみ保存。</div><button class="set-save ghost" id="mbxSave">保存</button><div class="set-msg" id="mbxMsg"></div></div>
   <div class="set-sec"><div class="set-label">楽天トラベル連携</div><input id="rakInput" placeholder="楽天 applicationId" autocomplete="off" /><button class="set-save ghost" id="rakSave">保存</button><div class="set-msg" id="rakMsg"></div></div>
   <div class="set-sec"><div class="set-label">高速・有料の回避（OpenRouteService）</div><input id="orsInput" placeholder="ORS APIキー" autocomplete="off" /><button class="set-save ghost" id="orsSave">保存</button><div class="set-msg" id="orsMsg"></div></div>
@@ -1141,9 +1145,9 @@ const LINE_DEFS={
 function applyMapStyles(){
   if(!map)return;
   let s=(currentTheme==='dark'?DARK_STYLE:LIGHT_STYLE).slice();
-  if(FEST){                                        // 試験用：地理院タイル時はGoogleの地図を隠し、標準時は建物/道路を強調
-    if(festBase==='gsi')s=FEST_BLANK.slice();
-    else if(festBase==='map')s=s.concat(currentTheme==='dark'?FEST_EMPH_DARK:FEST_EMPH_LIGHT);
+  if(FEST){
+    if(festMapId)return;                           // ベクター地図（Map ID）のときは配色はCloud側のスタイルに従う
+    if(festBase==='map')s=s.concat(currentTheme==='dark'?FEST_EMPH_DARK:FEST_EMPH_LIGHT);
   }
   Object.keys(lineLayers).forEach(k=>{const L=lineLayers[k];if(L&&L.visible&&LINE_DEFS[k]&&LINE_DEFS[k].stylers)s=s.concat(LINE_DEFS[k].stylers);});
   map.setOptions({styles:s});
@@ -1250,7 +1254,11 @@ function llBounds(arr){const b=new google.maps.LatLngBounds();arr.forEach(p=>b.e
 
 // ===== 起動（Google読み込み後） =====
 window.initGMap=function(){
-  map=new google.maps.Map(document.getElementById('map'),{center:FEST?FEST_CENTER:{lat:36.5,lng:138},zoom:FEST?FEST_ZOOM:5,disableDefaultUI:true,zoomControl:true,gestureHandling:'greedy',styles:LIGHT_STYLE});
+  if(FEST)festMapId=festMapIdGet();
+  const mapOpt={center:FEST?FEST_CENTER:{lat:36.5,lng:138},zoom:FEST?FEST_ZOOM:5,disableDefaultUI:true,zoomControl:true,gestureHandling:'greedy'};
+  if(FEST&&festMapId){mapOpt.mapId=festMapId;mapOpt.rotateControl=true;}   // ベクター地図：傾斜・回転が使える（stylesは指定できない）
+  else mapOpt.styles=LIGHT_STYLE;
+  map=new google.maps.Map(document.getElementById('map'),mapOpt);
   infoWindow=new google.maps.InfoWindow();
   infoWindow.addListener('closeclick',()=>{curInfoMarker=null;removeTempPin();}); // ×で閉じたら状態リセット＋仮ピンも消す
   placesSvc=new google.maps.places.PlacesService(map);
@@ -1284,11 +1292,12 @@ function cfgKey(name){
 // 試験用ページ（学園祭）の初期化
 function festInit(){
   const sec=document.getElementById('festSec');if(sec)sec.style.display='block';
+  const fm=document.getElementById('festSetSec');if(fm)fm.style.display='block';
   let b='map';try{b=localStorage.getItem('fest_base')||'map';}catch(e){}
   festSetBase(b);
-  festDrawCampus(true);
+  festDrawCampus(true);festDrawWays(true);festDrawFac(true);
   festFit();
-  showStatus('試験用ページ：専修大学生田キャンパス〜向ヶ丘遊園駅。レンチ→「試験用」で地図の種類・建物表示を切替',false);hideStatusLater();
+  showStatus('試験用ページ：レンチ→「試験用」で地図の種類・構内の動線/施設・駅からの徒歩ルートを切替',false);hideStatusLater();
 }
 function bootGoogle(){
   const key=cfgKey('gmap');
@@ -3433,7 +3442,7 @@ function updateToolBtn(){const b=document.getElementById('toolBtn');if(b)b.class
 function renderToolMenu(){
   const set=(id,on,busy)=>{const el=document.getElementById(id);if(!el)return;el.classList.toggle('on',!!on);el.classList.toggle('busy',!!busy);};
   set('tmRain',rainOn);set('tmLP',lpOn);set('tmTraffic',trafficOn);set('tmWeather',wxOn);set('tmTsunami',tsunamiOn);set('tmQuake',quakeOn);try{set('tmTaxi',taxiOn);}catch(e){}
-  try{if(FEST){set('tmFestCampus',festCampusOn);set('tmFestOsm',festOsmOn);}}catch(e){}updateToolBtn();
+  try{if(FEST){set('tmFestCampus',festCampusOn);set('tmFestWay',festWayOn);set('tmFestFac',festFacOn);set('tmFestWalk',festWalkOn);set('tmFestOsm',festOsmOn);}}catch(e){}updateToolBtn();
 }
 function toggleToolMenu(force){const m=document.getElementById('toolMenu');if(!m)return;const open=(force!=null)?force:!m.classList.contains('open');m.classList.toggle('open',open);if(open)renderToolMenu();}
 
@@ -3479,8 +3488,8 @@ function updateMapOverlayInfo(){
     attr.push('光害: © D.J.Lorenz / Falchi et al. 2016');
   }
   if(FEST){
-    if(festBase==='gsi')attr.push('地図: 国土地理院 標準地図');
-    if(festCampusOn||festOsmOn)attr.push('建物形状: © OpenStreetMap contributors');
+    if(festWalkInfo&&festWalkOn)attr.push(festWalkInfo);
+    if(festCampusOn||festOsmOn||festWayOn||festFacOn)attr.push('建物・動線: © OpenStreetMap contributors');
   }
   lg.innerHTML=html;lg.classList.toggle('show',!!html);
   at.innerHTML=attr.join('<br>');at.classList.toggle('show',attr.length>0);
@@ -4475,6 +4484,9 @@ document.getElementById('rsClear').onclick=()=>{if(points.length>=2&&!confirm('�
   wire('tmQuake',()=>setQuake(!quakeOn));
   wire('tmTaxi',()=>taxiToggleEnabled());
   wire('tmFestCampus',()=>festDrawCampus(!festCampusOn));
+  wire('tmFestWay',()=>festDrawWays(!festWayOn));
+  wire('tmFestFac',()=>festDrawFac(!festFacOn));
+  wire('tmFestWalk',()=>festWalkRoute(!festWalkOn));
   wire('tmFestOsm',()=>festOsmLoad(!festOsmOn));
   wire('tmFestFit',()=>{festFit();toggleToolMenu(false);});
   const fbs=document.getElementById('festBaseSeg');
@@ -4493,6 +4505,17 @@ document.getElementById('trackFab').onclick=()=>{
   else{stopLiveLoc();showStatus('リアルタイム追跡を終了しました（青ドットは残ります）',false);hideStatusLater();}                     // 停止
   try{taxiSync();}catch(e){console.warn('taxi',e);}
 };
+(function(){   // 試験用：ベクター地図のMap ID
+  const i=document.getElementById('festMapIdInput'),b=document.getElementById('festMapIdSave'),m=document.getElementById('festMapIdMsg');
+  if(!i||!b)return;
+  try{i.value=localStorage.getItem('tabi_fest_mapid')||'';}catch(e){}
+  b.onclick=()=>{
+    const v=i.value.trim();
+    try{if(v)localStorage.setItem('tabi_fest_mapid',v);else localStorage.removeItem('tabi_fest_mapid');}catch(e){}
+    if(m)m.textContent=v?'保存しました。再読込します…':'解除しました。再読込します…';
+    setTimeout(()=>location.reload(),500);
+  };
+})();
 document.getElementById('reverse').onclick=()=>{if(points.length<2)return;points.reverse();renderPoints();computeRoute();};
 document.getElementById('optBtn').onclick=()=>{if(points.length<4){showStatus('最適化には経由地が2つ以上必要です',false);hideStatusLater();return;}computeRoute({optimize:true});};
 document.getElementById('saveRouteBtn').onclick=saveCurrentRoute;
@@ -4885,20 +4908,27 @@ function toggleWeatherMode(){
 }
 
 
-/* ===== 試験用ページ（学園祭）の地図描画 ====================================================
-   対象範囲：専修大学 生田キャンパス 〜 向ヶ丘遊園駅の導線（将来は生田駅・登戸駅まで拡張予定）
-   ・キャンパス外周(69点)と構内の建物27棟(うち20棟は名称つき)の形状を内蔵＝取得待ちなしで描画。
-     形状の出典: © OpenStreetMap contributors (ODbL)。本部用の表記・追記は今後手で詰める。
-   ・ベースマップは「標準(建物・道路強調)／航空写真／国土地理院 標準地図／3D(45°)」を切替。
-   ・周辺の建物は表示中の範囲をOverpassから取得して薄く重ねる（任意・オンデマンド）。 */
+/* ===== 試験用ページ（学園祭・本部用）の地図描画 ==========================================
+   対象：専修大学 生田キャンパス 〜 向ヶ丘遊園駅の導線（将来は生田駅・登戸駅まで拡張予定）
+   内蔵データ（取得待ちなしで描画。形状は © OpenStreetMap contributors / ODbL 由来）
+     FEST_CAMPUS キャンパス外周69点／FEST_BLD 建物27棟(20棟に名称)
+     FEST_VEH 車両が通れる構内道路／FEST_WALK 歩道／FEST_STEP 階段／FEST_FAC 構内の施設
+   ※OSMの構内情報は部分的なので、本部用の正確な動線・施設は簡易編集で足していく前提。
+   ベースマップ：標準（建物・道路を強調）／航空写真／3D（ベクター地図のMap IDがあれば建物が立体） */
 const FEST_BOUNDS={s:35.6068,w:139.5496,n:35.6190,e:139.5668};
+const FEST_GATE={lat:35.609207,lng:139.555051};      // OSMに登録された構内ゲート（徒歩ルートの終点）
 const FEST_STATIONS=[
-  {n:'向ヶ丘遊園駅',lat:35.617508,lng:139.564790},
+  {n:'向ヶ丘遊園駅',lat:35.617508,lng:139.564790,main:true},
   {n:'生田駅',lat:35.615039,lng:139.542241},
   {n:'登戸駅',lat:35.621113,lng:139.569546}
 ];
-let festBase='map', festCampusOn=false, festOsmOn=false, festShapes=[], festLabels=[], festOsmData=null, gsiLayer=null, festZoomHooked=false;
-// 標準地図の「建物・道路を識別しやすく」するスタイル（試験用ページのみ）
+const FEST_FAC_JP={gate:'門・ゲート',atm:'ATM',cafe:'カフェ',fast_food:'飲食',vending_machine:'自販機',
+  bicycle_rental:'駐輪・レンタサイクル',post_box:'郵便ポスト',telephone:'公衆電話',recycling:'リサイクル',
+  waste_basket:'ゴミ箱',toilets:'トイレ',parking:'駐車場'};
+let festBase='map', festCampusOn=false, festWayOn=false, festFacOn=false, festOsmOn=false, festWalkOn=false;
+let festShapes=[], festLabels=[], festWayShapes=[], festFacShapes=[], festOsmData=null, festWalkLine=null, festWalkInfo='';
+let festZoomHooked=false, festMapId='';
+// 標準地図で「建物・道路を識別しやすく」するスタイル（試験用ページのみ／ラスター地図のとき）
 const FEST_EMPH_LIGHT=[
   {featureType:'poi',elementType:'labels',stylers:[{visibility:'off'}]},
   {featureType:'poi.school',elementType:'geometry',stylers:[{color:'#eceff7'}]},
@@ -4922,55 +4952,54 @@ const FEST_EMPH_DARK=[
   {featureType:'road.arterial',elementType:'geometry.fill',stylers:[{color:'#5c5330'}]},
   {featureType:'transit',stylers:[{visibility:'on'}]}
 ];
-const FEST_BLANK=[{elementType:'geometry',stylers:[{visibility:'off'}]},{elementType:'labels',stylers:[{visibility:'off'}]}];
-
+function festMapIdGet(){try{return localStorage.getItem('tabi_fest_mapid')||'';}catch(e){return '';}}
 function festFit(){
   if(!map)return;
-  map.setTilt(festBase==='3d'?45:0);
   map.fitBounds(new google.maps.LatLngBounds({lat:FEST_BOUNDS.s,lng:FEST_BOUNDS.w},{lat:FEST_BOUNDS.n,lng:FEST_BOUNDS.e}),36);
 }
 function festSetBase(b){
-  festBase=(['map','sat','gsi','3d'].indexOf(b)>=0)?b:'map';
+  festBase=(['map','sat','3d'].indexOf(b)>=0)?b:'map';
   try{localStorage.setItem('fest_base',festBase);}catch(e){}
   const seg=document.getElementById('festBaseSeg');
   if(seg)seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.b===festBase));
   if(!map)return;
-  if(festBase==='gsi'){
-    if(!gsiLayer)gsiLayer=new google.maps.ImageMapType({
-      getTileUrl:(c,z)=>(z<2||z>18)?null:('https://cyberjapandata.gsi.go.jp/xyz/std/'+z+'/'+c.x+'/'+c.y+'.png'),
-      tileSize:new google.maps.Size(256,256),maxZoom:18,minZoom:2,name:'国土地理院 標準地図'});
-    map.setMapTypeId('roadmap');map.setTilt(0);
-    if(map.overlayMapTypes.getArray().indexOf(gsiLayer)<0)map.overlayMapTypes.insertAt(0,gsiLayer);
+  const vec=!!festMapId;                       // ベクター地図なら標準地図のままでも建物が立体になる
+  if(festBase==='3d'){
+    map.setMapTypeId(vec?'roadmap':'hybrid');  // ベクター未設定のときはGoogleの45°斜め写真で代用
+    map.setTilt(vec?60:45);
+    if(!vec){showStatus('3D：ベクター地図のMap IDが未設定のため、Googleの45°斜め写真で表示します（設定→試験用ページで登録）',false);hideStatusLater();}
   }else{
-    removeOverlay(gsiLayer);
-    map.setMapTypeId(festBase==='map'?'roadmap':'hybrid');
-    map.setTilt(festBase==='3d'?45:0);
+    map.setMapTypeId(festBase==='sat'?'hybrid':'roadmap');
+    map.setTilt(0);
+    if(vec)map.setHeading(0);
   }
   applyMapStyles();updateMapOverlayInfo();
+  if(festCampusOn)festDrawCampus(true);        // 航空写真では配色を変える
 }
-// キャンパス（外周・建物・駅）の描画。建物名はズーム17以上で表示
+// --- キャンパス外周・建物・駅
 function festDrawCampus(on){
   festCampusOn=!!on;
   festShapes.forEach(s=>s.setMap(null));festShapes=[];
   festLabels.forEach(m=>m.setMap(null));festLabels=[];
   if(!festCampusOn){try{renderToolMenu();}catch(e){}updateMapOverlayInfo();return;}
-  const dark=(currentTheme==='dark'), sat=(festBase==='sat'||festBase==='3d');
+  const sat=(festBase==='sat'||festBase==='3d'), dark=(currentTheme==='dark');
+  const light=sat||dark;
   festShapes.push(new google.maps.Polygon({paths:FEST_CAMPUS.map(p=>({lat:p[0],lng:p[1]})),
     strokeColor:'#7048e8',strokeOpacity:.95,strokeWeight:2.6,fillColor:'#7048e8',fillOpacity:sat?.03:.05,map,clickable:false,zIndex:3}));
   FEST_BLD.forEach(b=>{
     festShapes.push(new google.maps.Polygon({paths:b.p.map(p=>({lat:p[0],lng:p[1]})),
-      strokeColor:dark||sat?'#d0bfff':'#5f3dc4',strokeOpacity:.95,strokeWeight:1.4,
-      fillColor:dark||sat?'#845ef7':'#9775fa',fillOpacity:b.n?(sat?.5:.42):(sat?.3:.2),map,clickable:false,zIndex:4}));
+      strokeColor:light?'#d0bfff':'#5f3dc4',strokeOpacity:.95,strokeWeight:1.4,
+      fillColor:light?'#845ef7':'#9775fa',fillOpacity:b.n?(sat?.5:.42):(sat?.3:.2),map,clickable:false,zIndex:4}));
     if(b.n)festLabels.push(new google.maps.Marker({position:{lat:b.c[0],lng:b.c[1]},map:null,clickable:false,zIndex:6,
       icon:{path:google.maps.SymbolPath.CIRCLE,scale:.1,fillOpacity:0,strokeOpacity:0},
-      label:{text:b.n,fontSize:'11px',fontWeight:'800',color:(dark||sat)?'#ffffff':'#2b1a66'}}));
+      label:{text:b.n,fontSize:'11px',fontWeight:'800',color:light?'#ffffff':'#2b1a66'}}));
   });
   FEST_STATIONS.forEach(s=>{
     festShapes.push(new google.maps.Marker({position:{lat:s.lat,lng:s.lng},map,clickable:false,zIndex:7,
-      icon:{path:google.maps.SymbolPath.CIRCLE,scale:6,fillColor:'#1c7ed6',fillOpacity:1,strokeColor:'#ffffff',strokeWeight:2.2}}));
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:s.main?7:5.5,fillColor:'#1c7ed6',fillOpacity:1,strokeColor:'#ffffff',strokeWeight:2.2}}));
     festShapes.push(new google.maps.Marker({position:{lat:s.lat+0.00032,lng:s.lng},map,clickable:false,zIndex:7,
       icon:{path:google.maps.SymbolPath.CIRCLE,scale:.1,fillOpacity:0,strokeOpacity:0},
-      label:{text:s.n,fontSize:'11px',fontWeight:'800',color:(dark||sat)?'#ffffff':'#13487f'}}));
+      label:{text:s.n,fontSize:'11px',fontWeight:'800',color:light?'#ffffff':'#13487f'}}));
   });
   festLabelZoom();
   if(!festZoomHooked){festZoomHooked=true;map.addListener('zoom_changed',festLabelZoom);}
@@ -4978,10 +5007,88 @@ function festDrawCampus(on){
   updateMapOverlayInfo();
 }
 function festLabelZoom(){
-  if(!map)return;const show=festCampusOn&&((map.getZoom()||16)>=17);
-  festLabels.forEach(m=>m.setMap(show?map:null));
+  if(!map)return;const z=map.getZoom()||16;
+  festLabels.forEach(m=>m.setMap(festCampusOn&&z>=17?map:null));
+  festFacShapes.forEach(m=>{if(m.__lab)m.setMap(festFacOn&&z>=18?map:null);});
 }
-// 周辺の建物（表示中の範囲をOpenStreetMapから取得して薄く重ねる）
+// --- 構内の動線（車両が通れる道・歩道・階段）
+function festDrawWays(on){
+  festWayOn=!!on;
+  festWayShapes.forEach(s=>s.setMap(null));festWayShapes=[];
+  if(!festWayOn){try{renderToolMenu();}catch(e){}updateMapOverlayInfo();return;}
+  const arrow={icon:{path:google.maps.SymbolPath.FORWARD_CLOSED_ARROW,scale:2.2,strokeColor:'#d9480f',strokeWeight:1.6,fillColor:'#d9480f',fillOpacity:1},repeat:'90px'};
+  FEST_VEH.forEach(w=>{   // 車両動線：オレンジの太線（一方通行は矢印つき）
+    const path=w.p.map(p=>({lat:p[0],lng:p[1]}));
+    festWayShapes.push(new google.maps.Polyline({path,strokeColor:'#f76707',strokeOpacity:.95,strokeWeight:5,map,clickable:false,zIndex:5,
+      icons:w.o?[arrow]:undefined}));
+  });
+  FEST_WALK.forEach(w=>{  // 歩道：緑の破線
+    const path=w.p.map(p=>({lat:p[0],lng:p[1]}));
+    festWayShapes.push(new google.maps.Polyline({path,strokeOpacity:0,map,clickable:false,zIndex:5,
+      icons:[{icon:{path:'M 0,-1 0,1',strokeColor:'#2f9e44',strokeOpacity:.95,strokeWeight:3.4,scale:1},offset:'0',repeat:'9px'}]}));
+  });
+  FEST_STEP.forEach(w=>{  // 階段：横線のパターン
+    const path=w.p.map(p=>({lat:p[0],lng:p[1]}));
+    festWayShapes.push(new google.maps.Polyline({path,strokeColor:'#495057',strokeOpacity:.9,strokeWeight:4.5,map,clickable:false,zIndex:5,
+      icons:[{icon:{path:'M -1.2,0 1.2,0',strokeColor:'#ffffff',strokeOpacity:1,strokeWeight:2.2,scale:1},offset:'0',repeat:'7px'}]}));
+  });
+  try{renderToolMenu();}catch(e){}
+  updateMapOverlayInfo();
+}
+// --- 構内の施設（自販機・ATM・門など。名称はズーム18以上）
+function festDrawFac(on){
+  festFacOn=!!on;
+  festFacShapes.forEach(s=>s.setMap(null));festFacShapes=[];
+  if(!festFacOn){try{renderToolMenu();}catch(e){}updateMapOverlayInfo();return;}
+  const light=(festBase==='sat'||festBase==='3d'||currentTheme==='dark');
+  FEST_FAC.forEach(f=>{
+    const col=(f.k==='gate')?'#e03131':(f.k==='toilets'?'#1c7ed6':'#0ca678');
+    festFacShapes.push(new google.maps.Marker({position:{lat:f.c[0],lng:f.c[1]},map,clickable:false,zIndex:8,
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:4.6,fillColor:col,fillOpacity:1,strokeColor:'#ffffff',strokeWeight:1.8},
+      title:(FEST_FAC_JP[f.k]||f.k)+(f.n?('：'+f.n):'')}));
+    const lab=new google.maps.Marker({position:{lat:f.c[0]+0.00018,lng:f.c[1]},map:null,clickable:false,zIndex:8,
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:.1,fillOpacity:0,strokeOpacity:0},
+      label:{text:(f.n||FEST_FAC_JP[f.k]||f.k),fontSize:'10px',fontWeight:'700',color:light?'#ffffff':'#1b4332'}});
+    lab.__lab=true;festFacShapes.push(lab);
+  });
+  festLabelZoom();
+  try{renderToolMenu();}catch(e){}
+  updateMapOverlayInfo();
+}
+// --- 駅からの徒歩ルート（Routes APIのWALKで実測。距離・所要時間つき）
+async function festWalkRoute(on){
+  festWalkOn=!!on;
+  if(!festWalkOn){if(festWalkLine){festWalkLine.setMap(null);festWalkLine=null;}festWalkInfo='';try{renderToolMenu();}catch(e){}updateMapOverlayInfo();return;}
+  const key=cfgKey('gmap');
+  if(!key){festWalkOn=false;showStatus('Google Maps APIキーが必要です',false);hideStatusLater();return;}
+  try{renderToolMenu();}catch(e){}
+  showStatus('向ヶ丘遊園駅からの徒歩ルートを計算中…',true);
+  const st=FEST_STATIONS[0];
+  const body={origin:{location:{latLng:{latitude:st.lat,longitude:st.lng}}},
+    destination:{location:{latLng:{latitude:FEST_GATE.lat,longitude:FEST_GATE.lng}}},
+    travelMode:'WALK',languageCode:'ja',units:'METRIC'};
+  try{
+    const res=await fetch('https://routes.googleapis.com/directions/v2:computeRoutes',{method:'POST',
+      headers:{'Content-Type':'application/json','X-Goog-Api-Key':key,'X-Goog-FieldMask':'routes.duration,routes.distanceMeters,routes.polyline.encodedPolyline'},
+      body:JSON.stringify(body)});
+    const j=await res.json();
+    if(!res.ok||!j.routes||!j.routes.length)throw new Error((j.error&&j.error.message)||'routes');
+    const r=j.routes[0],path=google.maps.geometry.encoding.decodePath(r.polyline.encodedPolyline);
+    if(festWalkLine)festWalkLine.setMap(null);
+    festWalkLine=new google.maps.Polyline({path,strokeColor:'#1c7ed6',strokeOpacity:.9,strokeWeight:5,map,clickable:false,zIndex:6,
+      icons:[{icon:{path:google.maps.SymbolPath.FORWARD_OPEN_ARROW,scale:2.6,strokeColor:'#1c7ed6'},repeat:'120px'}]});
+    const km=((r.distanceMeters||0)/1000).toFixed(2), min=Math.round(parseDur(r.duration)/60);
+    festWalkInfo='向ヶ丘遊園駅〜構内入口 徒歩 '+km+'km・約'+min+'分';
+    statusEl.classList.remove('show');
+    showStatus(festWalkInfo,false);hideStatusLater();
+  }catch(e){
+    festWalkOn=false;festWalkInfo='';
+    showStatus('徒歩ルートを取得できませんでした（Routes APIの有効化を確認）',false);hideStatusLater();
+  }
+  try{renderToolMenu();}catch(e){}
+  updateMapOverlayInfo();
+}
+// --- 周辺の建物（表示中の範囲をOpenStreetMapから取得して薄く重ねる）
 async function festOsmLoad(on){
   festOsmOn=!!on;
   if(!festOsmOn){if(festOsmData){festOsmData.setMap(null);festOsmData=null;}try{renderToolMenu();}catch(e){}updateMapOverlayInfo();return;}
@@ -5002,7 +5109,7 @@ async function festOsmLoad(on){
     if(festOsmData)festOsmData.setMap(null);
     festOsmData=new google.maps.Data({map});
     festOsmData.addGeoJson({type:'FeatureCollection',features:feats});
-    const dark=(currentTheme==='dark');
+    const dark=(currentTheme==='dark'||festBase==='sat'||festBase==='3d');
     festOsmData.setStyle(()=>({fillColor:dark?'#adb5bd':'#868e96',fillOpacity:.2,strokeColor:dark?'#ced4da':'#495057',strokeWeight:.9,strokeOpacity:.75,clickable:false,zIndex:2}));
     statusEl.classList.remove('show');
     showStatus('周辺の建物 '+feats.length+'棟を表示しました（OpenStreetMap）',false);hideStatusLater();
@@ -5044,6 +5151,10 @@ const FEST_BLD=[
  {n:"",c:[35.610205,139.554022],p:[[35.610242,139.553972],[35.610204,139.554117],[35.610149,139.554097],[35.610189,139.553953]]},
  {n:"",c:[35.609925,139.55392],p:[[35.609954,139.553865],[35.609919,139.554013],[35.609881,139.554002],[35.60992,139.553853]]},
 ];
+const FEST_VEH=[{"p":[[35.61102,139.551444],[35.610988,139.551561],[35.610951,139.551763],[35.610947,139.551814],[35.610959,139.551911],[35.610992,139.552014],[35.61103,139.552104]]},{"p":[[35.611079,139.553558],[35.611119,139.553594],[35.611142,139.553637],[35.611148,139.553694],[35.611136,139.553741],[35.611108,139.553775],[35.611026,139.553794],[35.610937,139.553787],[35.610907,139.553753],[35.610898,139.553714],[35.610898,139.553685],[35.610897,139.553648],[35.610903,139.55363],[35.610913,139.5536],[35.61094,139.553579],[35.611003,139.553557],[35.611079,139.553558]],"o":1},{"p":[[35.611087,139.553307],[35.611079,139.553558]]},{"p":[[35.61103,139.552104],[35.611087,139.553307]],"n":"WINGトンネル"},{"p":[[35.610377,139.552162],[35.610407,139.551977],[35.610405,139.551808],[35.61025,139.551325],[35.610187,139.55125],[35.609962,139.551085],[35.609886,139.551034],[35.609848,139.550993],[35.609775,139.550877]]},{"p":[[35.610903,139.55363],[35.610859,139.553367],[35.610433,139.553254],[35.609929,139.55313],[35.609855,139.553125],[35.609807,139.553173],[35.60977,139.553259],[35.609567,139.554133],[35.609567,139.554262],[35.60958,139.55438],[35.609628,139.554437],[35.60977,139.554541],[35.609947,139.554595],[35.610272,139.554735],[35.610073,139.55541]]},{"p":[[35.610686,139.552194],[35.610697,139.551797],[35.61071,139.551706]]},{"p":[[35.609987,139.552159],[35.610163,139.552146],[35.61032,139.552146],[35.610377,139.552162],[35.610686,139.552194],[35.61097,139.552216]]}];
+const FEST_WALK=[{"p":[[35.60851,139.554115],[35.608635,139.554596],[35.608658,139.554721],[35.60869,139.554848]]},{"p":[[35.61071,139.551706],[35.61077,139.551463],[35.610824,139.551347]]},{"p":[[35.611501,139.551947],[35.611501,139.552004],[35.611501,139.552049],[35.611421,139.552126],[35.611372,139.552145],[35.611294,139.552162],[35.611243,139.552169],[35.611082,139.552181],[35.61097,139.552216]]},{"p":[[35.610374,139.554416],[35.610361,139.554478],[35.610328,139.554626],[35.6103,139.554753],[35.610272,139.554735]]},{"p":[[35.610361,139.554478],[35.610461,139.554516]]},{"p":[[35.610328,139.554626],[35.610856,139.554839],[35.61094,139.555091]]},{"p":[[35.610426,139.553309],[35.610433,139.553254],[35.610584,139.553035]]},{"p":[[35.610073,139.55541],[35.610004,139.555657]]},{"p":[[35.609207,139.555051],[35.609161,139.5552],[35.609572,139.555396],[35.609497,139.55564]]},{"p":[[35.609161,139.5552],[35.609097,139.555413]]},{"p":[[35.61209,139.555516],[35.611933,139.555284],[35.611901,139.554991],[35.611857,139.554995]]},{"p":[[35.610668,139.553706],[35.610898,139.553685]]},{"p":[[35.61112,139.554193],[35.611113,139.554135],[35.610756,139.554171],[35.610736,139.553952],[35.610685,139.553923]]}];
+const FEST_STEP=[{"p":[[35.60977,139.554541],[35.609853,139.554222]]},{"p":[[35.610004,139.555657],[35.609948,139.555634]]},{"p":[[35.611151,139.554189],[35.611108,139.553775]]}];
+const FEST_FAC=[{"k":"cafe","n":"スエヒロ","c":[35.609053,139.556042]},{"k":"gate","n":"","c":[35.609207,139.555051]},{"k":"atm","n":"","c":[35.60986,139.55454]},{"k":"bicycle_rental","n":"専修大学10号館前","c":[35.611695,139.55546]},{"k":"fast_food","n":"モスバーガー","c":[35.61124,139.554557]},{"k":"post_box","n":"","c":[35.609656,139.555146]},{"k":"telephone","n":"","c":[35.609678,139.55515]},{"k":"vending_machine","n":"","c":[35.610141,139.554978]},{"k":"vending_machine","n":"コカ・コーラ","c":[35.610146,139.554962]},{"k":"vending_machine","n":"コカ・コーラ","c":[35.610151,139.554949]},{"k":"vending_machine","n":"セブンティーンアイス","c":[35.610156,139.554932]},{"k":"atm","n":"","c":[35.610363,139.554543]},{"k":"waste_basket","n":"","c":[35.608557,139.555331]},{"k":"recycling","n":"","c":[35.608564,139.555335]},{"k":"recycling","n":"","c":[35.608569,139.555338]}];
 
 /* ===== 走行支援ナビ（提案A）＋ Googleマップへの案内受け渡し（提案C） ======================
    追跡(watchPosition)の測位をルート上に投影して、次の案内・残り距離/時間・到着予定を表示し、
