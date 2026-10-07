@@ -1302,7 +1302,8 @@ function cfgKey(name){
 function festInit(){
   const sec=document.getElementById('festSec');if(sec)sec.style.display='block';
   const fm=document.getElementById('festSetSec');if(fm)fm.style.display='block';
-  let b='map';try{b=localStorage.getItem('fest_base')||'map';}catch(e){}
+  let b='';try{b=localStorage.getItem('fest_base')||'';}catch(e){}
+  if(!b||b==='p3d')b=festMapId?'3d':'map';   // 起動はベクター地図（実写3Dは選んだときだけ。前回の選択を持ち越さない）
   festSetBase(b);
   festDrawCampus(true);festDrawWays(true);festDrawFac(true);
   festFit();
