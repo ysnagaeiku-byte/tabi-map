@@ -489,6 +489,13 @@
   .ls-load{flex:none;font-size:12px;font-weight:800;color:#fff;background:var(--accent);border:none;border-radius:8px;padding:6px 12px;cursor:pointer;}
   .ls-ren,.ls-del{flex:none;border:none;background:none;color:var(--muted);font-size:14px;cursor:pointer;padding:4px 5px;} .ls-del:hover{color:#e03131;} .ls-ren:hover{color:var(--accent);}
   .ly-item{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;}
+  /* 保存ルート（車両）の操作は名前の下の行に、役割がわかるラベル付きで並べる */
+  .ly-item.ly-rt-item{border-bottom:none;padding-bottom:4px;}
+  .ly-acts{display:flex;gap:6px;padding:0 2px 9px 29px;border-bottom:1px solid var(--line);}
+  .ly-btn{display:inline-flex;align-items:center;gap:4px;border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:8px;padding:5px 9px;font-size:11px;font-weight:800;cursor:pointer;line-height:1;}
+  .ly-btn .svgi{width:13px;height:13px;stroke-width:2.2;}
+  .ly-btn:active{background:var(--surface-2);}
+  .ly-btn.ly-reedit{color:var(--accent);border-color:var(--accent);background:var(--accent-weak);}
   .ly-item:last-child{border-bottom:none;}
   .ly-sw{flex:none;width:16px;height:16px;border-radius:4px;cursor:pointer;}
   /* レイヤーの表示/非表示ボタン：塗りは透過・表示中はチェックマーク（色は各要素の色を継承）。※割り勘パネルの色ドットには適用しない */
@@ -501,7 +508,6 @@
   .cpal-sw.on{border-color:var(--fg);}
   .ly-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
   .ly-del{flex:none;border:none;background:none;color:var(--muted);font-size:15px;cursor:pointer;}
-  .ly-edit{flex:none;border:none;background:none;color:var(--muted);font-size:14px;cursor:pointer;padding:0 2px;}
   .ly-empty{font-size:12px;color:var(--muted);padding:6px 0;}
   .ly-grp{cursor:pointer;} .ly-grp .ly-name{font-weight:800;}
   .ly-caret{flex:none;width:13px;text-align:center;color:var(--muted);font-size:10px;}
@@ -870,7 +876,7 @@
 
 <div class="overlay" id="overlay"><div class="modal">
   <div class="modal-h"><b>設定</b><button id="setClose">✕</button></div>
-  <div class="set-sec"><div class="set-label">バージョン切替</div><div class="ver-switch"><a href="index.html">無料版</a><a href="index-google.html" class="on">Google版</a><a href="track.html">研究版</a></div></div>
+  <div class="set-sec"><div class="set-label">バージョン切替</div><div class="ver-switch"><a href="index-google.html" id="verGoogle" class="on">Google版</a><a href="index-senshu.html" id="verTest">試験用</a><a href="track.html">研究版</a></div></div>
   <div class="set-sec"><div class="set-label">高度な検索</div><button class="adv-toggle" id="advSearchBtn">高度な検索を有効化</button><div class="set-help">オンにすると、ピンをタップした時に<b>営業時間・電話・ウェブサイト・写真</b>などの詳細情報を自動取得します（Google Placesの課金項目 Atmosphere/Contact Data が増えます）。<b>オフ（既定）</b>では基本情報のみ表示し、必要な時だけポップアップの<b>「＋詳細を取得」</b>ボタンで取得します。</div></div>
   <div class="set-sec"><div class="set-label">Google Maps APIキー（この版に必須）</div><input id="gmapInput" placeholder="Google Maps APIキー" autocomplete="off" /><div class="set-help">この版は地図表示・渋滞ETAにGoogleを使用（課金あり）。「Maps JavaScript API」＋「Directions API」＋<b>「Routes API」</b>（区間ごとの実渋滞表示に必須）を有効化し<b>HTTPリファラー制限</b>を設定。キーは端末内のみ保存。</div><button class="set-save" id="gmapSave">保存して再読込</button><div class="set-msg" id="gmapMsg"></div></div>
   <div class="set-sec"><div class="set-label">到達圏マップ（Mapbox アクセストークン）</div><input id="mbxInput" placeholder="Mapbox public token (pk.xxx)" autocomplete="off" /><div class="set-help">「到達圏」タブで、任意地点から ○分で行ける範囲（アイソクロン）を描画します。<b>URL（リファラー）制限</b>の設定を推奨。トークンは端末内のみ保存。</div><button class="set-save ghost" id="mbxSave">保存</button><div class="set-msg" id="mbxMsg"></div></div>
@@ -913,10 +919,28 @@
   <div id="wxBody"></div>
 </div></div>
 
-<div id="nokey"><div class="box"><h2>たびマップ（ドライブサポートツール）</h2><p>この版は <b>Google Maps APIキー</b> が必要です。<br>右上のメニューから「設定」を開きキーを入力してください。<br>（無料版は <a href="index.html">こちら</a>）</p><button class="set-save" style="max-width:200px;margin:14px auto 0;" onclick="document.getElementById('overlay').classList.add('open')">キーを入力</button></div></div>
+<div id="nokey"><div class="box"><h2>たびマップ（ドライブサポートツール）</h2><p>この版は <b>Google Maps APIキー</b> が必要です。<br>右上のメニューから「設定」を開きキーを入力してください。</p><button class="set-save" style="max-width:200px;margin:14px auto 0;" onclick="document.getElementById('overlay').classList.add('open')">キーを入力</button></div></div>
 
 <script>
-/* たびマップ Google Maps版 — 地図はGoogle、データ/料金/行程/渋滞ロジックは無料版から流用 */
+/* たびマップ Google Maps版 — 地図はGoogle、データ/料金/行程/渋滞ロジックは共通 */
+/* ===== 試験用ページ（学園祭・専修大学生田キャンパス）モード =====
+   index-senshu.html から ?m=senshu 付きで開かれたときだけ有効。機能はGoogle版と同一で、
+   初期表示をキャンパス周辺にし、保存データ（行程・ピン・レイヤー）はドライブ用と分けて持つ。 */
+const FEST=/[?&]m=senshu(?:&|$)/.test(location.search);
+const FEST_CENTER={lat:35.6100,lng:139.5537}, FEST_ZOOM=17;   // 専修大学 生田キャンパス（OSM/国土地理院で確認）
+let festArea=null, festMark=null;
+if(FEST){   // 同じオリジンでも保存キーを分ける（APIキーとテーマだけ共用）
+  try{
+    const raw=window.localStorage, SHARE=['tabi_gmap_key','tabi_mapbox_key','tabi_theme'];
+    const mk=k=>(typeof k==='string'&&k.indexOf('tabi_')===0&&SHARE.indexOf(k)<0)?('fest_'+k):k;
+    const shim={getItem:k=>raw.getItem(mk(k)),setItem:(k,v)=>raw.setItem(mk(k),v),removeItem:k=>raw.removeItem(mk(k)),
+      clear:()=>raw.clear(),key:i=>raw.key(i),get length(){return raw.length;}};
+    Object.defineProperty(window,'localStorage',{configurable:true,get:()=>shim});
+  }catch(e){console.warn('fest storage',e);}
+  document.title='たびマップ 試験用（専修大学・学園祭）';
+  const vg=document.getElementById('verGoogle'),vt=document.getElementById('verTest');
+  if(vg)vg.classList.remove('on');if(vt)vt.classList.add('on');
+}
 // dev: ローカル検証用のキー引継ぎ（localhost限定）。#k={g,m} をlocalStorageへ取り込みURLから即除去。本番ドメインでは動作しない
 if((location.hostname==='127.0.0.1'||location.hostname==='localhost')&&location.hash.indexOf('#k=')===0){
   try{const _o=JSON.parse(decodeURIComponent(location.hash.slice(3)));if(_o.g)localStorage.setItem('tabi_gmap_key',_o.g);if(_o.m)localStorage.setItem('tabi_mapbox_key',_o.m);}catch(e){}
@@ -1215,7 +1239,7 @@ function llBounds(arr){const b=new google.maps.LatLngBounds();arr.forEach(p=>b.e
 
 // ===== 起動（Google読み込み後） =====
 window.initGMap=function(){
-  map=new google.maps.Map(document.getElementById('map'),{center:{lat:36.5,lng:138},zoom:5,disableDefaultUI:true,zoomControl:true,gestureHandling:'greedy',styles:LIGHT_STYLE});
+  map=new google.maps.Map(document.getElementById('map'),{center:FEST?FEST_CENTER:{lat:36.5,lng:138},zoom:FEST?FEST_ZOOM:5,disableDefaultUI:true,zoomControl:true,gestureHandling:'greedy',styles:LIGHT_STYLE});
   infoWindow=new google.maps.InfoWindow();
   infoWindow.addListener('closeclick',()=>{curInfoMarker=null;removeTempPin();}); // ×で閉じたら状態リセット＋仮ピンも消す
   placesSvc=new google.maps.places.PlacesService(map);
@@ -1232,7 +1256,8 @@ window.initGMap=function(){
   map.addListener('dragstart',()=>{if(liveWatchId!=null&&liveFollow){liveFollow=false;liveFabUi();}}); // 地図ドラッグで追従解除（追跡は継続）
   applyTheme(localStorage.getItem('tabi_theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
   buildTabs(); updateGasNote();
-  google.maps.event.addListenerOnce(map,'idle',()=>{restoreState();setPlain();showStatus('検索、または下のチップで温泉郷・ルートなどを表示',false);hideStatusLater();
+  google.maps.event.addListenerOnce(map,'idle',()=>{restoreState();setPlain();
+    if(FEST)festInit();else{showStatus('検索、または下のチップで温泉郷・ルートなどを表示',false);hideStatusLater();}
     // 防災トグルの復元（地図準備後・起動中は5分毎に自動取得）
     if(localStorage.getItem('tabi_tsunami_on')==='1')setTsunami(true);
     if(localStorage.getItem('tabi_quake_on')==='1')setQuake(true);
@@ -1244,6 +1269,16 @@ function cfgKey(name){
   if(ls)return ls;
   const inj=(window.__TABI_KEYS__||{})[name];
   return (inj&&!/^__.*__$/.test(inj))?inj:'';
+}
+// 試験用ページ（学園祭）の初期化。詳細な描画内容は今後追加していく土台
+function festInit(){
+  if(!festArea){
+    festArea=new google.maps.Circle({center:FEST_CENTER,radius:450,strokeColor:'#7048e8',strokeOpacity:.5,strokeWeight:1.6,
+      fillColor:'#7048e8',fillOpacity:.06,map,clickable:false,zIndex:2});
+    festMark=new google.maps.Marker({position:FEST_CENTER,map,icon:dotIcon('#7048e8',7),zIndex:20,
+      title:'専修大学 生田キャンパス（試験用ページの対象エリア）'});
+  }
+  showStatus('試験用ページ（専修大学・学園祭）：キャンパス周辺を表示中。保存データはドライブ用と分けて記録します',false);hideStatusLater();
 }
 function bootGoogle(){
   const key=cfgKey('gmap');
@@ -1922,18 +1957,6 @@ function restoreState(){
 }
 function toggleOnsenLayer(){onsenLayerOn=!onsenLayerOn;if(onsenLayerOn)renderOnsenGo();else clearArr(onsengoMarkers);renderLayerPanel();}
 function toggleSavedRoute(i){const r=savedRoutes[i];if(!r)return;r.visible=!r.visible;r.polys.forEach(p=>p.setMap(r.visible?map:null));r.markers.forEach(m=>m.setMap(r.visible?map:null));renderLayerPanel();}
-// 保存ルートの地点を現在の行程の末尾に連結（複数ルートを1つの行程表にまとめる）
-function appendSavedRoute(i){
-  const r=savedRoutes[i];if(!r||!r.pts||!r.pts.length){showStatus('この車両には連結できる地点データがありません（費用のみの手動車両）',false);hideStatusLater();return;}
-  if(activeTab!=='route')selectTab('route');routeSheet.classList.remove('collapsed');
-  const add=r.pts.map(p=>({lat:p.lat,lng:p.lng,label:p.label||null,stay:p.stay||0,role:p.role||null,depOv:(p.depOv!=null?p.depOv:null),segPref:(p.segPref||null)}));
-  if(points.length&&add.length&&samePlace(points[points.length-1],add[0]))add.shift(); // 連結点の重複を除去
-  if(!add.length){showStatus('連結する新しい地点がありません',false);hideStatusLater();return;}
-  points=points.concat(add);
-  document.getElementById('layerPanel').classList.remove('open');
-  renderPoints();if(points.length>=2)computeRoute();
-  showStatus(`「${escapeHtml(r.name||r.label)}」の${add.length}地点を行程に連結しました`,false);hideStatusLater();
-}
 function deleteSavedRoute(i){const r=savedRoutes[i];if(!r)return;r.polys.forEach(p=>p.setMap(null));r.markers.forEach(m=>m.setMap(null));savedRoutes.splice(i,1);renderLayerPanel();renderSettlePanel();persistState();}
 // ===== 複数車両モード：全車両の費用合計を全同行者で均等割り勘 =====
 function addManualVehicle(){savedRoutes.push({id:Date.now(),label:'手動入力の車両',name:'手動入力の車両',polys:[],markers:[],color:ROUTE_COLORS[savedRoutes.length%ROUTE_COLORS.length],distKm:0,trafSec:0,toll:0,gas:0,other:0,total:0,people:1,manual:true,visible:true});renderSettlePanel();renderLayerPanel();persistState();}
@@ -1955,6 +1978,8 @@ function renderSettlePanel(){
   list.querySelectorAll('.stl-lbl').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(savedRoutes[i]){savedRoutes[i].name=inp.value;renderLayerPanel();persistState();}});
   list.querySelectorAll('.stl-del').forEach(b=>b.onclick=()=>deleteSavedRoute(+b.dataset.i));
 }
+const SVG_PEN='<svg class="svgi" viewBox="0 0 24 24"><path d="M4 20h4.2L20 8.2 15.8 4 4 15.8z"/><path d="M14.4 5.4l4.2 4.2"/></svg>';
+const SVG_ROUTE='<svg class="svgi" viewBox="0 0 24 24"><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="5" r="2.2"/><path d="M8.2 19h5.3a4 4 0 0 0 0-8H9.5a4 4 0 0 1 0-8h6.3"/></svg>';
 // 既定6色パレット（ピン・保存ルートの色選択）
 const LAYER_PALETTE=['#e03131','#f76707','#f59f00','#37b24d','#0ca678','#1098ad','#1c7ed6','#4263eb','#7048e8','#9c36b5','#e64980','#495057']; // 既定12色
 function closeColorPalette(){const p=document.getElementById('cpalPop');if(p)p.remove();}
@@ -1989,7 +2014,10 @@ function renderLayerPanel(){
       h+='</div>';
     }
   }
-  savedRoutes.forEach((r,i)=>{h+=`<div class="ly-item"><span class="ly-sw ly-rt${r.visible?' on':''}" data-i="${i}" style="border:1px solid ${r.color};"></span><span class="ly-name" style="color:${r.color}">${escapeHtml(r.name||r.label)}<br><small style="color:var(--muted);font-weight:500;">${r.distKm.toFixed(0)}km・${fmtDuration(r.trafSec)}・¥${r.toll.toLocaleString()}</small></span><button class="ly-color rt-color" data-i="${i}" style="background:${r.color};" title="ルートの色を変更（6色から選択）"></button><button class="ly-edit" data-e="${i}" title="名前を変更">✎</button>${(r.pts&&r.pts.length)?`<button class="ly-edit" data-ap="${i}" title="現在の行程に連結" style="font-size:10.5px;font-weight:800;color:var(--accent);border:1px solid var(--accent);border-radius:999px;padding:1px 7px;">＋連結</button><button class="ly-edit" data-ed="${i}" title="工程を再編集">✎</button>`:''}<button class="ly-del" data-d="${i}"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;});
+  savedRoutes.forEach((r,i)=>{
+    h+=`<div class="ly-item ly-rt-item"><span class="ly-sw ly-rt${r.visible?' on':''}" data-i="${i}" style="border:1px solid ${r.color};"></span><span class="ly-name" style="color:${r.color}">${escapeHtml(r.name||r.label)}<br><small style="color:var(--muted);font-weight:500;">${r.distKm.toFixed(0)}km・${fmtDuration(r.trafSec)}・¥${r.toll.toLocaleString()}</small></span><button class="ly-color rt-color" data-i="${i}" style="background:${r.color};" title="ルートの色を変更（6色から選択）"></button><button class="ly-del" data-d="${i}" title="この車両を削除"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
+    h+=`<div class="ly-acts"><button class="ly-btn ly-ren" data-e="${i}" title="この車両の表示名を変えます">${SVG_PEN}名前を変更</button>${(r.pts&&r.pts.length)?`<button class="ly-btn ly-reedit" data-ed="${i}" title="この車両の地点をルートタブに読み込み、経由地や順番を編集します">${SVG_ROUTE}工程を再編集</button>`:''}</div>`;
+  });
   if(!savedRoutes.length&&!isoShapes.length&&!onsenLayerOn&&!poiCats.length&&!lineKeys.length&&!savedPins.length&&!bufferLayers.length)h+='<div class="ly-empty">レイヤーは空です。カスタムタブでPOI・高速/鉄道の全国強調を表示、温泉郷タブ、到達圏、検索して「ピンを残す」、ピンの「距離円」、ルートの「保存」などで要素を地図に重ねられます（タブを切り替えても残ります）。</div>';
   list.innerHTML=h;
   const lyOnsen=document.getElementById('lyOnsen');if(lyOnsen)lyOnsen.onclick=toggleOnsenLayer;
@@ -2013,16 +2041,15 @@ function renderLayerPanel(){
   list.querySelectorAll('.buf-del').forEach(b=>b.onclick=()=>removeBuffer(+b.dataset.id));
   list.querySelectorAll('.ly-rt').forEach(s=>s.onclick=()=>toggleSavedRoute(+s.dataset.i));
   list.querySelectorAll('.rt-color').forEach(btn=>btn.onclick=(e)=>{e.stopPropagation();const r=savedRoutes[+btn.dataset.i];if(!r)return;openColorPalette(btn,r.color,c=>{r.color=c;btn.style.background=c;if(r.polys&&r.polys[1])r.polys[1].setOptions({strokeColor:c});(r.markers||[]).forEach(m=>m.setIcon(pinIcon(c,1.4)));const sw=list.querySelector('.ly-rt[data-i="'+btn.dataset.i+'"]');if(sw)sw.style.borderColor=c;const nm=btn.closest('.ly-item').querySelector('.ly-name');if(nm)nm.style.color=c;persistState();});}); // 保存ルートの色を6色から選択
-  list.querySelectorAll('.ly-edit[data-e]').forEach(b=>b.onclick=()=>renameSavedRoute(+b.dataset.e));
-  list.querySelectorAll('.ly-edit[data-ed]').forEach(b=>b.onclick=()=>editSavedRoute(+b.dataset.ed));
-  list.querySelectorAll('.ly-edit[data-ap]').forEach(b=>b.onclick=()=>appendSavedRoute(+b.dataset.ap));
+  list.querySelectorAll('.ly-btn[data-e]').forEach(b=>b.onclick=()=>renameSavedRoute(+b.dataset.e));
+  list.querySelectorAll('.ly-btn[data-ed]').forEach(b=>b.onclick=()=>editSavedRoute(+b.dataset.ed));
   list.querySelectorAll('.ly-del[data-d]').forEach(b=>b.onclick=()=>deleteSavedRoute(+b.dataset.d));
 }
 // ===== レイヤーの一括保存・参照（現在のレイヤー＝保存ルート・ピン・距離円 を名前を付けて保存。設定から最大300件を参照/読込） =====
 const MAX_LAYER_SETS=300;
 // ===== レイヤー保存のストレージ：IndexedDB（localStorageの数MB制限を回避＝大容量ルートも保存可能）。旧localStorageからは自動移行 =====
 let _lsDB=null,_lsMigrated=false;
-function lsDBOpen(){return new Promise((resolve,reject)=>{if(_lsDB)return resolve(_lsDB);if(!window.indexedDB)return reject(new Error('no-idb'));let req;try{req=indexedDB.open('tabi_layers',1);}catch(e){return reject(e);}req.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains('sets'))db.createObjectStore('sets',{keyPath:'id'});};req.onsuccess=e=>{_lsDB=e.target.result;resolve(_lsDB);};req.onerror=()=>reject(req.error||new Error('idb-open'));});}
+function lsDBOpen(){return new Promise((resolve,reject)=>{if(_lsDB)return resolve(_lsDB);if(!window.indexedDB)return reject(new Error('no-idb'));let req;try{req=indexedDB.open(FEST?'tabi_layers_fest':'tabi_layers',1);}catch(e){return reject(e);}req.onupgradeneeded=e=>{const db=e.target.result;if(!db.objectStoreNames.contains('sets'))db.createObjectStore('sets',{keyPath:'id'});};req.onsuccess=e=>{_lsDB=e.target.result;resolve(_lsDB);};req.onerror=()=>reject(req.error||new Error('idb-open'));});}
 function idbAll(){return lsDBOpen().then(db=>new Promise((res,rej)=>{const r=db.transaction('sets','readonly').objectStore('sets').getAll();r.onsuccess=()=>res(r.result||[]);r.onerror=()=>rej(r.error);}));}
 function idbGet(id){return lsDBOpen().then(db=>new Promise((res,rej)=>{const r=db.transaction('sets','readonly').objectStore('sets').get(id);r.onsuccess=()=>res(r.result||null);r.onerror=()=>rej(r.error);}));}
 function idbPut(set){return lsDBOpen().then(db=>new Promise((res,rej)=>{const tx=db.transaction('sets','readwrite');tx.objectStore('sets').put(set);tx.oncomplete=()=>res(true);tx.onerror=()=>rej(tx.error||new Error('idb-put'));tx.onabort=()=>rej(tx.error||new Error('idb-abort'));}));}
