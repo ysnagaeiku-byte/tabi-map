@@ -1502,21 +1502,27 @@ function startLiveLoc(){
   speedChip(true);
   liveWatchId=navigator.geolocation.watchPosition(pos=>{
     const la=pos.coords.latitude,ln=pos.coords.longitude,acc=pos.coords.accuracy;
-    updateLiveLoc(la,ln,acc);updateSpeed(pos);try{taxiOnFix(pos);}catch(e){}try{navOnFix(pos);}catch(e){}
+    updateLiveLoc(la,ln,acc);updateSpeed(pos);
+    try{taxiSync();taxiOnFix(pos);}catch(e){console.warn('taxi',e);}try{navOnFix(pos);}catch(e){console.warn('nav',e);}
     if(!liveFirstFix){liveFirstFix=true;statusEl.classList.remove('show');map.setCenter({lat:la,lng:ln});if(map.getZoom()<15)map.setZoom(16);
       showStatus('リアルタイム追跡中（ドラッグで追従解除・ボタン再タップで停止）',false);hideStatusLater();
       if(activeTab&&activeTab!=='route'&&activeTab!=='iso'&&activeTab!=='onsengo')runSearch();
     }else if(liveFollow){map.panTo({lat:la,lng:ln});}
     liveFabUi();
-  },err=>{showStatus('現在地の追跡に失敗しました（位置情報の許可を確認）',false);hideStatusLater();stopLiveLoc();},
-  {enableHighAccuracy:true,maximumAge:2000,timeout:20000});
+  },err=>{
+    const code=err&&err.code;
+    if(code===1){showStatus('位置情報が許可されていません（端末の設定で許可してください）',false);hideStatusLater();stopLiveLoc();return;}
+    // タイムアウト・圏外・トンネル等の一時的な失敗では追跡を止めない（メーター・ナビを維持）
+    showStatus(code===3?'現在地の取得に時間がかかっています（追跡は継続中）':'現在地を取得できません（追跡は継続中）',false);hideStatusLater();
+  },
+  {enableHighAccuracy:true,maximumAge:2000,timeout:30000});
   liveFabUi();showStatus('現在地を取得中…',true);
-  try{taxiOnTrackStart();}catch(e){}   // タクシーメーター（演出）を表示
+  try{taxiOnTrackStart();}catch(e){console.warn('taxi',e);}   // タクシーメーター（演出）を表示
 }
 function stopLiveLoc(){
   if(liveWatchId!=null){try{navigator.geolocation.clearWatch(liveWatchId);}catch(e){}}
   liveWatchId=null;liveFollow=true;liveFabUi();speedChip(false);
-  try{taxiOnTrackStop();}catch(e){}  // 走行中だったメーターは精算（領収書）
+  try{taxiOnTrackStop();}catch(e){console.warn('taxi',e);}  // メーターは一時停止（内容は保持）
   try{if(navOn)navStop('追跡の終了にともない走行支援ナビを終了しました');}catch(e){}
 }
 function addPoiMarker(lat,lng,cat,tags){
@@ -4431,10 +4437,13 @@ document.getElementById('rsClear').onclick=()=>{if(points.length>=2&&!confirm('�
 // 現在地：1回だけ現在地へ移動して表示（追跡はしない）
 document.getElementById('myLocFab').onclick=()=>{if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}showStatus('現在地を取得中…',true);navigator.geolocation.getCurrentPosition(pos=>{const la=pos.coords.latitude,ln=pos.coords.longitude;map.setCenter({lat:la,lng:ln});map.setZoom(15);statusEl.classList.remove('show');showCurrentLoc(la,ln,pos.coords.accuracy);},err=>{showStatus('現在地を取得できませんでした',false);hideStatusLater();},{enableHighAccuracy:true,timeout:8000});};
 // 追跡：リアルタイム追跡の開始→（ドラッグで追従解除時は）追従再開→停止
+let trackTapAt=0;
 document.getElementById('trackFab').onclick=()=>{
+  const now=Date.now();if(now-trackTapAt<600)return;trackTapAt=now;              // 二重タップで即停止するのを防ぐ
   if(liveWatchId==null){startLiveLoc();}                                        // 追跡開始
   else if(!liveFollow){liveFollow=true;if(liveMarker)map.setCenter(liveMarker.getPosition());liveFabUi();showStatus('追従を再開しました',false);hideStatusLater();} // 追従再開
   else{stopLiveLoc();showStatus('リアルタイム追跡を終了しました（青ドットは残ります）',false);hideStatusLater();}                     // 停止
+  try{taxiSync();}catch(e){console.warn('taxi',e);}
 };
 document.getElementById('reverse').onclick=()=>{if(points.length<2)return;points.reverse();renderPoints();computeRoute();};
 document.getElementById('optBtn').onclick=()=>{if(points.length<4){showStatus('最適化には経由地が2つ以上必要です',false);hideStatusLater();return;}computeRoute({optimize:true});};
@@ -5068,18 +5077,22 @@ let taxiState='idle';                             // idle=空車 / run=賃走 / 
 let taxiAdv=0,taxiAdvBase=0,taxiDist=0,taxiSlowMs=0,taxiUnits=0,taxiFare=0,taxiFareShown=-1;
 let taxiT0=0,taxiT1=0,taxiFix=null,taxiFixT=0,taxiTimer=null,taxiTickT=0,taxiAuto=false,taxiFolded=false;
 let taxiPaused=false,taxiPauseAt=0,taxiPauseMs=0;   // 追跡OFF中は一時停止（内容は保持。リセットはメーター内の操作だけ）
+let taxiUserHid=false;                              // ✕で閉じたか（その追跡セッション中だけ非表示。次の追跡開始で戻る）
 
 function taxiArea(){return TAXI_AREAS[taxiCfg.area]||TAXI_AREAS.tokyo23;}
 function taxiLoad(){
+  let old=false;
   try{const s=JSON.parse(localStorage.getItem('tabi_taxi')||'{}');
-    if(typeof s.on==='boolean')taxiOn=s.on;
+    // v2より前は「✕で閉じる」がON/OFFフラグ自体をOFFにしていたので、その値は引き継がない（押しても出ない原因）
+    if(s.v>=2&&typeof s.on==='boolean')taxiOn=s.on;else if(s.night!=null||s.area!=null)old=true;
     if(TAXI_AREAS[s.area])taxiCfg.area=s.area;
     if(['auto','on','off'].indexOf(s.night)>=0)taxiCfg.night=s.night;
     ['meet','wait','far','vib'].forEach(k=>{if(typeof s[k]==='boolean')taxiCfg[k]=s[k];});
     if(s.dock==='t'||s.dock==='b')taxiCfg.dock=s.dock;
   }catch(e){}
+  if(old)taxiSave();                 // 移行を1度だけ記録（以降はメニューのON/OFFを正しく保存・復元）
 }
-function taxiSave(){try{localStorage.setItem('tabi_taxi',JSON.stringify(Object.assign({on:taxiOn},taxiCfg)));}catch(e){}}
+function taxiSave(){try{localStorage.setItem('tabi_taxi',JSON.stringify(Object.assign({v:2,on:taxiOn},taxiCfg)));}catch(e){}}
 function taxiIsNight(){if(taxiCfg.night==='on')return true;if(taxiCfg.night==='off')return false;const h=new Date().getHours();return h>=22||h<5;}
 function taxiMul(){return taxiIsNight()?TAXI_NIGHT_MUL:1;}
 function taxiAdd(m){taxiAdv+=m*taxiMul();taxiAdvBase+=m;}                 // 割増中はメーターの進みが1.2倍
@@ -5135,7 +5148,8 @@ function taxiOffset(){ // 下に出しているときはFAB・時計・凡例を
 }
 function taxiPause(){if(taxiPaused)return;taxiPaused=true;taxiPauseAt=Date.now();}
 function taxiResume(){
-  if(taxiPaused&&taxiPauseAt)taxiPauseMs+=Date.now()-taxiPauseAt;   // 止まっていた時間は所要時間から除く
+  if(!taxiPaused){taxiPauseAt=0;return;}                            // 走行中の呼び出しは何もしない（冪等）
+  if(taxiPauseAt)taxiPauseMs+=Date.now()-taxiPauseAt;               // 止まっていた時間は所要時間から除く
   taxiPaused=false;taxiPauseAt=0;taxiTickT=0;taxiFix=null;          // 再開時は距離の基準点を取り直す（空白期間の移動を積まない）
 }
 function taxiTickFn(){
@@ -5250,11 +5264,19 @@ function taxiBuildTbl(){
   bind('txmSegVib',v=>{taxiCfg.vib=(v==='1');if(taxiCfg.vib&&navigator.vibrate){try{navigator.vibrate(14);}catch(e){}}});
 }
 // 追跡の開始・停止に連動
-function taxiOnTrackStart(){if(!taxiOn)return;taxiShow(taxiState==='idle');taxiResume();}
+function taxiOnTrackStart(){taxiUserHid=false;if(!taxiOn)return;taxiShow(taxiState==='idle');taxiResume();}
 function taxiOnTrackStop(){taxiPause();taxiHide();}   // 内容はそのまま保持（精算もリセットもしない）
+// 追跡中なのにメーターが出ていない／追跡していないのに出ている状態を毎回ならす（測位ごとに呼ぶ）
+function taxiSync(){
+  const el=document.getElementById('taxiMeter');if(!el)return;
+  const open=el.classList.contains('open'),tracking=(liveWatchId!=null);
+  if(tracking&&taxiOn&&!taxiUserHid){if(!open)taxiShow(taxiState==='idle');taxiResume();}
+  else if(open&&!tracking){taxiPause();taxiHide();}
+}
 function taxiToggleEnabled(){
   taxiOn=!taxiOn;taxiSave();renderToolMenu();
   if(!taxiOn){taxiPause();taxiHide();showStatus('タクシーメーター OFF（運賃は保持。再表示すると続きから）',false);hideStatusLater();return;}
+  taxiUserHid=false;
   if(liveWatchId==null){startLiveLoc();showStatus('タクシーメーター ON：追跡を開始して運賃を計算します',false);}
   else{taxiShow(taxiState==='idle');taxiResume();showStatus('タクシーメーター ON',false);}
   hideStatusLater();
@@ -5269,8 +5291,8 @@ function taxiToggleEnabled(){
   on('txmPay',()=>{if(taxiState==='run')taxiSettle();else if(taxiState==='paid'){el.classList.toggle('show-rcpt');requestAnimationFrame(taxiOffset);}});
   on('txmTblBtn',()=>{el.classList.toggle('show-tbl');requestAnimationFrame(taxiOffset);});
   on('txmDock',()=>{taxiCfg.dock=(taxiCfg.dock==='t')?'b':'t';taxiSave();el.classList.toggle('dock-t',taxiCfg.dock==='t');el.classList.toggle('dock-b',taxiCfg.dock!=='t');requestAnimationFrame(taxiOffset);});
-  on('txmClose',()=>{taxiOn=false;taxiSave();try{renderToolMenu();}catch(e){}taxiPause();taxiHide();
-    showStatus('タクシーメーターを閉じました（運賃は保持。レンチ→タクシーメーターで続きから再表示）',false);hideStatusLater();});
+  on('txmClose',()=>{taxiUserHid=true;taxiPause();taxiHide();
+    showStatus('タクシーメーターを閉じました（運賃は保持。追跡を入れ直す／レンチ→タクシーメーターで続きから）',false);hideStatusLater();});
   window.addEventListener('resize',()=>requestAnimationFrame(taxiOffset));
 })();
 </script>
