@@ -1006,7 +1006,8 @@ const CATS={
 };
 const cssvar=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const catColor=k=>cssvar(CATS[k]?CATS[k].cv:'--muted')||'#888';
-const TAB_ORDER=['onsengo','custom','iso','route','othercost']; // 温泉・銭湯/駐車場/宿泊/SA・PA はカスタムタブで代用するため常時タブからは外す
+const TAB_ORDER=FEST?['custom','iso','route']   // 試験用（学園祭）では「温泉郷」「車両以外の費用」は使わないので出さない
+  :['onsengo','custom','iso','route','othercost']; // 温泉・銭湯/駐車場/宿泊/SA・PA はカスタムタブで代用するため常時タブからは外す
 const TAB_META={onsengo:{label:'温泉郷',emoji:'♨',cv:'--c-onsengo'},onsen:CATS.onsen,parking:CATS.parking,hotel:CATS.hotel,sapa:CATS.sapa,custom:{label:'カスタム',emoji:'',cv:'--muted'},iso:{label:'到達圏',emoji:'',cv:'--accent'},route:{label:'ルート・費用',emoji:'',cv:'--route'},othercost:{label:'車両以外の費用',emoji:'',cv:'--accent'}};
 // 均一料金区間（普通車ベース・ETC概算／車種はVEH係数で按分）— 距離別ではなく定額の有料区間
 const FLAT_ROADS=[
