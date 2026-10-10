@@ -470,6 +470,9 @@
   #festRotBtn small{font-size:8px;font-weight:800;color:var(--muted);line-height:1;}
   #festRotBtn.on{background:var(--accent);color:#fff;border-color:var(--accent);} #festRotBtn.on small{color:rgba(255,255,255,.92);}
   body:has(#routeSheet.open:not(.collapsed)) #festRotBtn{bottom:calc(46dvh + 326px);}
+  html.fest #imgBtn{display:none !important;}
+  html.fest #festRotBtn{bottom:calc(351px + env(safe-area-inset-bottom));}
+  html.fest body:has(#routeSheet.open:not(.collapsed)) #festRotBtn{bottom:calc(46dvh + 269px);}
   #layerPanel,#settlePanel{display:none;position:fixed;right:12px;bottom:calc(214px + env(safe-area-inset-bottom));z-index:1090;width:min(320px,88vw);max-height:56vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 30px var(--shadow);padding:12px 14px;}
   #layerPanel.open,#settlePanel.open{display:block;}
   .stl-item{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--line);font-size:12.5px;}
@@ -557,6 +560,8 @@
     #festRotBtn{width:40px;height:40px;border-radius:50%;right:15px;bottom:calc(362px + env(safe-area-inset-bottom));font-size:14px;}
     #festRotBtn small{font-size:7.5px;}
     body:has(#routeSheet.open:not(.collapsed)) #festRotBtn{bottom:calc(46dvh + 284px);}
+    html.fest #festRotBtn{bottom:calc(311px + env(safe-area-inset-bottom));}
+    html.fest body:has(#routeSheet.open:not(.collapsed)) #festRotBtn{bottom:calc(46dvh + 233px);}
     #bufClear,#isoClearFab{font-size:11.5px;padding:8px 12px;}
   }
   /* ===== タクシーメーター（追跡ボタンの演出。東京の運賃体系を参考にしたパロディ表示） ===== */
@@ -670,6 +675,20 @@
   .fest-lbl{text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff,0 0 1px #fff;}
   .seg.seg5{gap:3px;} .seg.seg5 button{font-size:12px;padding:0 1px;letter-spacing:-.02em;}
   .fest-bl-fp{color:#1971c2;font-weight:800;}
+  .fest-sws{display:flex;flex-wrap:wrap;gap:5px;align-items:center;}
+  .fest-sw{width:22px;height:22px;border-radius:50%;border:2px solid var(--panel);box-shadow:0 0 0 1px var(--line);cursor:pointer;padding:0;position:relative;display:inline-block;flex:none;}
+  .fest-sw.on{box-shadow:0 0 0 2px var(--fg);}
+  .fest-sw-c{background:conic-gradient(#ff6b6b,#fcc419,#51cf66,#22b8cf,#4dabf7,#9775fa,#f783ac,#ff6b6b);overflow:hidden;}
+  .fest-sw-c input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;}
+  .fest-sw-x{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;font-size:11px;font-weight:700;padding:3px 9px;cursor:pointer;}
+  .fest-sw-x.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .fest-sw-note{font-size:10.5px;color:var(--muted);margin-top:3px;}
+  .fest-col-box{border:1px solid var(--line);border-radius:12px;padding:9px 10px;margin-bottom:9px;background:var(--surface);}
+  .fest-col-h{font-size:12px;font-weight:800;margin-bottom:6px;}
+  .fest-col-per{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px;font-size:11px;color:var(--muted);}
+  .fest-col-per button{border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;font-size:11px;font-weight:700;padding:4px 8px;cursor:pointer;flex:none;}
+  .fest-bl-c{width:10px;height:10px;border-radius:3px;flex:none;margin-right:6px;box-shadow:0 0 0 1px rgba(0,0,0,.15);}
+  .fest-bl-c.own{box-shadow:0 0 0 2px var(--fg);}
   .fest-r3{position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;z-index:1;overflow:hidden;}
   .fest-r3l{position:absolute;left:0;top:0;font-size:12px;font-weight:800;color:#2b1a66;white-space:nowrap;will-change:transform;
     text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff,0 0 1px #fff;}
@@ -766,7 +785,7 @@
     <div class="tm-sec">試験用（学園祭）</div>
     <div class="seg seg5" id="festBaseSeg" style="margin-bottom:7px;"><button data-b="map" class="on">標準</button><button data-b="white">白地図</button><button data-b="sat">航空</button><button data-b="3d">3D</button><button data-b="p3d">実写3D</button></div>
     <button class="tm-item" id="tmFestCampus"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M9.5 21v-5h5v5"/></svg></span><span class="tm-lab">キャンパス詳細<small>構内と周辺の建物62棟（実測の外形・高さ）と名称</small></span><span class="tm-sw"></span></button>
-    <button class="tm-item" id="tmFestBldList"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg></span><span class="tm-lab">建物一覧（下書き）<small>仮番号・名称・階数・高さ。タップで地図へ</small></span><span class="tm-ex">開く</span></button>
+    <button class="tm-item" id="tmFestBldList"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg></span><span class="tm-lab">建物一覧・色<small>仮番号・名称・階数・高さ。建物の色を一括で変更</small></span><span class="tm-ex">開く</span></button>
     <button class="tm-item" id="tmFestWay"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M5 21 9 3M19 21 15 3M10.5 8h3M10 13h4M9.5 18h5"/></svg></span><span class="tm-lab">構内の動線<small>車両が通れる道（一方通行は矢印）・歩道・階段</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestFac"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="2.4"/></svg></span><span class="tm-lab">構内の施設<small>門・自販機・ATMなど（名称はズーム18以上）</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestWalk"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="13" cy="4.2" r="2"/><path d="M11 21l2-6-3-3 1.5-5L14 9l3 1.5M10 12l-3 3"/></svg></span><span class="tm-lab">駅からの徒歩ルート<small>向ヶ丘遊園駅→構内入口の距離・所要時間</small></span><span class="tm-sw"></span></button>
@@ -965,11 +984,13 @@
   <div id="sapaResults"></div>
 </div></div>
 
-<div class="overlay" id="festBldOverlay"><div class="modal"><div class="modal-h"><b>建物一覧（下書き）</b><button id="festBldClose">✕</button></div>
+<div class="overlay" id="festBldOverlay"><div class="modal"><div class="modal-h"><b>建物一覧・色（下書き）</b><button id="festBldClose">✕</button></div>
+  <div class="fest-col-box"><div class="fest-col-h">構内の建物の色（一括）</div><div id="festColAll"></div>
+    <div class="fest-col-per"><span id="festColPerN"></span><button type="button" id="festColPerClr" onclick="festBldClearPer()">建物ごとの色をすべて解除</button></div></div>
   <div class="fest-bl-sum" id="festBldSum"></div>
   <div class="seg" id="festBldSeg"><button data-f="all" class="on">すべて</button><button data-f="named">名称あり</button><button data-f="todo">未確認・要確認</button></div>
   <div id="festBldList" class="fest-bl-list"></div>
-  <div class="fest-bl-note">外形・高さ・階数・用途：国土交通省 PLATEAU（川崎市2022）／名称：専修大学公式の配置図・施設一覧、OpenStreetMap、配置図との位置照合による推定。番号（B01〜）は確認用の仮番号です。行をタップすると地図で該当の建物を表示します。</div>
+  <div class="fest-bl-note">外形・高さ・階数・用途：国土交通省 PLATEAU（川崎市2022）／名称：専修大学公式の配置図・施設一覧、OpenStreetMap、配置図との位置照合による推定。番号（B01〜）は確認用の仮番号です。行をタップすると地図で該当の建物を表示します。建物ごとの色は、地図で建物をタップした詳細から変えられます（一括の色より優先）。</div>
 </div></div>
 <div class="overlay" id="wxOverlay"><div class="modal">
   <div class="modal-h"><b id="wxTitle">天気予報</b><button id="wxClose">✕</button></div>
@@ -996,6 +1017,7 @@ if(FEST){   // 同じオリジンでも保存キーを分ける（APIキーと�
     Object.defineProperty(window,'localStorage',{configurable:true,get:()=>shim});
   }catch(e){console.warn('fest storage',e);}
   document.title='たびマップ 試験用（専修大学・学園祭）';
+  document.documentElement.classList.add('fest');   // 試験用だけのUI調整（画像出力ボタンを出さない等）
   const vg=document.getElementById('verGoogle'),vt=document.getElementById('verTest');
   if(vg)vg.classList.remove('on');if(vt)vt.classList.add('on');
 }
@@ -1346,8 +1368,8 @@ function festInit(){
   const sec=document.getElementById('festSec');if(sec)sec.style.display='block';
   const fm=document.getElementById('festSetSec');if(fm)fm.style.display='block';
   let b='';try{b=localStorage.getItem('fest_base')||'';}catch(e){}
-  if(!b||b==='p3d')b=festMapId?'3d':'map';   // 起動はベクター地図（実写3Dは選んだときだけ。前回の選択を持ち越さない）
-  festRotLoad();festRotUi();
+  b=festMapId?'3d':(b==='white'?'white':'map');   // 起動は既定の画角（Map IDあり＝3D・遊園側）。Map IDなしは前回の標準/白地図
+  festRotLoad();festRotUi();festBldColLoad();
   const rb=document.getElementById('festRotBtn');if(rb){rb.classList.add('show');rb.onclick=festRotToggle;}
   festSetBase(b);
   festDrawCampus(true);festDrawWays(true);festDrawFac(true);
@@ -5016,10 +5038,18 @@ const FEST_EMPH_DARK=[
   {featureType:'transit',stylers:[{visibility:'on'}]}
 ];
 function festMapIdGet(){try{return localStorage.getItem('tabi_fest_mapid')||'';}catch(e){return '';}}
+// 既定の画角：構内全体を斜め上から（ユーザー指定のアングル。画面幅に合わせてズームを調整）
+const FEST_CAM={center:{lat:35.6102,lng:139.5543},zoom:17.4,tilt:47};
+function festCamZoom(){const w=(map&&map.getDiv&&map.getDiv().clientWidth)||910;return Math.max(15.6,Math.min(18.2,FEST_CAM.zoom+Math.log2(w/910)));}
 function festFit(){
   if(fest3d){try{fest3d.flyCameraTo({endCamera:Object.assign({},FEST_P3D_CAM,{heading:festP3dHeading()}),durationMillis:1200});}catch(e){}return;}
   if(!map)return;
-  map.fitBounds(new google.maps.LatLngBounds({lat:FEST_BOUNDS.s,lng:FEST_BOUNDS.w},{lat:FEST_BOUNDS.n,lng:FEST_BOUNDS.e}),36);
+  if(festMapId){
+    const cam={center:FEST_CAM.center,zoom:festCamZoom(),tilt:festBase==='3d'?FEST_CAM.tilt:0,heading:festRotOn?FEST_ROT_HEADING:0};
+    if(map.moveCamera)map.moveCamera(cam);else{map.setCenter(cam.center);map.setZoom(cam.zoom);map.setTilt(cam.tilt);map.setHeading(cam.heading);}
+    return;
+  }
+  map.setCenter(FEST_CAM.center);map.setZoom(Math.round(festCamZoom()));   // ラスター地図は回転・傾斜なし
 }
 function festSetBase(b){
   festBase=(['map','white','sat','3d','p3d'].indexOf(b)>=0)?b:'map';
@@ -5035,7 +5065,7 @@ function festSetBase(b){
     festWhiteOn();map.setTilt(0);
   }else if(festBase==='3d'){
     map.setMapTypeId(vec?'roadmap':'hybrid');  // ベクター未設定のときはGoogleの45°斜め写真で代用
-    map.setTilt(vec?60:45);
+    map.setTilt(vec?FEST_CAM.tilt:45);
     if(!vec){showStatus('3D：ベクター地図のMap IDが未設定のため、Googleの45°斜め写真で表示します（設定→試験用ページで登録）',false);hideStatusLater();}
   }else{
     map.setMapTypeId(festBase==='sat'?'hybrid':'roadmap');
@@ -5063,9 +5093,10 @@ function festDrawCampus(on){
   FEST_BLD.forEach(b=>{
     const named=!!b.n;
     if(!tilt3d){   // 名称あり＝紫、名称未確認＝グレー（仮番号を表示）。タップで詳細
+      const cc=festBldColor(b);   // 一括・個別で色を変えた建物
       const pg=new google.maps.Polygon({paths:b.p.map(p=>({lat:p[0],lng:p[1]})),
-        strokeColor:named?(light?'#d0bfff':'#5f3dc4'):(light?'#ced4da':(wh?'#495057':'#6c757d')),strokeOpacity:.95,strokeWeight:named?1.4:1,
-        fillColor:named?(light?'#845ef7':(wh?'#b197fc':'#9775fa')):(light?'#adb5bd':(wh?'#dee2e6':'#868e96')),fillOpacity:named?(sat?.5:(wh?.38:.42)):(sat?.4:(wh?.6:.3)),map,clickable:true,zIndex:4});
+        strokeColor:cc?(light?festMix(cc,'#ffffff',.45):festMix(cc,'#000000',.42)):(named?(light?'#d0bfff':'#5f3dc4'):(light?'#ced4da':(wh?'#495057':'#6c757d'))),strokeOpacity:.95,strokeWeight:(named||cc)?1.4:1,
+        fillColor:cc||(named?(light?'#845ef7':(wh?'#b197fc':'#9775fa')):(light?'#adb5bd':(wh?'#dee2e6':'#868e96'))),fillOpacity:cc?(sat?.55:(wh?.5:.5)):(named?(sat?.5:(wh?.38:.42)):(sat?.4:(wh?.6:.3))),map,clickable:true,zIndex:4});
       pg.addListener('click',e=>festBldInfo(b,e.latLng));
       festShapes.push(pg);festBldPoly[b.id]=pg;
     }
@@ -5191,7 +5222,7 @@ function festWhiteOff(){
 //     回転はベクター地図（Map ID）のときだけ。建物名などの文字は回転しても正立のまま
 const FEST_ROT_HEADING=180;
 let festRotOn=false, festWhiteVec=false, festWhiteCover=null;
-function festRotLoad(){try{festRotOn=localStorage.getItem('fest_rot')==='1';}catch(e){}}
+function festRotLoad(){try{const v=localStorage.getItem('fest_rot');festRotOn=(v===null)?true:(v==='1');}catch(e){festRotOn=true;}}   // 未設定なら遊園側（既定の向き）
 function festRotUi(){const b=document.getElementById('festRotBtn');if(!b)return;b.classList.toggle('on',festRotOn);b.setAttribute('aria-pressed',festRotOn?'true':'false');}
 function festP3dHeading(){return festRotOn?FEST_ROT_HEADING:FEST_P3D_CAM.heading;}
 function festRotToggle(){
@@ -5331,13 +5362,16 @@ function festB3dGeom(dark){
                 :{nr:'#f1edff',nw:'#ae9cf5',ne:'#4c3a99',ur:'#f3f4f6',uw:'#c4c9d0',ue:'#5c636e',sr:'#fbfbfc',sw:'#dde0e4',se:'#a3a9b2'};
   const SX=-0.35,SY=-0.94;   // 日の当たる向き（南南西）。日が当たる壁ほど明るく
   const add=(A,x,y,z,c)=>A.push(x,y,z,c[0],c[1],c[2]);
-  const one=(P,h,kind,fl)=>{
+  const K=k=>({r:pal[k+'r'],w:pal[k+'w'],e:pal[k+'e']});
+  const CC=c=>dark?{r:festMix(c,'#000000',.45),w:festMix(c,'#000000',.12),e:festMix(c,'#ffffff',.55)}
+                  :{r:festMix(c,'#ffffff',.72),w:festMix(c,'#ffffff',.12),e:festMix(c,'#000000',.55)};   // 色を変えた建物（屋上は淡く・壁は指定色・輪郭は濃く）
+  const one=(P,h,pc,fl)=>{
     if(P.length<3||!(h>0))return;
-    const roof=C(pal[kind+'r']),edge=C(pal[kind+'e']),flc=C(pal[kind+'w'],.78);
+    const roof=C(pc.r),edge=C(pc.e),flc=C(pc.w,.78);
     festTri(P).forEach(i=>add(T,P[i][0],P[i][1],h,roof));
     for(let i=0;i<P.length;i++){
       const o=P[(i+P.length-1)%P.length],p=P[i],q=P[(i+1)%P.length],dx=q[0]-p[0],dy=q[1]-p[1],len=Math.hypot(dx,dy)||1;
-      const nx=dy/len,ny=-dx/len, w=C(pal[kind+'w'],0.7+0.3*Math.max(0,nx*SX+ny*SY));
+      const nx=dy/len,ny=-dx/len, w=C(pc.w,0.7+0.3*Math.max(0,nx*SX+ny*SY));
       add(T,p[0],p[1],0,w);add(T,q[0],q[1],0,w);add(T,q[0],q[1],h,w);
       add(T,p[0],p[1],0,w);add(T,q[0],q[1],h,w);add(T,p[0],p[1],h,w);
       add(L,p[0],p[1],h,edge);add(L,q[0],q[1],h,edge);                       // 屋上の縁
@@ -5349,11 +5383,12 @@ function festB3dGeom(dark){
   festB3dPick=[];
   FEST_BLD.forEach(b=>{
     const P=festRing(b.p.map(p=>festB3dXY(p[0],p[1]))), h=b.h||((b.f||1)*3.5);
-    one(P,h,b.n?'n':'u',(b.f&&b.f>1&&b.f<20)?b.f:0);
+    const cc=festBldColor(b);
+    one(P,h,cc?CC(cc):K(b.n?'n':'u'),(b.f&&b.f>1&&b.f<20)?b.f:0);
     const xs=P.map(p=>p[0]),ys=P.map(p=>p[1]);
     festB3dPick.push({b,P,h,bb:[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)]});
   });
-  (festB3dSur||[]).forEach(o=>one(festRing(o.P),o.h,'s',0));
+  const ks=K('s');(festB3dSur||[]).forEach(o=>one(festRing(o.P),o.h,ks,0));
   return {T:new Float32Array(T),L:new Float32Array(L)};
 }
 function festB3dMake(){
@@ -5486,7 +5521,46 @@ function festB3dClick(e){
 // --- 建物の詳細（2Dで建物をタップ／一覧から選択）
 let festBldPoly={};
 const FEST_NS={'公':'大学公式の配置図・施設一覧','O':'OpenStreetMap','推':'配置図との位置照合による推定'};
+// --- 建物の色：一括（構内すべて）と個別（建物ごと。一括より優先）。保存は tabi_fest_bldcol（試験用の保存領域）
+const FEST_COLORS=[['#9775fa','紫'],['#4dabf7','青'],['#22b8cf','水色'],['#51cf66','緑'],['#fcc419','黄'],['#ff922b','橙'],['#ff6b6b','赤'],['#f783ac','桃'],['#adb5bd','灰'],['#a5795a','茶']];
+const FEST_DEF_NAMED='#9775fa', FEST_DEF_UNNAMED='#adb5bd';
+let festBldCol={all:'',per:{}}, festBldInfoCur=null;
+const festHex=c=>(typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c))?c.toLowerCase():'';
+function festBldColLoad(){try{const j=JSON.parse(localStorage.getItem('tabi_fest_bldcol')||'{}');const per={};
+  Object.keys(j.per||{}).forEach(k=>{const c=festHex(j.per[k]);if(c&&/^B\d+$/.test(k))per[k]=c;});festBldCol={all:festHex(j.all),per};}catch(e){festBldCol={all:'',per:{}};}}
+function festBldColSave(){try{localStorage.setItem('tabi_fest_bldcol',JSON.stringify(festBldCol));}catch(e){}}
+function festBldColor(b){return festBldCol.per[b.id]||festBldCol.all||'';}          // ''＝既定（名前あり紫・未確認グレー）
+function festBldShown(b){return festBldColor(b)||(b.n?FEST_DEF_NAMED:FEST_DEF_UNNAMED);}
+function festMix(a,b,t){const p=x=>[1,3,5].map(i=>parseInt(x.slice(i,i+2),16)),A=p(a),B=p(b);
+  return '#'+A.map((v,i)=>Math.round(v+(B[i]-v)*t).toString(16).padStart(2,'0')).join('');}
+function festBldRecolor(){
+  if(festCampusOn)festDrawCampus(true);
+  festB3dDirty=true;if(festB3d)festB3d.requestRedraw();
+  if(document.getElementById('festBldOverlay').classList.contains('open')){festBldList();festBldColUi();}
+}
+function festBldSetColor(id,c){
+  c=festHex(c);if(c)festBldCol.per[id]=c;else delete festBldCol.per[id];
+  festBldColSave();festBldRecolor();
+  if(festBldInfoCur&&festBldInfoCur.b.id===id)festBldInfo(festBldInfoCur.b,festBldInfoCur.ll);   // 開いている詳細の選択状態を更新
+}
+function festBldSetAll(c){festBldCol.all=festHex(c);festBldColSave();festBldRecolor();
+  if(festBldInfoCur)festBldInfo(festBldInfoCur.b,festBldInfoCur.ll);}
+function festBldClearPer(){festBldCol.per={};festBldColSave();festBldRecolor();if(festBldInfoCur)festBldInfo(festBldInfoCur.b,festBldInfoCur.ll);}
+function festSwatches(cur,fn,arg){   // 色見本ボタン（fn=呼び出す関数名、arg=建物ID。一括はarg空）
+  const call=c=>fn+'('+(arg?"'"+arg+"',":'')+"'"+c+"')";
+  return '<div class="fest-sws">'+FEST_COLORS.map(([c,n])=>'<button type="button" class="fest-sw'+(cur===c?' on':'')+'" style="background:'+c+'" title="'+n+'" aria-label="'+n+'" onclick="'+call(c)+'"></button>').join('')
+    +'<label class="fest-sw fest-sw-c'+(cur&&!FEST_COLORS.some(x=>x[0]===cur)?' on':'')+'" title="好きな色を選ぶ"'+(cur&&!FEST_COLORS.some(x=>x[0]===cur)?' style="background:'+cur+'"':'')+'>'
+    +'<input type="color" value="'+(cur||'#9775fa')+'" onchange="'+fn+'('+(arg?"'"+arg+"',":'')+'this.value)"></label>'
+    +'<button type="button" class="fest-sw-x'+(cur?'':' on')+'" onclick="'+call('')+'">既定</button></div>';
+}
+function festBldColUi(){
+  const a=document.getElementById('festColAll');if(a)a.innerHTML=festSwatches(festBldCol.all,'festBldSetAll','');
+  const n=Object.keys(festBldCol.per).length, pn=document.getElementById('festColPerN'), pc=document.getElementById('festColPerClr');
+  if(pn)pn.textContent=n?('建物ごとに色を変えた建物：'+n+'棟'):'建物ごとの色：なし（地図や一覧で建物を選んで変更）';
+  if(pc)pc.style.display=n?'':'none';
+}
 function festBldInfo(b,ll){
+  festBldInfoCur={b,ll:ll||{lat:b.c[0],lng:b.c[1]}};
   const row=(k,v)=>'<tr><th>'+k+'</th><td>'+v+'</td></tr>';
   let h='<div class="popup fest-bi"><div class="fest-bi-h"><span class="fest-bi-id">'+b.id+'</span><b>'+escapeHtml(b.n||'名称未確認')+'</b></div><table>';
   h+=row('階数',b.f?('地上'+b.f+'階'):'—')+row('高さ',b.h?(b.h.toFixed(1)+' m'):'—')+row('用途',escapeHtml(b.u||'—'))+row('面積',b.a?(b.a.toLocaleString()+' m²'):'—');
@@ -5496,6 +5570,8 @@ function festBldInfo(b,ll){
   if(b.fp)h+=row('学園祭期間',escapeHtml(b.fp)+'としても利用');
   if(b.nl)h+=row('備考','同じ建物の別部分（高さの違う部分）');
   if(b.q)h+=row('要確認',escapeHtml(typeof b.q==='string'?b.q:'名称の候補：'+[b.n].concat(b.alt||[]).join('／')));
+  h+='<tr><th>色</th><td>'+festSwatches(festBldCol.per[b.id]||'','festBldSetColor',b.id)
+    +(festBldCol.per[b.id]?'':'<div class="fest-sw-note">'+(festBldCol.all?'一括の色で表示中':'既定の色で表示中')+'</div>')+'</td></tr>';
   infoWindow.setContent(h+'</table></div>');infoWindow.setPosition(ll||{lat:b.c[0],lng:b.c[1]});infoWindow.open({map});
 }
 function festBldFlash(b){
@@ -5521,7 +5597,7 @@ function festBldList(){
   const nN=FEST_BLD.filter(b=>b.n).length;
   const nE=FEST_BLD.filter(b=>b.n&&b.ns==='推').length;
   document.getElementById('festBldSum').textContent='全'+FEST_BLD.length+'棟（名称あり'+nN+(nE?'〔うち推定'+nE+'〕':'')+'・未確認'+(FEST_BLD.length-nN)+'）';
-  box.innerHTML=L.map(b=>'<button class="fest-bl-row'+(b.n?'':' todo')+'" data-id="'+b.id+'"><span class="fest-bl-id">'+b.id+'</span>'
+  box.innerHTML=L.map(b=>'<button class="fest-bl-row'+(b.n?'':' todo')+'" data-id="'+b.id+'"><span class="fest-bl-c'+(festBldCol.per[b.id]?' own':'')+'" style="background:'+festBldShown(b)+'"></span><span class="fest-bl-id">'+b.id+'</span>'
     +'<span class="fest-bl-n">'+escapeHtml(b.n||'名称未確認')+(b.q?' <em>'+(b.ns==='推'?'推定':'要確認')+'</em>':'')+(b.nl?' <small>別部分</small>':'')+(b.fp?' <small class="fest-bl-fp">祭:'+escapeHtml(b.fp)+'</small>':'')+'</span>'
     +'<span class="fest-bl-m">'+(b.f?b.f+'F':'–')+'・'+(b.h?Math.round(b.h)+'m':'–')+'・'+(b.a?b.a.toLocaleString()+'m²':'–')+'</span></button>').join('')
     ||'<div class="ly-empty">該当する建物はありません</div>';
@@ -5529,7 +5605,7 @@ function festBldList(){
 }
 function festBldOpen(){
   document.querySelectorAll('#festBldSeg button').forEach(x=>x.classList.toggle('on',x.dataset.f===festBldFilter));
-  festBldList();document.getElementById('festBldOverlay').classList.add('open');toggleToolMenu(false);
+  festBldColUi();festBldList();document.getElementById('festBldOverlay').classList.add('open');toggleToolMenu(false);
 }
 (function(){
   const c=document.getElementById('festBldClose'),o=document.getElementById('festBldOverlay');
