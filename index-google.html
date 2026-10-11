@@ -1439,6 +1439,7 @@ function festInit(){
   const rb=document.getElementById('festRotBtn');if(rb){rb.classList.add('show');rb.onclick=festRotToggle;}
   festSetBase(b);
   festDrawCampus(true);festDrawWays(true);festDrawFac(true);
+  try{if(localStorage.getItem('tabi_fest_cad_on')==='1')festCadToggle(true);}catch(e){}
   // 端末がベクター描画に対応せずラスターへ切り替わった場合も、建物名（地図側ラベル）を出し直す
   try{map.addListener('renderingtype_changed',()=>{if(festCampusOn)festDrawCampus(true);});}catch(e){}
   festFit();
@@ -1464,7 +1465,24 @@ document.getElementById('themeBtn').onclick=()=>{
 
 // ===== タブ =====
 const tabsEl=document.getElementById('tabs');
-function buildTabs(){tabsEl.innerHTML='';TAB_ORDER.forEach(key=>{const m=TAB_META[key],color=cssvar(m.cv);const b=document.createElement('button');b.className='tab'+(key===activeTab?' active':'');b.innerHTML=`<span class="dot" style="background:${color}"></span>${m.emoji?m.emoji+' ':''}${m.label}`;if(key===activeTab)b.style.background=color;b.onclick=()=>selectTab(key);tabsEl.appendChild(b);});}
+function buildTabs(){tabsEl.innerHTML='';TAB_ORDER.forEach(key=>{const m=TAB_META[key],color=cssvar(m.cv);const b=document.createElement('button');b.className='tab'+(key===activeTab?' active':'');b.innerHTML=`<span class="dot" style="background:${color}"></span>${m.emoji?m.emoji+' ':''}${m.label}`;if(key===activeTab)b.style.background=color;b.onclick=()=>selectTab(key);tabsEl.appendChild(b);});
+  if(FEST){const c=document.createElement('button');const onA=!!(window.CAD&&CAD.isOn());c.className='tab cad-tab'+(onA?' active':'');c.id='cadTab';
+    c.title='鳳祭 統括指令（α版）：人員・出動指令・進行を地図に重ねる';c.innerHTML='<span class="dot" style="background:#e8590c"></span>指令 α'+(onA?'：ON':'');
+    c.onclick=()=>festCadToggle();tabsEl.appendChild(c);}}
+// 本祭支援ツール α版：鳳祭 統括指令（cad-alpha.js を切り替えたときだけ読み込む）。状態は端末内に保存して次回も維持
+const FEST_CAD_V=1;
+function festCadLoad(cb){
+  if(window.CAD){cb();return;}
+  const sc=document.createElement('script');sc.src='cad-alpha.js?v='+FEST_CAD_V;
+  sc.onload=()=>cb();sc.onerror=()=>{showStatus('α版を読み込めませんでした（通信状態を確認してください）',false);hideStatusLater();};
+  document.head.appendChild(sc);
+}
+function festCadToggle(force){
+  const want=(force!=null)?!!force:!(window.CAD&&CAD.isOn());
+  try{localStorage.setItem('tabi_fest_cad_on',want?'1':'0');}catch(e){}
+  if(!want){if(window.CAD)CAD.stop();buildTabs();showStatus('指令α：OFF（本祭支援ツールの通常表示）',false);hideStatusLater();return;}
+  festCadLoad(()=>{CAD.start();buildTabs();showStatus('指令α：ON　左＝人員／右＝出動指令・進行・ログ。地図の丸＝配置箇所（数字＝人数）、三角＝指令',false);hideStatusLater();});
+}
 function setPlain(){
   activeTab=null;buildTabs();
   if(map)map.setOptions({disableDoubleClickZoom:false}); // ルート以外は通常のダブルクリックズームに戻す
