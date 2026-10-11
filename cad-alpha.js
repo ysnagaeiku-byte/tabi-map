@@ -17,11 +17,11 @@ const DEFAULT_BUREAUS=[
 // 配置箇所：ref＝本祭支援ツールのデータ（建物B..・駐車場P..・出入口E..・避難場所EV:..）から位置を決める。dx/dyは少しずらす量（m）
 const DEFAULT_LOCATIONS=[
   {id:'HQ',name:'統括本部（10号館）',ref:'B10',dy:-14,hq:true,t:'hq'},
-  {id:'INFO',name:'インフォメーション',ref:'B11',t:'small'},{id:'GATE',name:'正門受付',ref:'E5',t:'gate'},
+  {id:'INFO',name:'守衛場',ref:'B11',t:'small'},{id:'GATE',name:'正門受付',ref:'E5',t:'gate'},
   {id:'G1',name:'1号館',ref:'B01'},{id:'G2',name:'2号館',ref:'B02'},{id:'G3',name:'3号館',ref:'B04'},{id:'G4',name:'4号館',ref:'B05'},
   {id:'G5',name:'5号館',ref:'B06'},{id:'G6',name:'6号館',ref:'B07'},{id:'G7',name:'7号館',ref:'B08'},{id:'G8',name:'8号館',ref:'B09'},
   {id:'G9',name:'9号館',ref:'B51'},{id:'G10',name:'10号館',ref:'B10',dy:14},{id:'G11',name:'11号館',ref:'B58'},
-  {id:'GTOP',name:'グリーントップ',ref:'B12'},{id:'YAGAI',name:'野外音楽堂',ref:'B49',t:'stage'},{id:'SHOKUDO',name:'食堂館',ref:'B22'},
+  {id:'GTOP',name:'グリーントップ',ref:'B12'},{id:'YAGAI',name:'野外音楽堂',ref:'B49',t:'stage'},{id:'SHOKUDO',name:'VIEW',ref:'B22'},
   {id:'IKUTA',name:'生田会館',ref:'B15'},{id:'GYM1',name:'第1体育館',ref:'B16',t:'stage'},
   {id:'GREEN',name:'10号館前芝生',ref:'EV:B',t:'stage'},{id:'MOGI',name:'屋外出店エリア（4号館前）',lat:35.60962,lng:139.55612,t:'mogi'},
   {id:'AID',name:'救護（4号館 保健室）',ref:'B05',dx:-16,t:'aid'},{id:'KITA',name:'北グラウンド',ref:'EV:C'},{id:'NISHI',name:'西グラウンド',ref:'EV:D'},
@@ -62,7 +62,7 @@ const ZONES=[
   {id:'z_gym1',label:'第一体育館',ref:'GYM1',children:[{id:'z_gy_seat',label:'観客席'},{id:'z_gy_back',label:'舞台裏'},{id:'z_gy_recv',label:'受付前（屋外）'}]},
   {id:'z_park',label:'駐車場',container:true,children:[{id:'z_pk_p1',label:'10・9号館前の駐車場',ref:'P1'},{id:'z_pk_p2',label:'第一体育館前の駐車スペース',ref:'P2'}]},
   {id:'z_souko',label:'倉庫・搬送',container:true,children:[{id:'z_sk_g',label:'G倉庫',ref:'GSOUKO'},{id:'z_sk_t',label:'枡形天神社',ref:'TENJIN'}]},
-  {id:'z_out',label:'屋外',container:true,children:[{id:'z_o_gate',label:'正門',ref:'GATE'},{id:'z_o_info',label:'インフォメーション',ref:'INFO'},
+  {id:'z_out',label:'屋外',container:true,children:[{id:'z_o_gate',label:'正門',ref:'GATE'},{id:'z_o_info',label:'守衛場',ref:'INFO'},
     {id:'z_o_gtop',label:'グリーントップ',ref:'GTOP'},{id:'z_o_yagai',label:'野外音楽堂',ref:'YAGAI'},{id:'z_o_kita',label:'北グラウンド',ref:'KITA'},{id:'z_o_nishi',label:'西グラウンド',ref:'NISHI'}]}];
 function zoneFind(id,nodes,path){nodes=nodes||ZONES;path=path||[];for(const n of nodes){const p=path.concat([n]);if(n.id===id)return{node:n,path:p};if(n.children){const r=zoneFind(id,n.children,p);if(r)return r;}}return null;}
 function zoneRef(id){const f=zoneFind(id);if(!f)return null;for(let i=f.path.length-1;i>=0;i--)if(f.path[i].ref)return f.path[i].ref;return null;}
@@ -112,12 +112,12 @@ function genDemo(){
       S.members.push({id:'M'+(uid++),callsign:b.code+'-'+pad(i+1),name:rnd(SURNAMES)+' '+rnd(GIVEN),bureau:b.code,role,loc:rnd(plan.locs),status,note:'',upd:Date.now()-Math.floor(Math.random()*3600e3)});
     }});
   const now=Date.now(),a=S.members.find(m=>m.loc==='INFO')||S.members[0],k=S.members.find(m=>m.bureau==='庶')||S.members[0];
-  S.orders=[{id:'D101',seq:101,kind:'lost',prio:'normal',loc:'INFO',locLabel:'インフォメーション',assignees:[a.id],text:'迷子（サンプル）を保護。保護者を呼び出し中。',status:'respond',created:now-8*60e3},
+  S.orders=[{id:'D101',seq:101,kind:'lost',prio:'normal',loc:'INFO',locLabel:'守衛場',assignees:[a.id],text:'迷子（サンプル）を保護。保護者を呼び出し中。',status:'respond',created:now-8*60e3},
     {id:'D102',seq:102,kind:'supply',prio:'normal',loc:'GSOUKO',locLabel:'倉庫・搬送 › G倉庫',assignees:[k.id],text:'G倉庫から机・椅子を第一体育館前の駐車スペースへ搬出（サンプル）。',status:'dispatch',created:now-3*60e3}];
   S.orders.forEach(o=>o.assignees.forEach(id=>{const m=mem(id);if(m)m.status='respond';}));
   S.seq=103;
   addLog('sys','α版を起動 — 人員 '+S.members.length+'名（ダミー）を展開',null,now-9*60e3);
-  addLog('order','#101 迷子/呼出 をインフォメーションへ発令',STATUS.respond.color,now-8*60e3);
+  addLog('order','#101 迷子/呼出 を守衛場へ発令',STATUS.respond.color,now-8*60e3);
   addLog('order','#102 物資搬送 をG倉庫へ発令',KINDS.supply.color,now-3*60e3);
   save();
 }
@@ -125,7 +125,9 @@ function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
 function load(){try{const r=localStorage.getItem(KEY);if(r){S=JSON.parse(r);return true;}}catch(e){}return false;}
 function ensureShape(){S.bureaus=S.bureaus||[];S.locations=S.locations||[];S.members=S.members||[];S.orders=S.orders||[];S.log=S.log||[];
   S.events=S.events&&S.events.length?S.events:DEFAULT_EVENTS.map((e,i)=>({id:'E'+(i+1),...e}));S.seq=S.seq||101;S.filters=S.filters||{q:'',bureau:'',status:''};
-  S.orders.forEach(o=>{if(!o.assignees)o.assignees=[];});}
+  S.orders.forEach(o=>{if(!o.assignees)o.assignees=[];});
+  const REN={INFO:['インフォメーション','守衛場'],SHOKUDO:['食堂館','VIEW']};   // 名称変更の引き継ぎ（保存済みデータ）
+  S.locations.forEach(l=>{const r=REN[l.id];if(r&&l.name===r[0])l.name=r[1];});}
 function addLog(type,text,color,ts){S.log.unshift({t:ts||Date.now(),type,text,color:color||'#5c6c80'});if(S.log.length>300)S.log.pop();}
 const mem=id=>S.members.find(m=>m.id===id);
 const membersAt=id=>S.members.filter(m=>m.loc===id);
@@ -250,6 +252,14 @@ body.cad-on #mapAttrib{right:438px;}
   body.cad-on #mapLegend{left:8px;}body.cad-on #mapAttrib{right:8px;}
 }
 .tab.cad-tab{border-color:#e8590c!important;color:#e8590c!important;font-weight:900;}
+.cad-pin{min-width:22px;height:22px;padding:0 4px;box-sizing:border-box;border-radius:11px;border:2px solid #fff;color:#0b1220;font:900 11px/18px sans-serif;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.35);}
+.cad-pin.hq{background:#ffd43b;color:#5c3d00;border-radius:6px;}
+.cad-pin.ord{background:none;border:0;box-shadow:none;width:26px;height:24px;position:relative;}
+.cad-pin.ord::before{content:"";position:absolute;inset:0;background:var(--c);clip-path:polygon(50% 0,100% 100%,0 100%);}
+.cad-pin.ord span{position:relative;display:block;color:#fff;font-size:9px;line-height:30px;}
+.cad-dot{width:8px;height:8px;border-radius:50%;border:1px solid #0b1220;}
+.cad-blink{animation:cadblink .3s 5 alternate;}
+@keyframes cadblink{from{transform:scale(1)}to{transform:scale(1.6)}}
 .tab.cad-tab.active{background:#e8590c!important;color:#fff!important;}
 `;
 function injectDom(){
@@ -366,8 +376,28 @@ function locIcon(l){
   const n=membersAt(l.id).length;
   return{path:google.maps.SymbolPath.CIRCLE,scale:hasOrd?13:(n?11:6),fillColor:col,fillOpacity:n?.95:.7,strokeColor:hasOrd?'#ff3b47':'#ffffff',strokeWeight:hasOrd?3.5:2};
 }
+let pinMode=false;
+const usePins=()=>!!(window.festPinsActive&&window.festPinsActive());
+function pinEl(html,title,onClick){const el=document.createElement('div');el.innerHTML=html;el.title=title||'';el.onclick=e=>{e.stopPropagation();onClick();};return el;}
+function refreshPins(){
+  const seen={};
+  S.locations.forEach(l=>{const n=membersAt(l.id).length,w=worstAt(l.id),col=w?STATUS[w].color:'#868e96',hasOrd=activeOrders().some(o=>o.loc===l.id);seen['L'+l.id]=1;
+    const html=l.hq?'<div class="cad-pin hq">本</div>':'<div class="cad-pin" style="background:'+col+';'+(hasOrd?'box-shadow:0 0 0 3px #ff3b47;':'')+(n?'':'width:12px;height:12px;opacity:.75;')+'">'+(n||'')+'</div>';
+    let o=locMk[l.id];if(!o||!o.pin){if(o&&o.setMap)o.setMap(null);o=locMk[l.id]={pin:'cadL_'+l.id,el:pinEl('',l.name,()=>{if(!editLoc)openLocation(l.id);})};}
+    o.el.innerHTML=html;o.el.title=l.name+'（'+n+'名）';window.festPinSet(o.pin,l.lat,l.lng,o.el);});
+  Object.keys(locMk).forEach(id=>{if(!seen['L'+id]){if(locMk[id].pin)window.festPinDel(locMk[id].pin);else locMk[id].setMap(null);delete locMk[id];}});
+  const os={};
+  activeOrders().forEach(o=>{const l=LOC[o.loc];if(!l)return;os[o.id]=1;const k=KINDS[o.kind]||KINDS.other;
+    let m=ordMk[o.id];if(!m||!m.pin){if(m&&m.setMap)m.setMap(null);m=ordMk[o.id]={pin:'cadO_'+o.id,el:pinEl('','',()=>openOrder(o.id))};}
+    m.el.innerHTML='<div class="cad-pin ord" style="--c:'+(o.prio==='urgent'?'#ff3b47':k.color)+'"><span>'+(o.seq%100)+'</span></div>';m.el.title='#'+o.seq+' '+k.label;
+    window.festPinSet(m.pin,l.lat+11/KY,l.lng,m.el);});
+  Object.keys(ordMk).forEach(id=>{if(!os[id]){if(ordMk[id].pin)window.festPinDel(ordMk[id].pin);else ordMk[id].setMap(null);delete ordMk[id];}});
+  if(plotTimer)renderPlot();
+}
 function refreshMarkers(){
   if(typeof map==='undefined'||!map||typeof google==='undefined')return;
+  const pm=usePins();if(pm!==pinMode){clearMarkers();pinMode=pm;}
+  if(pm){refreshPins();return;}
   const seen={};
   S.locations.forEach(l=>{seen[l.id]=1;const n=membersAt(l.id).length;
     const opt={position:{lat:l.lat,lng:l.lng},icon:locIcon(l),label:(l.hq||n)?{text:l.hq?'本':String(n),color:l.hq?'#5c3d00':'#0b1220',fontSize:'11px',fontWeight:'900'}:null,
@@ -388,24 +418,28 @@ function refreshMarkers(){
   Object.keys(ordMk).forEach(id=>{if(!os[id]){ordMk[id].setMap(null);delete ordMk[id];}});
   if(plotTimer)renderPlot();
 }
-function clearMarkers(){[locMk,ordMk,plotMk].forEach(o=>Object.keys(o).forEach(k=>{o[k].setMap(null);delete o[k];}));}
+function clearMarkers(){[locMk,ordMk,plotMk].forEach(o=>Object.keys(o).forEach(k=>{const m=o[k];if(m&&m.pin){if(window.festPinDel)window.festPinDel(m.pin);}else if(m)m.setMap(null);delete o[k];}));}
 function focusLoc(id){const l=LOC[id];if(!l||!map)return;map.panTo({lat:l.lat,lng:l.lng});   // アングル（傾き・向き・ズーム）は変えない
-  const mk=locMk[id];if(mk&&google.maps.Animation){mk.setAnimation(google.maps.Animation.BOUNCE);setTimeout(()=>mk.setAnimation(null),1400);}}
+  const mk=locMk[id];if(!mk)return;
+  if(mk.pin){mk.el.classList.add('cad-blink');setTimeout(()=>mk.el.classList.remove('cad-blink'),1500);}
+  else if(google.maps.Animation){mk.setAnimation(google.maps.Animation.BOUNCE);setTimeout(()=>mk.setAnimation(null),1400);}}
 // 位置プロット（模擬）：人員を配置箇所のまわりに個別の点で表示し、少しずつ動かす
 function renderPlot(){
   S.members.forEach(m=>{const l=LOC[m.loc];if(!l)return;const o=plotOff[m.id]||(plotOff[m.id]={dx:(Math.random()-.5)*30,dy:(Math.random()-.5)*30});
     const pos={lat:l.lat+o.dy/KY,lng:l.lng+o.dx/KX},col=STATUS[m.status].color;
+    if(pinMode){let pm=plotMk[m.id];if(!pm||!pm.pin){if(pm&&pm.setMap)pm.setMap(null);pm=plotMk[m.id]={pin:'cadP_'+m.id,el:pinEl('',m.callsign,()=>openMember(m.id))};}
+      pm.el.innerHTML='<div class="cad-dot" style="background:'+col+'"></div>';window.festPinSet(pm.pin,pos.lat,pos.lng,pm.el);return;}
     const opt={position:pos,map,clickable:true,zIndex:40,title:m.callsign+' '+m.name,icon:{path:google.maps.SymbolPath.CIRCLE,scale:4,fillColor:col,fillOpacity:1,strokeColor:'#0b1220',strokeWeight:1}};
     if(!plotMk[m.id]){plotMk[m.id]=new google.maps.Marker(opt);plotMk[m.id].addListener('click',()=>openMember(m.id));}else plotMk[m.id].setOptions(opt);});
-  Object.keys(plotMk).forEach(id=>{if(!mem(id)){plotMk[id].setMap(null);delete plotMk[id];}});
+  Object.keys(plotMk).forEach(id=>{if(!mem(id)){const pm=plotMk[id];if(pm.pin)window.festPinDel(pm.pin);else pm.setMap(null);delete plotMk[id];}});
 }
 function togglePlot(){
-  if(plotTimer){clearInterval(plotTimer);plotTimer=null;Object.keys(plotMk).forEach(k=>{plotMk[k].setMap(null);delete plotMk[k];});$('#cadPlot').classList.remove('on');return;}
+  if(plotTimer){clearInterval(plotTimer);plotTimer=null;Object.keys(plotMk).forEach(k=>{const pm=plotMk[k];if(pm.pin)window.festPinDel(pm.pin);else pm.setMap(null);delete plotMk[k];});$('#cadPlot').classList.remove('on');return;}
   renderPlot();plotTimer=setInterval(()=>{Object.values(plotOff).forEach(o=>{o.dx=Math.max(-22,Math.min(22,o.dx+(Math.random()-.5)*4));o.dy=Math.max(-22,Math.min(22,o.dy+(Math.random()-.5)*4));});renderPlot();},2000);
   $('#cadPlot').classList.add('on');
   try{showStatus('位置プロット（模擬）：人員を個別の点で表示しています。実際のGPS連携は今後の検討事項です',false);hideStatusLater();}catch(e){}
 }
-function startLocEdit(){editLoc=true;closeModal();$('#cadEditPill').style.display='block';refreshMarkers();}
+function startLocEdit(){if(usePins()){alert('3Dの高低差がONの間は位置を調整できません。レンチ→本祭支援ツール→「3Dの高低差」をOFFにしてから調整してください。');return;}editLoc=true;closeModal();$('#cadEditPill').style.display='block';refreshMarkers();}
 function endLocEdit(){editLoc=false;$('#cadEditPill').style.display='none';refreshMarkers();addLog('sys','配置箇所の位置を調整','#1971c2');save();renderLog();}
 
 /* ---------- モーダル ---------- */
@@ -553,6 +587,7 @@ function onKey(e){
   const k=e.key.toLowerCase();
   if(k==='n'){e.preventDefault();openDispatch();}else if(k==='/'){e.preventDefault();const q=$('#cadQ');if(q)q.focus();}else if(k==='p'){e.preventDefault();togglePlot();}
 }
+function onTerrain(){if(on)refreshMarkers();}
 function onStorage(e){if(!on||!e.key||e.key.indexOf(KEY)<0)return;if(load()){ensureShape();rebuild();renderAll();}}
 function start(){
   if(on)return;on=true;
@@ -560,12 +595,12 @@ function start(){
   injectDom();document.body.classList.add('cad-on');
   renderAll();
   tickTimer=setInterval(tick,1000);
-  document.addEventListener('keydown',onKey);window.addEventListener('storage',onStorage);
+  document.addEventListener('keydown',onKey);window.addEventListener('storage',onStorage);window.addEventListener('festterrain',onTerrain);
 }
 function stop(){
   if(!on)return;on=false;
   clearInterval(tickTimer);tickTimer=null;if(plotTimer){clearInterval(plotTimer);plotTimer=null;}
-  document.removeEventListener('keydown',onKey);window.removeEventListener('storage',onStorage);
+  document.removeEventListener('keydown',onKey);window.removeEventListener('storage',onStorage);window.removeEventListener('festterrain',onTerrain);
   clearMarkers();removeDom();editLoc=false;
 }
 window.CAD={start,stop,isOn:()=>on,focusLoc,openDispatch,_state:()=>S};
