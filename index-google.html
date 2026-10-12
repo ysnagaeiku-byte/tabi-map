@@ -113,7 +113,7 @@
   #disasterBanner.show{display:block;}
   #disasterBanner .db-x{position:absolute;right:9px;top:calc(8px + env(safe-area-inset-top));background:rgba(255,255,255,.28);border:none;color:#fff;border-radius:7px;width:26px;height:26px;font-size:14px;cursor:pointer;}
   /* ===== 雨雲/光害 レイヤーの凡例（左下）＋出典（右下・極小） ===== */
-  #mapLegend{display:none;position:fixed;left:8px;bottom:calc(var(--tmoff) + 58px + env(safe-area-inset-bottom));z-index:1000;background:var(--panel-blur);backdrop-filter:blur(4px);border:1px solid var(--line);border-radius:9px;box-shadow:0 3px 12px var(--shadow);padding:6px 8px;max-width:min(52vw,220px);}
+  #mapLegend{display:none;position:fixed;left:8px;bottom:calc(var(--tmoff) + 58px + env(safe-area-inset-bottom));z-index:1000;background:var(--panel);border:1px solid var(--line);border-radius:9px;box-shadow:0 3px 12px var(--shadow);padding:6px 8px;max-width:min(52vw,220px);}
   #mapLegend.show{display:block;}
   #mapLegend .lg-block{margin:2px 0;}
   #mapLegend .lg-ttl{font-size:9.5px;font-weight:800;color:var(--fg);margin-bottom:3px;}
@@ -283,9 +283,10 @@
   .seg-sel{padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);font-size:12.5px;}
   .rs-result{display:none;border-top:1px solid var(--line);padding-top:12px;margin-top:10px;}
   .rs-result.show{display:block;}
-  .rs-grid{display:flex;gap:10px;} .rs-grid+.rs-grid{margin-top:10px;}
-  .rs-card{flex:1;background:var(--surface-2);border-radius:14px;padding:11px 12px;text-align:center;}
-  .rs-card .k{font-size:11px;color:var(--muted);font-weight:700;} .rs-card .val{font-size:20px;font-weight:800;margin-top:3px;}
+  .rs-grid{display:flex;gap:7px;} .rs-grid+.rs-grid{margin-top:7px;}
+  .rs-card{flex:1;background:var(--surface-2);border-radius:11px;padding:7px 9px;text-align:center;}
+  .rs-card .k{font-size:10px;color:var(--muted);font-weight:700;} .rs-card .val{font-size:16px;font-weight:800;margin-top:1px;}
+  .rs-card:has(#rTotal){display:none !important;}   /* 車両費用計は出さない（総予算・1人あたりで足りる） */
   .rs-card.cost{background:var(--accent-weak);} .rs-card.cost .val{color:var(--accent);}
   .rs-note{font-size:11px;color:var(--muted);margin-top:9px;line-height:1.55;}
   .itin-pt{display:flex;align-items:center;gap:8px;font-size:13px;margin:3px 0;}
@@ -471,10 +472,8 @@
   #festRotBtn.on{background:var(--accent);color:#fff;border-color:var(--accent);} #festRotBtn.on small{color:rgba(255,255,255,.92);}
   body:has(#routeSheet.open:not(.collapsed)) #festRotBtn{bottom:calc(46dvh + 326px);}
   html.fest #imgBtn{display:none !important;}
-  /* 本祭支援ツール：短距離向けにルートタブを簡略化（休憩・割り勘・車両費用計を出さない、数値の欄を小さめに） */
-  html.fest #restSec,html.fest #splitRow,html.fest .rs-card:has(#rTotal),html.fest .rs-inputs label:has(#splitN){display:none !important;}
-  html.fest .rs-grid{gap:7px;} html.fest .rs-grid+.rs-grid{margin-top:7px;}
-  html.fest .rs-card{padding:7px 9px;border-radius:11px;} html.fest .rs-card .k{font-size:10px;} html.fest .rs-card .val{font-size:16px;margin-top:1px;}
+  /* 本祭支援ツール：短距離向けにルートタブを簡略化（休憩・割り勘を出さない） */
+  html.fest #restSec,html.fest #splitRow,html.fest .rs-inputs label:has(#splitN){display:none !important;}
   /* 既定のアングルに戻す（遊園側ボタンの上） */
   #festFitBtn{display:none;position:fixed;right:17px;bottom:calc(351px + env(safe-area-inset-bottom));z-index:1040;width:44px;height:44px;border-radius:13px;border:1px solid var(--line);background:var(--panel);color:var(--fg);box-shadow:0 4px 14px var(--shadow);cursor:pointer;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;font-size:16px;}
   #festFitBtn.show{display:flex;}
@@ -1434,7 +1433,7 @@ window.initGMap=function(){
   map=new google.maps.Map(document.getElementById('map'),mapOpt);
   infoWindow=new google.maps.InfoWindow();
   if(FEST){infoWindow.setOptions({disableAutoPan:true});
-    ['domready','closeclick','close'].forEach(ev=>infoWindow.addListener(ev,()=>{if(festB3d)setTimeout(()=>festB3d&&festB3d.requestRedraw(),30);}));}   // 試験用：建物などを押しても吹き出しに合わせて地図を動かさない
+    ['domready','closeclick','close'].forEach(ev=>infoWindow.addListener(ev,()=>{festIwOpen=(ev==='domready');if(festB3d)setTimeout(()=>festB3d&&festB3d.requestRedraw(),30);}));}   // 試験用：建物などを押しても吹き出しに合わせて地図を動かさない
   infoWindow.addListener('closeclick',()=>{curInfoMarker=null;removeTempPin();}); // ×で閉じたら状態リセット＋仮ピンも消す
   placesSvc=new google.maps.places.PlacesService(map);
   map.addListener('click',(e)=>{const tr=document.getElementById('topResults');if(tr)tr.classList.remove('show');closeInfo();removeTempPin();if(activeTab==='iso')setIsoCenter(e.latLng.lat(),e.latLng.lng());}); // 地図タップでポップアップも閉じる（×が上部UIに隠れても確実に閉じられる）
@@ -1470,6 +1469,7 @@ function festInit(){
   const fm=document.getElementById('festSetSec');if(fm)fm.style.display='block';
   let b='';try{b=localStorage.getItem('fest_base')||'';}catch(e){}
   b=festMapId?'3d':(b==='white'?'white':'map');   // 起動は既定の画角（Map IDあり＝3D・遊園側）。Map IDなしは前回の標準/白地図
+  const rs=festResumeTake();if(rs&&rs.b)b=rs.b;     // 昼/夜の切替による再読込：直前の地図の種類に戻す
   festRotLoad();festRotUi();festBldColLoad();festTerrainLoad();festWayLLoad();
   const rb=document.getElementById('festRotBtn');if(rb){rb.classList.add('show');rb.onclick=festRotToggle;}
   const fb=document.getElementById('festFitBtn');if(fb){fb.classList.add('show');fb.onclick=()=>festFit();}
@@ -1477,14 +1477,22 @@ function festInit(){
   const sv=document.getElementById('saveRouteBtn');if(sv)sv.textContent='このルートを保存';
   restMin=0;   // 短距離向け：休憩の提案・休憩時間は使わない
   festSetBase(b);
-  festDrawCampus(true);festDrawWays(true,true);
+  festDrawCampus(true);if(rs&&rs.way)festDrawWays(true,true);   // 構内の動線は既定でOFF（レイヤー・メニューから表示）
   try{if(localStorage.getItem('tabi_fest_cad_on')==='1')festCadToggle(true);}catch(e){}
   // 端末がベクター描画に対応せずラスターへ切り替わった場合も、建物名（地図側ラベル）を出し直す
   try{map.addListener('renderingtype_changed',()=>{if(festCampusOn)festDrawCampus(true);});}catch(e){}
   try{map.addListener('click',()=>{if(!festB3d)festCardHide();});}catch(e){}
-  festFit();
-  showStatus('本祭支援ツール：レンチ→「本祭支援ツール」で地図の種類・建物の色・構内の動線/施設を切替',false);hideStatusLater();
+  if(rs&&rs.c&&festBase!=='p3d'){const cam={center:rs.c,zoom:rs.z,tilt:rs.t||0,heading:rs.h||0};
+    if(map.moveCamera)map.moveCamera(cam);else{map.setCenter(cam.center);map.setZoom(cam.zoom);}}
+  else festFit();
+  if(rs&&rs.tab&&rs.tab!==activeTab)try{selectTab(rs.tab);}catch(e){}
+  if(!rs){showStatus('本祭支援ツール：レンチ→「本祭支援ツール」で地図の種類・建物の色・構内の動線/施設を切替',false);hideStatusLater();}
 }
+function festResumeSave(){   // 昼/夜の切替（再読込）の直前の状態
+  try{const c=map&&map.getCenter&&map.getCenter();
+    sessionStorage.setItem('fest_resume',JSON.stringify({b:festBase,c:c?{lat:c.lat(),lng:c.lng()}:null,z:map.getZoom(),t:map.getTilt?map.getTilt():0,h:map.getHeading?map.getHeading():0,way:!!festWayOn,tab:activeTab||null,ts:Date.now()}));}catch(e){}
+}
+function festResumeTake(){let r=null;try{r=JSON.parse(sessionStorage.getItem('fest_resume')||'null');sessionStorage.removeItem('fest_resume');}catch(e){}return(r&&Date.now()-r.ts<120000)?r:null;}
 function bootGoogle(){
   const key=cfgKey('gmap');
   if(!key){document.getElementById('nokey').classList.add('show');return;}
@@ -1500,7 +1508,7 @@ function applyTheme(t){currentTheme=t;document.documentElement.dataset.theme=t;c
   try{if(FEST&&festCampusOn)festDrawCampus(true);}catch(e){}}
 document.getElementById('themeBtn').onclick=()=>{
   applyTheme(currentTheme==='dark'?'light':'dark');
-  if(FEST&&festMapId)setTimeout(()=>location.reload(),150);   // ベクター地図の配色(ライト/ダーク)は起動時に決まるため
+  if(FEST&&festMapId){festResumeSave();setTimeout(()=>location.reload(),150);}   // ベクター地図の配色(ライト/ダーク)は起動時に決まるため（再読込後も今の地図の種類・視点に戻す）
 };
 
 // ===== タブ =====
@@ -2455,8 +2463,14 @@ async function routeViaRoutesAPI(opts){
 // ===== 本祭支援ツール：構内の動線に沿ったルート =====
 // 構内（キャンパス外周の内側）の地点は、構内道路・構内を通る道路と下の連絡路でつないだ道のネットワークで経路を求め、
 // 構外とは車両の出入口（E1〜E7）で乗り継ぐ。出入口はGoogleの所要時間（Route Matrix）＋構内の距離で最短のものを選ぶ
-const FEST_CAMPUS_LINKS=[   // 構内道路のデータに無い車両の通り道（航空写真から推定）
-  {id:'L1',n:'10・9号館前の駐車場→10号館芝生への坂道',p:[[35.611079,139.553558],[35.611181,139.553653],[35.611316,139.553814],[35.611483,139.553858],[35.611519,139.553902],[35.611583,139.55411],[35.611669,139.554331],[35.611785,139.554456]]}];
+const FEST_CAMPUS_LINKS=[];   // 構内道路のデータに無い車両の通り道（確認できた物だけ追加する。推定で足さない）
+// 車で直接は入れない場所の乗り降り位置：その付近（r m以内）を指定したら、車は at まで行き、そこから徒歩でつなぐ
+// 10号館前広場は9号館駐車場側から通り抜けできないため、北側の道路（V10）の広場に一番近い所で乗り降りする
+const FEST_ACCESS=[{id:'B10',c:[35.611785,139.554456],r:55,at:[35.61198,139.554331],n:'10号館前広場',via:'北側の道路'}];
+const FEST_WALK_SPD=1.2;   // 徒歩（m/s）
+function festAccessOf(p){if(!p)return null;for(const a of FEST_ACCESS){if(festGd(p,{lat:a.c[0],lng:a.c[1]})<=a.r)return a;
+  const b=FEST_BLD.find(x=>x.id===a.id);if(b&&b.p&&festPip(p.lat,p.lng,b.p))return a;}return null;}
+function festRoadName(n){return festBase==='white'?String(n||''):String(n||'').replace(/WINGトンネル/g,'トンネル');}   // WINGトンネルの名前は白地図だけで出す
 const FEST_CAMPUS_SPD=2.8;   // 構内の走行速度（m/s・約10km/h）
 function festPlacePos(id){   // ルートの地点として使う位置（10号館は避難場所B＝10号館前広場）
   if(id==='B10'){const e=FEST_EVAC.find(x=>x.k==='B');if(e)return{lat:e.c[0],lng:e.c[1]};}
@@ -2481,14 +2495,6 @@ function festGraph(){
   const node=(lat,lng)=>{const q={lat,lng};for(let i=0;i<N.length;i++)if(festGd(N[i],q)<3)return i;N.push(q);return N.length-1;};
   FEST_VEH.filter(v=>v.k!=='edge').map(v=>({p:v.p,o:!!v.o,n:v.n})).concat(FEST_CAMPUS_LINKS.map(l=>({p:l.p,o:false,n:l.n}))).forEach(l=>{
     let prev=-1;l.p.forEach(pt=>{const k=node(pt[0],pt[1]);if(prev>=0&&prev!==k)E.push({a:prev,b:k,o:l.o,n:l.n});prev=k;});});
-  // 行き止まりの端が別の道の途中に接している所（T字路）は、その道を分割してつなぐ
-  const deg=N.map(()=>0);E.forEach(e=>{deg[e.a]++;deg[e.b]++;});
-  for(let i=0;i<deg.length;i++){if(deg[i]!==1)continue;let best=null;
-    E.forEach((e,ei)=>{if(e.a===i||e.b===i)return;const A=N[e.a],B=N[e.b],P=N[i];
-      const ax=(B.lng-A.lng)*KX,ay=(B.lat-A.lat)*KY,px=(P.lng-A.lng)*KX,py=(P.lat-A.lat)*KY,L=ax*ax+ay*ay;if(!L)return;
-      const t=(px*ax+py*ay)/L;if(t<=0.02||t>=0.98)return;const dd=Math.hypot(px-t*ax,py-t*ay);if(dd<8&&(!best||dd<best.d))best={ei,t,d:dd};});
-    if(best){const e=E[best.ei],A=N[e.a],B=N[e.b],m=N.length;N.push({lat:A.lat+(B.lat-A.lat)*best.t,lng:A.lng+(B.lng-A.lng)*best.t});deg.push(0);
-      E[best.ei]={a:e.a,b:m,o:e.o,n:e.n};E.push({a:m,b:e.b,o:e.o,n:e.n});E.push({a:i,b:m,o:false,n:''});deg[i]++;deg[m]+=3;}}
   E.forEach(e=>e.len=festGd(N[e.a],N[e.b]));
   const fw=N.map(()=>[]),bw=N.map(()=>[]);
   E.forEach((e,ei)=>{fw[e.a].push({to:e.b,ei});bw[e.b].push({to:e.a,ei});if(!e.o){fw[e.b].push({to:e.a,ei});bw[e.a].push({to:e.b,ei});}});
@@ -2521,7 +2527,8 @@ async function festHybridRoute(opts,key){
   const dep=gDeparture(),dec=enc=>google.maps.geometry.encoding.decodePath(enc),enc=a=>google.maps.geometry.encoding.encodePath(a),LL=q=>new google.maps.LatLng(q.lat,q.lng);
   const gates=festGates(),legs=[],combined=[],intervals=[];let cum=0;
   for(let i=0;i<points.length-1;i++){
-    const A=points[i],B=points[i+1],ai=festInCampus(A),bi=festInCampus(B);
+    const A0=points[i],B0=points[i+1],aa=festAccessOf(A0),ba=festAccessOf(B0);
+    const A=aa?{lat:aa.at[0],lng:aa.at[1]}:A0,B=ba?{lat:ba.at[0],lng:ba.at[1]}:B0,ai=festInCampus(A),bi=festInCampus(B);
     showStatus('ルート計算中…（構内は構内の動線を使用'+(points.length>2?'・区間 '+(i+1)+'/'+(points.length-1):'')+'）',true);
     let pre=null,post=null,only=null,gf=A,gt=B;
     if(ai&&bi){const sa=festSnapNode(A),sb=festSnapNode(B),D=festDijk(sa.i,false);if(isFinite(D.dist[sb.i]))only=festPathTo(D,sb.i);}
@@ -2534,9 +2541,12 @@ async function festHybridRoute(opts,key){
       }
     }
     const steps=[];let dist=0,dur=0,sdur=0,gI=null;
+    const walkStep=(a,b,txt)=>{const len=festGd(a,b);if(len<1)return;const sec=len/FEST_WALK_SPD;dist+=len;dur+=sec;sdur+=sec;
+      steps.push({distanceMeters:Math.round(len),staticDuration:Math.round(sec)+'s',polyline:{encodedPolyline:enc([LL(a),LL(b)])},navigationInstruction:{instructions:txt+'（約'+Math.max(10,Math.round(len/10)*10)+'m）',maneuver:''}});};
+    if(aa)walkStep(A0,A,'徒歩：'+aa.n+'から'+aa.via+'へ');
     const campusStep=(pts,names,a,b)=>{const arr=[a].concat(pts,[b]).filter((q,k,x)=>k===0||festGd(q,x[k-1])>0.3);if(arr.length<2)return;
       let len=0;for(let k=1;k<arr.length;k++)len+=festGd(arr[k-1],arr[k]);const sec=len/FEST_CAMPUS_SPD;dist+=len;dur+=sec;sdur+=sec;
-      const nm=names.filter((x,k)=>x&&x!==names[k-1]);
+      const nm=names.map(festRoadName).filter((x,k,a)=>x&&x!==a[k-1]);
       steps.push({distanceMeters:Math.round(len),staticDuration:Math.round(sec)+'s',polyline:{encodedPolyline:enc(arr.map(LL))},
         navigationInstruction:{instructions:'構内の動線を進む：'+(nm.join(' → ')||'構内道路'),maneuver:''}});};
     if(only)campusStep(only.pts,only.names,A,B);
@@ -2551,6 +2561,7 @@ async function festHybridRoute(opts,key){
       dist+=l.distanceMeters||0;dur+=parseDur(l.duration);sdur+=parseDur(l.staticDuration)||parseDur(l.duration);
       if(post)campusStep(post.pts,post.names,s1,B);
     }
+    if(ba)walkStep(B,B0,'徒歩：'+ba.via+'から'+ba.n+'へ');
     steps.forEach((st,k)=>{if(!st.polyline||!st.polyline.encodedPolyline)return;const sp=dec(st.polyline.encodedPolyline),off=combined.length?combined.length-1:0;
       if(gI&&k===gI.k)gI.iv.forEach(x=>intervals.push({speed:x.speed,startPolylinePointIndex:(x.startPolylinePointIndex||0)+off,endPolylinePointIndex:(x.endPolylinePointIndex!=null?x.endPolylinePointIndex:0)+off}));
       for(let q=combined.length?1:0;q<sp.length;q++)combined.push(sp[q]);});
@@ -3831,6 +3842,7 @@ function updateMapOverlayInfo(){
   if(FEST){
     if(festWalkInfo&&festWalkOn)attr.push(festWalkInfo);
     if(festBase==='white')attr.push('白地図: 国土地理院 基盤地図情報を加工して作成');
+    if(festPinsActive())attr.push('地形・道路: 国土地理院（標高・道路中心線）・緑地: © OpenStreetMap contributors');
     if(festWayOn){attr.push('道路の幅員: 国土交通省 PLATEAU（川崎市2022）');
       html+='<div class="lg-block"><div class="lg-ttl">構内の動線（下書き）</div>'
         +[['vin','#f76707','構内道路'],['vthru','#d9480f','構内を通る道路'],['vedge','#ffa94d','周辺の道路'],['bus','#1c7ed6','路線バス']].filter(x=>festWayL[x[0]]).map(([k,c,t])=>'<div class="fest-lg"><i style="background:'+c+'"></i>'+t+'</div>').join('')
@@ -5400,17 +5412,19 @@ function festDrawCampus(on){
       label:{text:s.n,fontSize:'11px',fontWeight:'800',color:light?'#ffffff':'#13487f',className:lcls}}));
   });
   festLabelZoom();
-  if(!festZoomHooked){festZoomHooked=true;map.addListener('zoom_changed',festLabelZoom);}
+  if(!festZoomHooked){festZoomHooked=true;map.addListener('zoom_changed',()=>{const z=Math.floor(map.getZoom()||16);if(z!==festLblZ)festLabelZoom();});}
   if(festEmph.ids)festEmphApply();
   festB3dDirty=true;festB3dSync();
   try{renderToolMenu();}catch(e){}
   updateMapOverlayInfo();
 }
-function festLabelZoom(){
-  if(!map)return;const z=map.getZoom()||16;
-  festLabels.forEach(m=>m.setMap(festCampusOn&&z>=(m.__id?18:17)?map:null));   // 仮番号は一段寄ってから
-  festFacShapes.forEach(m=>{if(m.__lab)m.setMap(festFacOn&&z>=18?map:null);});
-  festWayShapes.forEach(m=>{if(m.__vlab)m.setMap(festWayOn&&z>=17?map:null);});
+let festLblZ=null;
+function festLabelZoom(){   // ズームの段（整数）が変わったときだけ表示を切り替える（同じ地図への setMap は描き直しになるので避ける）
+  if(!map)return;const z=map.getZoom()||16;festLblZ=Math.floor(z);
+  const vis=(m,on)=>{const w=on?map:null;if(m.getMap()!==w)m.setMap(w);};
+  festLabels.forEach(m=>vis(m,festCampusOn&&z>=(m.__id?18:17)));   // 仮番号は一段寄ってから
+  festFacShapes.forEach(m=>{if(m.__lab)vis(m,festFacOn&&z>=18);});
+  festWayShapes.forEach(m=>{if(m.__vlab)vis(m,festWayOn&&z>=17);});
   if(festBase==='white')festShiroStyle();
 }
 // --- 実写3D（Googleのフォトリアル3D＝Google Earth風）。2Dの地図の上に3D地図要素を重ねて表示する
@@ -5547,7 +5561,7 @@ async function festShiroShow(on){
     festShiroBuild();
     if(festBase!=='white')return;
   }
-  festShiroData.setMap(map);festShiroStyle();
+  festShiroData.setMap(map);festShiroStyle(true);
 }
 let festShiroP=null;
 function festShiroFetch(){
@@ -5572,16 +5586,22 @@ function festShiroBuild(){
   (L.fp||[]).forEach(e=>festShiroLines.push(new google.maps.Polyline({path:P(e),strokeOpacity:0,clickable:false,zIndex:1,icons:dash('#868e96',1.2,2,'8px')})));
   festShiroLines.push(new google.maps.Rectangle({bounds:{south:FEST_BOUNDS.s,west:FEST_BOUNDS.w,north:FEST_BOUNDS.n,east:FEST_BOUNDS.e},
     strokeColor:'#adb5bd',strokeOpacity:.9,strokeWeight:1,fillOpacity:0,clickable:false,zIndex:1}));   // 白地図データの範囲
+  FEST_VEH.filter(v=>v.t&&/WING/.test(v.n)).forEach(v=>{const a=v.p[0],b=v.p[v.p.length-1];   // 白地図：トンネルの名前（白地図だけで出す）
+    const m=new google.maps.Marker({position:{lat:(a[0]+b[0])/2-0.00006,lng:(a[1]+b[1])/2},clickable:false,zIndex:3,
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:.1,fillOpacity:0,strokeOpacity:0},
+      label:{text:v.n,fontSize:'11px',fontWeight:'700',color:'#495057',className:'fest-lbl'}});m.__rn=1;festShiroTowns.push(m);});
   (festShiro.t||[]).forEach(t=>festShiroTowns.push(new google.maps.Marker({position:{lat:t[0],lng:t[1]},clickable:false,zIndex:1,
     icon:{path:google.maps.SymbolPath.CIRCLE,scale:.1,fillOpacity:0,strokeOpacity:0},
     label:{text:t[2],fontSize:'11px',fontWeight:'600',color:'#868e96',className:'fest-lbl'}})));
 }
-function festShiroStyle(){
-  if(!festShiroData||!map)return;const z=map.getZoom()||16, on=(festBase==='white');
+let festShiroKey='';
+function festShiroStyle(force){
+  if(!festShiroData||!map)return;const z=map.getZoom()||16, on=(festBase==='white'),k=Math.floor(z)+'|'+on;
+  if(!force&&k===festShiroKey)return;festShiroKey=k;   // 線の太さ・表示の切替はズームの段ごと（毎フレームの setStyle は重い）
   festShiroData.setStyle(f=>{const st=FEST_SHIRO_ST[f.getProperty('k')]||FEST_SHIRO_ST.rd;
     return {strokeColor:st.c,strokeWeight:st.w*(z>=18?1.3:1),strokeOpacity:1,clickable:false,zIndex:1,visible:z>=st.z};});
   festShiroLines.forEach(l=>l.setMap(on?map:null));
-  festShiroTowns.forEach(m=>m.setMap(on&&z>=14&&z<=17?map:null));
+  festShiroTowns.forEach(m=>m.setMap(on&&(m.__rn?z>=16:(z>=14&&z<=17))?map:null));
 }
 // --- 3D（ベクター地図）：大学周辺だけを PLATEAU の実測の外形・高さで立体化する（WebGLOverlayView・WebGLで直接描画）
 //     構内63棟＝FEST_BLD（名前あり=紫系・未確認=グレー）、周辺の約900棟＝fest-3d.json（白系）。建物をタップすると詳細
@@ -5589,17 +5609,68 @@ function festShiroStyle(){
 const FEST_B3D_O={lat:35.6100,lng:139.5540}, FEST_ER=6371010;
 // --- 3Dの高低差（地形）：国土地理院 5mメッシュ標高を約6m間隔にした fest-dem.json で大学周辺の地面を立体化（ON/OFFで平らな3Dに戻せる）
 //     基準＝構内の建物の地面の中央値（約76m）。地面・等高線・道路縁・動線・駐車場をWebGLで地形に沿って描き、建物は地面の高さから立ち上げる
-const FEST_DEM_V=1, FEST_TERR_EXAG=2;   // 高低差を2倍に強調して描く（建物・印・当たり判定も同じ倍率の地面に乗る）
-let festTerrainOn=true, festDem=null, festDemLoading=false, festTerrBusy=false, festB3dTop={}, festTerrRoads=null;
+const FEST_DEM_V=1, FEST_TERR_EXAG=2, FEST_TERR_V=1;   // 高低差を2倍に強調して描く（建物・印・当たり判定も同じ倍率の地面に乗る）
+let festTerrainOn=true, festDem=null, festDemLoading=false, festTerrBusy=false, festB3dTop={};
+// 道路・緑地・水面（fest-terr.json：道路中心線＝国土地理院、緑地・水面＝OSM）。道路は道に沿って高さをならし、道路まわりの地面もその高さへ寄せる
+let festTerrData=null, festTerrDataP=null, festTerrZd=null, festTerrRd=null, festTerrCls=null, festTerrCache=null;
 function festTerrainLoad(){try{const v=localStorage.getItem('tabi_fest_terrain');festTerrainOn=(v===null)?true:(v==='1');}catch(e){}}
 function festTerrainActive(){return !!(festTerrainOn&&festDem&&festB3d);}
 function festPinsActive(){return !!(festTerrainOn&&festDem&&festB3dWanted());}   // これから3D（地形あり）で描くか（切替の途中でも正しく判定）
-function festTerrainZ(lat,lng){   // 標高−基準（m）。範囲外は0
+function festTerrainZ0(lat,lng){   // 元の標高−基準（m・強調後）。範囲外は0
   const D=festDem;if(!D)return 0;
   const fx=(lng-D.w)/(D.e-D.w)*(D.nx-1),fy=(lat-D.s)/(D.n-D.s)*(D.ny-1);
   if(!(fx>=0&&fy>=0&&fx<=D.nx-1&&fy<=D.ny-1))return 0;
   const i=Math.min(D.nx-2,Math.floor(fx)),j=Math.min(D.ny-2,Math.floor(fy)),u=fx-i,v=fy-j,H=D.h,nx=D.nx;
   return ((H[j*nx+i]*(1-u)*(1-v)+H[j*nx+i+1]*u*(1-v)+H[(j+1)*nx+i]*(1-u)*v+H[(j+1)*nx+i+1]*u*v)*D.scale-D.base)*FEST_TERR_EXAG;
+}
+function festTerrainZ(lat,lng){   // 描画する地面の高さ（道路まわりをならした後。未計算なら元の標高）
+  const D=festDem,Z=festTerrZd;if(!D)return 0;if(!Z)return festTerrainZ0(lat,lng);
+  const fx=(lng-D.w)/(D.e-D.w)*(D.nx-1),fy=(lat-D.s)/(D.n-D.s)*(D.ny-1);
+  if(!(fx>=0&&fy>=0&&fx<=D.nx-1&&fy<=D.ny-1))return 0;
+  const i=Math.min(D.nx-2,Math.floor(fx)),j=Math.min(D.ny-2,Math.floor(fy)),u=fx-i,v=fy-j,nx=D.nx;
+  return Z[j*nx+i]*(1-u)*(1-v)+Z[j*nx+i+1]*u*(1-v)+Z[(j+1)*nx+i]*(1-u)*v+Z[(j+1)*nx+i+1]*u*v;
+}
+function festTerrDataFetch(){
+  if(festTerrData)return Promise.resolve(festTerrData);
+  if(!festTerrDataP)festTerrDataP=fetch('fest-terr.json?v='+FEST_TERR_V).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(j=>{festTerrData={r:(j.r||[]).map(a=>({w:a[0]/10,fl:a[1],LL:festDecode(a[2])})),a:(j.a||[]).map(festDecode),f:(j.f||[]).map(festDecode),p:(j.p||[]).map(festDecode),w:(j.w||[]).map(festDecode)};
+      festTerrZd=festTerrRd=festTerrCls=festTerrCache=null;festB3dDirty=true;if(festB3d)festB3d.requestRedraw();return festTerrData;})
+    .catch(e=>{festTerrDataP=null;console.warn('fest-terr',e);throw e;});
+  return festTerrDataP;
+}
+// 道路の高さをならし（道に沿って移動平均・橋は両端を直線で）、道路から約8mまでの地面をその高さへ寄せる。緑地・水面は格子点ごとに分類
+function festTerrPrep(){
+  const D=festDem;if(!D||!festTerrData||festTerrRd)return;
+  const nx=D.nx,ny=D.ny,X=new Float64Array(nx),Y=new Float64Array(ny);
+  for(let i=0;i<nx;i++)X[i]=festB3dXY(D.s,D.w+(D.e-D.w)*i/(nx-1))[0];
+  for(let j=0;j<ny;j++)Y[j]=festB3dXY(D.s+(D.n-D.s)*j/(ny-1),D.w)[1];
+  const inB=(la,ln)=>la>=D.s&&la<=D.n&&ln>=D.w&&ln<=D.e,ST=2.5,rd=[];
+  festTerrData.r.forEach(r=>{
+    const x=[],y=[],z=[],ins=[];
+    for(let k=0;k<r.LL.length-1;k++){const a=r.LL[k],b=r.LL[k+1],xa=festB3dXY(a[0],a[1]),xb=festB3dXY(b[0],b[1]),n=Math.max(1,Math.ceil(Math.hypot(xb[0]-xa[0],xb[1]-xa[1])/ST));
+      for(let t=0;t<n;t++){const la=a[0]+(b[0]-a[0])*t/n,ln=a[1]+(b[1]-a[1])*t/n;x.push(xa[0]+(xb[0]-xa[0])*t/n);y.push(xa[1]+(xb[1]-xa[1])*t/n);z.push(festTerrainZ0(la,ln));ins.push(inB(la,ln));}}
+    const e=r.LL[r.LL.length-1],xe=festB3dXY(e[0],e[1]);x.push(xe[0]);y.push(xe[1]);z.push(festTerrainZ0(e[0],e[1]));ins.push(inB(e[0],e[1]));
+    const n=z.length;if(n<2||!ins.some(Boolean))return;
+    let zz=Float64Array.from(z);const R=Math.max(2,Math.round(12/ST));
+    for(let pass=0;pass<2;pass++){const o=new Float64Array(n);for(let k=0;k<n;k++){let s=0,c=0;for(let q=Math.max(0,k-R);q<=Math.min(n-1,k+R);q++){s+=zz[q];c++;}o[k]=s/c;}zz=o;}
+    if(r.fl&1){const a=zz[0],b=zz[n-1];for(let k=0;k<n;k++)zz[k]=a+(b-a)*k/(n-1);}
+    rd.push({w:r.w,fl:r.fl,x,y,z:zz,ins});
+  });
+  const Z0=new Float32Array(nx*ny);for(let k=0;k<Z0.length;k++)Z0[k]=(D.h[k]*D.scale-D.base)*FEST_TERR_EXAG;
+  const Zd=Z0.slice(),CS=8,grid=new Map(),key=(cx,cy)=>(cx+4096)*8192+(cy+4096);
+  rd.forEach(r=>{if(r.fl&1)return;for(let k=0;k<r.x.length;k++){const kk=key(Math.floor(r.x[k]/CS),Math.floor(r.y[k]/CS));let a=grid.get(kk);if(!a){a=[];grid.set(kk,a);}a.push(r.x[k],r.y[k],r.z[k],r.w/2);}});
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+    const x=X[i],y=Y[j],cx=Math.floor(x/CS),cy=Math.floor(y/CS);let bf=0,bz=0,bd=1e9;
+    for(let dx=-2;dx<=2;dx++)for(let dy=-2;dy<=2;dy++){const a=grid.get(key(cx+dx,cy+dy));if(!a)continue;
+      for(let q=0;q<a.length;q+=4){const d=Math.hypot(a[q]-x,a[q+1]-y)-a[q+3];if(d>=8)continue;
+        const t=d<=1.5?1:1-(d-1.5)/6.5,f=t*t*(3-2*t);if(f>bf+1e-6||(Math.abs(f-bf)<1e-6&&d<bd)){bf=f;bz=a[q+2];bd=d;}}}
+    if(bf>0){const k=j*nx+i;Zd[k]=Z0[k]+(bz-Z0[k])*bf;}
+  }
+  const cls=new Uint8Array(nx*ny);   // 1=公園・草地 2=樹林 3=水面
+  [['p',1],['f',2],['w',3]].forEach(([k,c])=>(festTerrData[k]||[]).forEach(LL=>{
+    const P=LL.map(q=>festB3dXY(q[0],q[1])),xs=P.map(q=>q[0]),ys=P.map(q=>q[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
+    for(let j=0;j<ny;j++){if(Y[j]<y0||Y[j]>y1)continue;for(let i=0;i<nx;i++){if(X[i]<x0||X[i]>x1)continue;if(festPip(X[i],Y[j],P))cls[j*nx+i]=c;}}}));
+  festTerrZd=Zd;festTerrRd=rd;festTerrCls=cls;
 }
 function festTZ(lat,lng){return festTerrainActive()?festTerrainZ(lat,lng):0;}
 async function festDemFetch(){
@@ -5619,7 +5690,7 @@ function festTerrainToggle(){
 function festTerrainChanged(){   // 地形の有無で、外周・動線・印の描き方（Google地図の図形 ⇔ WebGL・地形に沿った印）を切り替える
   if(festTerrBusy)return;festTerrBusy=true;
   try{festB3dDirty=true;if(festB3d)festB3d.requestRedraw();
-    if(festTerrainActive()&&!festTerrRoads)festShiroFetch().then(()=>{festTerrRoads=null;festB3dDirty=true;if(festB3d)festB3d.requestRedraw();}).catch(()=>{});
+    if(festTerrainActive()&&!festTerrData)festTerrDataFetch().catch(()=>{});
     if(festCampusOn)festDrawCampus(true);if(festWayOn)festDrawWays(true,true);
     try{renderToolMenu();}catch(e){}
     try{window.dispatchEvent(new Event('festterrain'));}catch(e){}
@@ -5633,7 +5704,7 @@ function festB3dBox(){
   return festB3dLblBox;
 }
 function festPinSet(id,lat,lng,el,ax,ay){const o=festPins[id];if(o&&o.el!==el)o.el.remove();el.classList.add('fest-pin');
-  festPins[id]={lat,lng,el,ax,ay};if(festB3d)festB3dBox().appendChild(el);if(festB3d)festB3d.requestRedraw();}
+  festPins[id]={lat,lng,el,ax,ay,w:null,h:null,shown:o&&o.el===el?o.shown:undefined};   /* 中身が変わることがあるので大きさは次の描画で測り直す */if(festB3d)festB3dBox().appendChild(el);if(festB3d)festB3d.requestRedraw();}
 function festPinDel(id){const o=festPins[id];if(o){o.el.remove();delete festPins[id];}}
 function festMk(id,lat,lng,html,title,onClick,gOpt,ax,ay){   // 地形ONなら地形に沿った印、OFFならGoogleの印
   if(festPinsActive()){const el=document.createElement('div');el.innerHTML=html;el.title=title||'';
@@ -5664,6 +5735,7 @@ function festB3dSync(){
     festB3dClickL=map.addListener('click',festB3dClick);
     festB3dSurLoad();festB3dHint();
     if(festTerrainOn&&!festDem)festDemFetch();
+    if(festTerrainOn&&!festTerrData)festTerrDataFetch().catch(()=>{});
     if(festTerrainActive())setTimeout(festTerrainChanged,0);
   }else if(!want&&festB3d){
     const was=festTerrainActive();
@@ -5721,7 +5793,7 @@ function festB3dGeom(dark){
   const K=k=>({r:pal[k+'r'],w:pal[k+'w'],e:pal[k+'e']});
   const CC=c=>dark?{r:festMix(c,'#000000',.45),w:festMix(c,'#000000',.12),e:festMix(c,'#ffffff',.55)}
                   :{r:festMix(c,'#000000',.10),w:festMix(c,'#000000',.32),e:festMix(c,'#000000',.62)};   // 昼モードは明度を下げて濃く（明るい地図とのコントラスト確保）。夜モードは指定色のまま
-  const terr=festTerrainActive(),TT=[],TD=[],TL=[];
+  const terr=festTerrainActive();if(terr)festTerrPrep();
   const ground=LL=>{if(!terr)return{z0:0,zm:0};const zs=LL.map(p=>festTerrainZ(p[0],p[1]));return{z0:Math.min(...zs)-.5,zm:zs.reduce((a,c)=>a+c,0)/zs.length};};
   const one=(P,h,pc,fl,g)=>{
     if(P.length<3||!(h>0))return;
@@ -5750,44 +5822,75 @@ function festB3dGeom(dark){
     festB3dPick.push({b,P,h,z0:g.z0,z1:g.zm+h,bb:[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)]});
   });
   const ks=K('s');(festB3dSur||[]).forEach(o=>one(festRing(o.P),o.h,ks,0,o.LL?ground(o.LL):null));
-  if(terr)festTerrainGeom(dark,TT,TD,TL,add,C);
-  return {T:new Float32Array(T),L:new Float32Array(L),TT:new Float32Array(TT),TD:new Float32Array(TD),TL:new Float32Array(TL)};
+  let tc=null;
+  if(terr){const sig=[dark,festCampusOn,festWayOn,JSON.stringify(festWayL),!!festTerrRd].join('|');
+    if(!festTerrCache||festTerrCache.sig!==sig){const TT=[],TD=[],TL=[],TC=[],TR=[];const nRc=festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR);
+      festTerrCache={sig,TT:new Float32Array(TT),TD:new Float32Array(TD),TL:new Float32Array(TL),TC:new Float32Array(TC),TR:new Float32Array(TR),nRc};}
+    tc=festTerrCache;}
+  return {T:new Float32Array(T),L:new Float32Array(L),terr:tc};
 }
-function festTerrainGeom(dark,TT,TD,TL,add,C){
-  const D=festDem,nx=D.nx,ny=D.ny,H=D.h,sc=D.scale,base=D.base;
+function festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR){
+  const D=festDem,nx=D.nx,ny=D.ny,H=D.h,sc=D.scale,base=D.base,Zd=festTerrZd,cls=festTerrCls;
   let mn=1e9,mx=-1e9;for(let k=0;k<H.length;k++){const v=H[k]*sc;if(v<mn)mn=v;if(v>mx)mx=v;}
   const X=new Float64Array(nx),Y=new Float64Array(ny);
   for(let i=0;i<nx;i++)X[i]=festB3dXY(D.s,D.w+(D.e-D.w)*i/(nx-1))[0];
   for(let j=0;j<ny;j++)Y[j]=festB3dXY(D.s+(D.n-D.s)*j/(ny-1),D.w)[1];
-  const EX=FEST_TERR_EXAG,E=(i,j)=>H[j*nx+i]*sc,Z=(i,j)=>(H[j*nx+i]*sc-base)*EX;
-  const lo=dark?'#262c34':'#eef1e6',hi=dark?'#3f4856':'#c3d1b0';
-  const LX=-0.42,LY=0.52,LZ=0.74;   // 北西から光を当てた陰影
+  const EX=FEST_TERR_EXAG,E=(i,j)=>H[j*nx+i]*sc,Z=Zd?((i,j)=>Zd[j*nx+i]):((i,j)=>(H[j*nx+i]*sc-base)*EX);
+  // Googleマップに近い配色：陸地は淡いグレー（高い所ほどわずかに濃く）、公園・樹林は控えめな緑、水面は青。陰影は弱め
+  const pal=dark?{lo:'#1b2129',hi:'#242b35',park:'#1e382e',wood:'#1a3128',water:'#152e47',soil:'#13171d',c5:'#242b34',c25:'#2c343e',
+                   rf:'#465061',rc:'#14181e',mf:'#566174',mc:'#14181e',pf:'#3a4350',pc:'#14181e',plz:'#2b323d'}
+                :{lo:'#ecebe6',hi:'#e2dfd8',park:'#cfe8c2',wood:'#bfdeb0',water:'#a6d0f0',soil:'#d3cec2',c5:'#e1ded6',c25:'#d4d0c5',
+                   rf:'#ffffff',rc:'#bcc2ca',mf:'#ffffff',mc:'#aab1ba',pf:'#ffffff',pc:'#c5cad1',plz:'#f7f6f3'};
+  const LX=-0.42,LY=0.52,LZ=0.74,sh0=dark?0.8:0.9;   // 北西からの光（弱め）
   const col=new Array(nx*ny);
   for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
     const i0=Math.max(0,i-1),i1=Math.min(nx-1,i+1),j0=Math.max(0,j-1),j1=Math.min(ny-1,j+1);
     const gx=(Z(i1,j)-Z(i0,j))/(X[i1]-X[i0]),gy=(Z(i,j1)-Z(i,j0))/(Y[j1]-Y[j0]),nl=Math.hypot(gx,gy,1);
-    const sh=0.66+0.34*Math.max(0,(-gx*LX-gy*LY+LZ)/nl);
-    col[j*nx+i]=C(festMix(lo,hi,Math.max(0,Math.min(1,(E(i,j)-mn)/(mx-mn)))),sh);
+    const c=cls?cls[j*nx+i]:0,lit=Math.max(0,(-gx*LX-gy*LY+LZ)/nl);
+    const baseC=c===1?pal.park:(c===2?pal.wood:(c===3?pal.water:festMix(pal.lo,pal.hi,Math.max(0,Math.min(1,(E(i,j)-mn)/(mx-mn))))));
+    col[j*nx+i]=C(baseC,c===3?1:sh0+(1-sh0)*lit);
   }
   const v=(i,j)=>add(TT,X[i],Y[j],Z(i,j),col[j*nx+i]);
   for(let j=0;j<ny-1;j++)for(let i=0;i<nx-1;i++){v(i,j);v(i+1,j);v(i+1,j+1);v(i,j);v(i+1,j+1);v(i,j+1);}
   // 崖の側面（地形の範囲の縁を下まで下ろして、模型のように見せる）
-  const zb=(mn-base)*EX-4,soil=C(dark?'#3b3128':'#c8b597');
+  const zb=(mn-base)*EX-4,soil=C(pal.soil);
   const edge=(pts)=>{for(let k=0;k<pts.length-1;k++){const[a1,b1]=pts[k],[a2,b2]=pts[k+1];
     add(TT,X[a1],Y[b1],Z(a1,b1),soil);add(TT,X[a2],Y[b2],Z(a2,b2),soil);add(TT,X[a2],Y[b2],zb,soil);
     add(TT,X[a1],Y[b1],Z(a1,b1),soil);add(TT,X[a2],Y[b2],zb,soil);add(TT,X[a1],Y[b1],zb,soil);}};
   const r=(n,f)=>Array.from({length:n},(_,k)=>f(k));
   edge(r(nx,k=>[k,0]));edge(r(nx,k=>[k,ny-1]));edge(r(ny,k=>[0,k]));edge(r(ny,k=>[nx-1,k]));
-  // 等高線（5mごと、25mごとに濃く）
-  const c5=C(dark?'#5a6573':'#a3ad92'),c25=C(dark?'#7d8a9b':'#7f8c6d');
+  // 等高線（5mごと・25mごと。目立たない色）
+  const c5=C(pal.c5),c25=C(pal.c25);
   for(let lv=Math.ceil(mn/5)*5;lv<=mx;lv+=5){
     const zl=(lv-base)*EX,cc=(lv%25===0)?c25:c5;
     for(let j=0;j<ny-1;j++)for(let i=0;i<nx-1;i++){
       const q=[[i,j],[i+1,j],[i+1,j+1],[i,j+1]],pts=[];
-      for(let k=0;k<4;k++){const[a1,b1]=q[k],[a2,b2]=q[(k+1)%4],z1=Z(a1,b1),z2=Z(a2,b2);
-        if((z1<zl)!==(z2<zl)){const t=(zl-z1)/(z2-z1);pts.push([X[a1]+(X[a2]-X[a1])*t,Y[b1]+(Y[b2]-Y[b1])*t]);}}
-      for(let k=0;k+1<pts.length;k+=2){add(TL,pts[k][0],pts[k][1],zl+.25,cc);add(TL,pts[k+1][0],pts[k+1][1],zl+.25,cc);}
+      for(let k=0;k<4;k++){const[a1,b1]=q[k],[a2,b2]=q[(k+1)%4],z1=E(a1,b1),z2=E(a2,b2);
+        if((z1<lv)!==(z2<lv)){const t=(lv-z1)/(z2-z1);pts.push([X[a1]+(X[a2]-X[a1])*t,Y[b1]+(Y[b2]-Y[b1])*t,Z(a1,b1)+(Z(a2,b2)-Z(a1,b1))*t]);}}
+      for(let k=0;k+1<pts.length;k+=2){add(TC,pts[k][0],pts[k][1],pts[k][2]+.25,cc);add(TC,pts[k+1][0],pts[k+1][1],pts[k+1][2]+.25,cc);}
     }
+  }
+  // 道路：通常の3Dと同じように面で描く（縁取り→路面）。高さは道に沿ってならした値（festTerrPrep）
+  let nRc=0;
+  if(festTerrRd){
+    const strip=(o,hw,zoff,c)=>{const n=o.x.length;
+      const nxv=new Float64Array(n),nyv=new Float64Array(n);
+      for(let k=0;k<n;k++){const a=Math.max(0,k-1),b=Math.min(n-1,k+1),dx=o.x[b]-o.x[a],dy=o.y[b]-o.y[a],l=Math.hypot(dx,dy)||1;nxv[k]=-dy/l;nyv[k]=dx/l;}
+      for(let k=0;k<n-1;k++){if(!o.ins[k]||!o.ins[k+1])continue;
+        const ax=o.x[k],ay=o.y[k],bx=o.x[k+1],by=o.y[k+1],za=o.z[k]+zoff,zb2=o.z[k+1]+zoff;
+        add(TR,ax+nxv[k]*hw,ay+nyv[k]*hw,za,c);add(TR,bx+nxv[k+1]*hw,by+nyv[k+1]*hw,zb2,c);add(TR,bx-nxv[k+1]*hw,by-nyv[k+1]*hw,zb2,c);
+        add(TR,ax+nxv[k]*hw,ay+nyv[k]*hw,za,c);add(TR,bx-nxv[k+1]*hw,by-nyv[k+1]*hw,zb2,c);add(TR,ax-nxv[k]*hw,ay-nyv[k]*hw,za,c);}
+      [0,n-1].forEach(k=>{if(!o.ins[k])return;const N=8;for(let q=0;q<N;q++){const t1=q/N*Math.PI*2,t2=(q+1)/N*Math.PI*2;   // 端は丸く（交差点のすき間を埋める）
+        add(TR,o.x[k],o.y[k],o.z[k]+zoff,c);add(TR,o.x[k]+Math.cos(t1)*hw,o.y[k]+Math.sin(t1)*hw,o.z[k]+zoff,c);add(TR,o.x[k]+Math.cos(t2)*hw,o.y[k]+Math.sin(t2)*hw,o.z[k]+zoff,c);}});};
+    const plz=C(pal.plz),st=2.5;   // 広場・歩行者空間（面）
+    (festTerrData&&festTerrData.a||[]).forEach(LL=>{const XY=LL.map(q=>festB3dXY(q[0],q[1])),xs=XY.map(q=>q[0]),ys=XY.map(q=>q[1]);
+      const zc=(x,y)=>{const q=festB3dLL(x,y);return festTerrainZ(q[0],q[1])+.35;};
+      for(let x=Math.min(...xs);x<Math.max(...xs);x+=st)for(let y=Math.min(...ys);y<Math.max(...ys);y+=st){if(!festPip(x+st/2,y+st/2,XY))continue;
+        const a=zc(x,y),b=zc(x+st,y),c=zc(x+st,y+st),d=zc(x,y+st);add(TR,x,y,a,plz);add(TR,x+st,y,b,plz);add(TR,x+st,y+st,c,plz);add(TR,x,y,a,plz);add(TR,x+st,y+st,c,plz);add(TR,x,y+st,d,plz);}});
+    const kind=o=>(o.fl&4)?'p':((o.fl&2)||o.w>=7?'m':'r');
+    festTerrRd.forEach(o=>{const k=kind(o);strip(o,o.w/2+(k==='p'?.45:.7),.4,C(pal[k+'c']));});
+    nRc=TR.length/6;
+    festTerrRd.forEach(o=>{const k=kind(o);strip(o,o.w/2,.5,C(pal[k+'f']));});
   }
   const inBox=(la,ln)=>la>=D.s&&la<=D.n&&ln>=D.w&&ln<=D.e;
   const dense=(LL,step)=>{const o=[];for(let k=0;k<LL.length-1;k++){const a=LL[k],b=LL[k+1],xa=festB3dXY(a[0],a[1]),xb=festB3dXY(b[0],b[1]),n=Math.max(1,Math.ceil(Math.hypot(xb[0]-xa[0],xb[1]-xa[1])/step));
@@ -5798,35 +5901,31 @@ function festTerrainGeom(dark,TT,TD,TL,add,C){
     const xa=festB3dXY(a[0],a[1]),xb=festB3dXY(b[0],b[1]),dx=xb[0]-xa[0],dy=xb[1]-xa[1],l=Math.hypot(dx,dy)||1,ox=-dy/l*wd/2,oy=dx/l*wd/2,za=festTerrainZ(a[0],a[1])+dz,zb2=festTerrainZ(b[0],b[1])+dz;
     add(TD,xa[0]+ox,xa[1]+oy,za,c);add(TD,xb[0]+ox,xb[1]+oy,zb2,c);add(TD,xb[0]-ox,xb[1]-oy,zb2,c);
     add(TD,xa[0]+ox,xa[1]+oy,za,c);add(TD,xb[0]-ox,xb[1]-oy,zb2,c);add(TD,xa[0]-ox,xa[1]-oy,za,c);}};
-  // 道路の縁（国土地理院 基盤地図情報）
-  if(festShiro){
-    if(!festTerrRoads)festTerrRoads=((festShiro.l||{}).rd||[]).map(festDecode).filter(LL=>LL.some(p=>inBox(p[0],p[1])));
-    const rc=C(dark?'#8a94a3':'#7d8592');festTerrRoads.forEach(LL=>lineDrape(LL,rc,.3));
-  }else festShiroFetch().then(()=>{festB3dDirty=true;if(festB3d)festB3d.requestRedraw();}).catch(()=>{});
   // キャンパス詳細：外周・駐車場
   if(festCampusOn){
-    ribbon(FEST_CAMPUS.concat([FEST_CAMPUS[0]]),1.6,C('#7048e8'),.35);
+    ribbon(FEST_CAMPUS.concat([FEST_CAMPUS[0]]),1.6,C('#7048e8'),.7);
     const pc=C(dark?'#1c4f80':'#74c0fc'),po=C(dark?'#74c0fc':'#1971c2'),st=2;
     FEST_PARK.forEach(k=>{   // 2m角の格子で地面の起伏どおりに敷く＋縁取り
       const XY=k.p.map(p=>festB3dXY(p[0],p[1])),xs=XY.map(p=>p[0]),ys=XY.map(p=>p[1]);
-      const zc=(x,y)=>{const q=festB3dLL(x,y);return festTerrainZ(q[0],q[1])+.45;};
+      const zc=(x,y)=>{const q=festB3dLL(x,y);return festTerrainZ(q[0],q[1])+.75;};
       for(let x=Math.min(...xs);x<Math.max(...xs);x+=st)for(let y=Math.min(...ys);y<Math.max(...ys);y+=st){
         if(!festPip(x+st/2,y+st/2,XY))continue;
         const a=zc(x,y),b=zc(x+st,y),c=zc(x+st,y+st),d=zc(x,y+st);
         add(TD,x,y,a,pc);add(TD,x+st,y,b,pc);add(TD,x+st,y+st,c,pc);add(TD,x,y,a,pc);add(TD,x+st,y+st,c,pc);add(TD,x,y+st,d,pc);}
-      lineDrape(k.p.concat([k.p[0]]),po,.6);});
+      lineDrape(k.p.concat([k.p[0]]),po,.9);});
   }
   // 構内の動線（レイヤーで選んだ要素だけ）
   if(festWayOn){
-    if(festWayL.bus)FEST_BUS.forEach(b=>ribbon(b.p,b.m?7:5,C(dark?'#1b4a7a':'#a5d8ff'),.3));
-    FEST_VEH.forEach(vv=>{if(!festWayL[{in:'vin',thru:'vthru',edge:'vedge'}[vv.k]])return;ribbon(vv.p,vv.k==='edge'?3.2:(vv.k==='thru'?5:4.5),C((FEST_VEH_ST[vv.k]||FEST_VEH_ST.in).c),.45);});
-    if(festWayL.walk)FEST_WALK.forEach(w=>lineDrape(w.p,C('#2f9e44'),.5));
-    if(festWayL.step)FEST_STEP.forEach(w=>lineDrape(w.p,C(dark?'#ced4da':'#495057'),.5));
+    if(festWayL.bus)FEST_BUS.forEach(b=>ribbon(b.p,b.m?7:5,C(dark?'#1b4a7a':'#a5d8ff'),.6));
+    FEST_VEH.forEach(vv=>{if(!festWayL[{in:'vin',thru:'vthru',edge:'vedge'}[vv.k]])return;ribbon(vv.p,vv.k==='edge'?3.2:(vv.k==='thru'?5:4.5),C((FEST_VEH_ST[vv.k]||FEST_VEH_ST.in).c),.75);});
+    if(festWayL.walk)FEST_WALK.forEach(w=>lineDrape(w.p,C('#2f9e44'),.8));
+    if(festWayL.step)FEST_STEP.forEach(w=>lineDrape(w.p,C(dark?'#ced4da':'#495057'),.8));
   }
+  return nRc;
 }
 function festB3dMake(){
   const ov=new google.maps.WebGLOverlayView();
-  let gl0=null,prog=null,bT=null,bL=null,bTT=null,bTD=null,bTL=null,nT=0,nL=0,nTT=0,nTD=0,nTL=0,lP=-1,lC=-1,lM=null,vao=null,vx=null,g2=false;
+  let gl0=null,prog=null,bT=null,bL=null,bTT=null,bTD=null,bTL=null,bTC=null,bTR=null,nT=0,nL=0,nTT=0,nTD=0,nTL=0,nTC=0,nTR=0,nRc=0,upT=null,lP=-1,lC=-1,lM=null,vao=null,vx=null,g2=false;
   ov.onAdd=()=>{};
   ov.onContextRestored=({gl})=>{
     gl0=gl;g2=(typeof WebGL2RenderingContext!=='undefined'&&gl instanceof WebGL2RenderingContext);
@@ -5837,12 +5936,12 @@ function festB3dMake(){
     gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,'precision mediump float;varying vec3 vC;void main(){gl_FragColor=vec4(vC,1.0);}'));
     gl.linkProgram(prog);
     lP=gl.getAttribLocation(prog,'aP');lC=gl.getAttribLocation(prog,'aC');lM=gl.getUniformLocation(prog,'uM');
-    bT=gl.createBuffer();bL=gl.createBuffer();bTT=gl.createBuffer();bTD=gl.createBuffer();bTL=gl.createBuffer();
+    bT=gl.createBuffer();bL=gl.createBuffer();bTT=gl.createBuffer();bTD=gl.createBuffer();bTL=gl.createBuffer();bTC=gl.createBuffer();bTR=gl.createBuffer();upT=null;
     vx=g2?null:gl.getExtension('OES_vertex_array_object');
     vao=g2?gl.createVertexArray():(vx?vx.createVertexArrayOES():null);
     festB3dDirty=true;
   };
-  ov.onContextLost=()=>{prog=bT=bL=bTT=bTD=bTL=vao=null;};
+  ov.onContextLost=()=>{prog=bT=bL=bTT=bTD=bTL=bTC=bTR=vao=null;upT=null;};
   ov.onDraw=({gl,transformer})=>{
     if(!prog)return;
     const M=transformer.fromLatLngAltitude({lat:FEST_B3D_O.lat,lng:FEST_B3D_O.lng,altitude:0});
@@ -5853,10 +5952,12 @@ function festB3dMake(){
       const g=festB3dGeom(currentTheme==='dark');
       gl.bindBuffer(gl.ARRAY_BUFFER,bT);gl.bufferData(gl.ARRAY_BUFFER,g.T,gl.STATIC_DRAW);
       gl.bindBuffer(gl.ARRAY_BUFFER,bL);gl.bufferData(gl.ARRAY_BUFFER,g.L,gl.STATIC_DRAW);
-      gl.bindBuffer(gl.ARRAY_BUFFER,bTT);gl.bufferData(gl.ARRAY_BUFFER,g.TT,gl.STATIC_DRAW);
-      gl.bindBuffer(gl.ARRAY_BUFFER,bTD);gl.bufferData(gl.ARRAY_BUFFER,g.TD,gl.STATIC_DRAW);
-      gl.bindBuffer(gl.ARRAY_BUFFER,bTL);gl.bufferData(gl.ARRAY_BUFFER,g.TL,gl.STATIC_DRAW);
-      nT=g.T.length/6;nL=g.L.length/6;nTT=g.TT.length/6;nTD=g.TD.length/6;nTL=g.TL.length/6;festB3dDirty=false;
+      nT=g.T.length/6;nL=g.L.length/6;festB3dDirty=false;
+      const t=g.terr;
+      if(t!==upT){upT=t;
+        if(t){[[bTT,t.TT],[bTD,t.TD],[bTL,t.TL],[bTC,t.TC],[bTR,t.TR]].forEach(([b,a])=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,a,gl.STATIC_DRAW);});
+          nTT=t.TT.length/6;nTD=t.TD.length/6;nTL=t.TL.length/6;nTC=t.TC.length/6;nTR=t.TR.length/6;nRc=t.nRc;}
+        else nTT=nTD=nTL=nTC=nTR=nRc=0;}
     }
     gl.useProgram(prog);
     gl.uniformMatrix4fv(lM,false,new Float32Array(M));
@@ -5866,8 +5967,12 @@ function festB3dMake(){
     if(nTT){   // 地形：平らな基盤地図の奥行きを消し、地形→地形に沿った線・帯の順に描く
       gl.disable(gl.SCISSOR_TEST);gl.clearDepth(1);gl.clear(gl.DEPTH_BUFFER_BIT);
       gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(2,4);attrs(bTT);gl.drawArrays(gl.TRIANGLES,0,nTT);
+      gl.disable(gl.POLYGON_OFFSET_FILL);
+      if(nTC){attrs(bTC);gl.drawArrays(gl.LINES,0,nTC);}
+      gl.enable(gl.POLYGON_OFFSET_FILL);
+      if(nTR){attrs(bTR);gl.polygonOffset(-1,-2);if(nRc)gl.drawArrays(gl.TRIANGLES,0,nRc);gl.polygonOffset(-2,-4);gl.drawArrays(gl.TRIANGLES,nRc,nTR-nRc);}
+      gl.polygonOffset(-3,-6);if(nTD){attrs(bTD);gl.drawArrays(gl.TRIANGLES,0,nTD);}
       gl.disable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(0,0);
-      if(nTD){attrs(bTD);gl.drawArrays(gl.TRIANGLES,0,nTD);}
       if(nTL){attrs(bTL);gl.drawArrays(gl.LINES,0,nTL);}
     }
     gl.enable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(1,2);   // 面を少し奥へ→輪郭線がきれいに乗る
@@ -5883,7 +5988,8 @@ function festB3dMake(){
   ov.onRemove=()=>{festB3dLblClear();};
   return ov;
 }
-function festB3dLblClear(){if(festB3dLblBox)festB3dLblBox.remove();festB3dLblBox=null;festB3dLbls=[];}
+let festB3dWH=null, festIwOpen=false;
+function festB3dLblClear(){if(festB3dLblBox)festB3dLblBox.remove();festB3dLblBox=null;festB3dLbls=[];festB3dWH=null;Object.values(festPins).forEach(p=>{p.shown=undefined;p.tf=undefined;});}
 function festB3dLabels(M){   // 建物名を屋上の少し上に表示（重なるものは小さい建物から隠す）＋地形に沿った印を配置
   const box=festB3dBox();
   if(!festB3dLbls.length){
@@ -5892,32 +5998,35 @@ function festB3dLabels(M){   // 建物名を屋上の少し上に表示（重な
       const xy=festB3dXY(b.c[0],b.c[1]);festB3dLbls.push({el,id:b.id,lz:!!b.lz,x:xy[0],y:xy[1],h0:(b.h||10),w:el.offsetWidth,hh:el.offsetHeight});
     });
   }
-  const W=box.clientWidth,H=box.clientHeight,placed=[],zc=map.getZoom()||17,show=zc>=15.5,zLow=festCamZoom()+0.5;
+  if(!festB3dWH||festB3dWH.box!==box){festB3dWH={box,W:box.clientWidth,H:box.clientHeight};if(window.ResizeObserver){const ro=new ResizeObserver(()=>{if(festB3dWH&&festB3dWH.box===box){festB3dWH.W=box.clientWidth;festB3dWH.H=box.clientHeight;}});ro.observe(box);}}
+  const W=festB3dWH.W,H=festB3dWH.H,placed=[],zc=map.getZoom()||17,show=zc>=15.5,zLow=festCamZoom()+0.5;
   const prj=(x,y,z)=>{const cx=M[0]*x+M[4]*y+M[8]*z+M[12],cy=M[1]*x+M[5]*y+M[9]*z+M[13],cw=M[3]*x+M[7]*y+M[11]*z+M[15];
     return cw>0?[(cx/cw+1)/2*W,(1-cy/cw)/2*H]:null;};
-  const iw=map.getDiv().querySelector('.gm-style-iw-c');   // 開いている吹き出しの範囲は避ける
-  if(iw&&iw.offsetParent){const r=iw.getBoundingClientRect(),m=map.getDiv().getBoundingClientRect();
-    placed.push({l:r.left-m.left-6,t:r.top-m.top-6,r:r.right-m.left+6,b:r.bottom-m.top+18});}
+  if(festIwOpen){const iw=map.getDiv().querySelector('.gm-style-iw-c');   // 開いている吹き出しの範囲は避ける
+    if(iw&&iw.offsetParent){const r=iw.getBoundingClientRect(),m=map.getDiv().getBoundingClientRect();
+      placed.push({l:r.left-m.left-6,t:r.top-m.top-6,r:r.right-m.left+6,b:r.bottom-m.top+18});}}
   festB3dLbls.forEach(o=>{
     let vis=false;
     if(show&&W&&!(o.lz&&zc<zLow)){   // 重要度の低い建物名は、既定のアングルより寄ったときだけ
       const z=(festB3dTop[o.id]!=null?festB3dTop[o.id]:o.h0)+2,s2=prj(o.x,o.y,z);
       if(s2){
-        if(!o.w){o.el.style.display='';o.w=o.el.offsetWidth;o.hh=o.el.offsetHeight;}
+        if(!o.w){o.el.style.display='';o.shown=true;o.w=o.el.offsetWidth;o.hh=o.el.offsetHeight;}
         const r={l:s2[0]-o.w/2,t:s2[1]-o.hh,r:s2[0]+o.w/2,b:s2[1]};
         if(r.r>0&&r.l<W&&r.b>0&&r.t<H&&!placed.some(q=>r.l<q.r+4&&r.r>q.l-4&&r.t<q.b+1&&r.b>q.t-1)){
-          placed.push(r);vis=true;o.el.style.transform='translate('+Math.round(r.l)+'px,'+Math.round(r.t)+'px)';}
+          placed.push(r);vis=true;const tf='translate3d('+Math.round(r.l)+'px,'+Math.round(r.t)+'px,0)';if(o.tf!==tf){o.tf=tf;o.el.style.transform=tf;}}
       }
     }
-    o.el.style.display=vis?'':'none';
+    if(o.shown!==vis){o.shown=vis;o.el.style.display=vis?'':'none';}
   });
-  Object.values(festPins).forEach(p=>{
-    if(!p.el.parentNode)box.appendChild(p.el);
+  const pv=Object.values(festPins);
+  pv.forEach(p=>{if(!p.el.parentNode)box.appendChild(p.el);if(p.w==null&&(p.ax==null||p.ay==null)){p.el.style.display='';p.shown=true;p.w=p.el.offsetWidth;p.h=p.el.offsetHeight;}});   // 大きさは最初に一度だけ測る
+  pv.forEach(p=>{
     const xy=festB3dXY(p.lat,p.lng),s2=prj(xy[0],xy[1],festTZ(p.lat,p.lng)+.6);
-    if(!s2||s2[0]<-40||s2[1]<-40||s2[0]>W+40||s2[1]>H+40){p.el.style.display='none';return;}
-    p.el.style.display='';
-    const ax=p.ax!=null?p.ax:(p.el.offsetWidth/2),ay=p.ay!=null?p.ay:(p.el.offsetHeight/2);
-    p.el.style.transform='translate('+Math.round(s2[0]-ax)+'px,'+Math.round(s2[1]-ay)+'px)';
+    const on=!!s2&&s2[0]>=-40&&s2[1]>=-40&&s2[0]<=W+40&&s2[1]<=H+40;
+    if(p.shown!==on){p.shown=on;p.el.style.display=on?'':'none';}
+    if(!on)return;
+    const ax=p.ax!=null?p.ax:p.w/2,ay=p.ay!=null?p.ay:p.h/2,tf='translate3d('+Math.round(s2[0]-ax)+'px,'+Math.round(s2[1]-ay)+'px,0)';
+    if(p.tf!==tf){p.tf=tf;p.el.style.transform=tf;}
   });
 }
 function festInv4(m){   // 4x4行列の逆行列（列優先）
@@ -6045,8 +6154,7 @@ function festEvacInfo(ev){
 }
 function festBldInfo(b,ll){
   festBldInfoCur={b,ll:ll||{lat:b.c[0],lng:b.c[1]}};
-  const rows=[['用途',escapeHtml(b.u||'—')],['外形',b.s==='P'?'PLATEAU（川崎市2022）':'OpenStreetMap']];
-  if(b.n)rows.push(['名称の根拠',FEST_NS[b.ns]||'—']);
+  const rows=[];
   if(b.r)rows.push(['備考',escapeHtml(b.r)]);
   if(b.nl)rows.push(['備考','同じ建物の別部分（高さの違う部分）']);
   const notes=[];
@@ -6059,7 +6167,7 @@ function festBldInfo(b,ll){
   const scope=grp.length>1?'<div class="fest-scope"><button type="button" class="'+(festColScope==='g'?'on':'')+'" onclick="festSetScope(\'g\')">'+escapeHtml(festBldGroupKey(b))+' 全体（'+grp.length+'棟）</button><button type="button" class="'+(festColScope==='g'?'':'on')+'" onclick="festSetScope(\'one\')">この部分だけ</button></div>':'';
   const extra='<div class="fest-bi-sec">建物の色<small>'+(cur?'個別の色':(festBldCol.all?'一括の色で表示中':'既定の色で表示中'))+'</small></div>'
     +scope+festSwatches(cur,'festBldSetColor',b.id);
-  const html=festCard({id:b.id,title:b.n||'名称未確認',kind:(b.x?'学外の施設':'建物')+(b.u?'・'+b.u:''),dot:festBldShown(b),
+  const html=festCard({id:b.id,title:b.n||'名称未確認',kind:(b.x?'学外の施設':'建物'),dot:festBldShown(b),
     stats:[[b.f?b.f:'—','階（地上）'],[b.h?b.h.toFixed(1):'—','高さ m'],[b.a?b.a.toLocaleString():'—','面積 m²']],rows,notes,extra});
   festCardShow(html);
 }
@@ -6069,12 +6177,12 @@ function festTiny(b){   // 9号館・6号館の周り（約140m以内）の名�
     FEST_BLD.forEach(x=>{if(x.n||(x.a||0)>=200)return;const q={lat:x.c[0],lng:x.c[1]};if(ref.some(r=>festGd(r,q)<140))festTinySet.add(x.id);});}
   return festTinySet.has(b.id);
 }
-// 押した建物（建物群ならまとめて）を3秒間濃く。続けて押すと1回だけ延長（最大6秒）
+// 押した建物（建物群ならまとめて）を1秒間濃く。続けて押すと1回だけ延長（最大2秒）
 let festEmph={key:'',end:0,cnt:0,ids:null,tm:null};
 function festBldEmph(b){
   const key=festBldGroupKey(b)||b.id,now=Date.now();
-  if(festEmph.key===key&&now<festEmph.end){if(festEmph.cnt<2){festEmph.cnt++;festEmph.end+=3000;}}
-  else{festEmphClear();festEmph={key,end:now+3000,cnt:1,ids:new Set(festBldGroup(b).map(x=>x.id)),tm:null};}
+  if(festEmph.key===key&&now<festEmph.end){if(festEmph.cnt<2){festEmph.cnt++;festEmph.end+=1000;}}
+  else{festEmphClear();festEmph={key,end:now+1000,cnt:1,ids:new Set(festBldGroup(b).map(x=>x.id)),tm:null};}
   festEmphApply();clearTimeout(festEmph.tm);festEmph.tm=setTimeout(festEmphClear,Math.max(0,festEmph.end-Date.now()));
 }
 function festEmphApply(){
@@ -6195,10 +6303,10 @@ function festVehInfo(o,ll){
     if(o.b)rows.push(['路線バス','向10 専明線（専修大学9号館行き）が通る']);
     rows.push(['出典','線形：OpenStreetMap（way '+o.osm+'）'+(o.w?'<br>幅員：PLATEAU（川崎市2022）':'')]);
     if(o.r)rows.push(['備考',escapeHtml(o.r)]);
-    card={id:o.id,title:o.n,kind:FEST_VEH_ST[o.k].lab+(o.t?'・トンネル':''),dot:FEST_VEH_ST[o.k].c,
+    card={id:o.id,title:festRoadName(o.n),kind:FEST_VEH_ST[o.k].lab+(o.t?'・トンネル':''),dot:FEST_VEH_ST[o.k].c,
       stats:[[o.w?o.w:'—','幅員 m'],[o.L,'延長 m'],[o.o?'あり':'なし','一方通行']],rows};
   }else if(o.v){
-    rows.push(['つながる道路',o.v.map(id=>{const v=FEST_VEH.find(x=>x.id===id);return escapeHtml(id+(v?' '+v.n:''));}).join('<br>')]);
+    rows.push(['つながる道路',o.v.map(id=>{const v=FEST_VEH.find(x=>x.id===id);return escapeHtml(id+(v?' '+festRoadName(v.n):''));}).join('<br>')]);
     if(o.r)rows.push(['備考',escapeHtml(o.r)]);
     card={id:o.id,title:o.n,kind:'車両の出入り地点（候補）',dot:'#e8590c',rows};
   }else if(o.bs){
@@ -6234,7 +6342,7 @@ function festVehList(){
   document.getElementById('festVehSum').textContent='道路'+FEST_VEH.length+'本（構内'+FEST_VEH.filter(v=>v.k==='in').length+'・構内を通る'+FEST_VEH.filter(v=>v.k==='thru').length+'・周辺'+FEST_VEH.filter(v=>v.k==='edge').length+'）・出入口'+FEST_VENT.length+'・駐車場'+FEST_PARK.length+'・バス停'+FEST_BSTOP.length;
   const rowH=(id,lab,n,meta,col)=>'<button class="fest-bl-row" data-id="'+escapeHtml(id)+'"><span class="fest-bl-c" style="background:'+col+'"></span><span class="fest-bl-id">'+escapeHtml(lab)+'</span><span class="fest-bl-n">'+n+'</span><span class="fest-bl-m">'+meta+'</span></button>';
   let h='';
-  if(f==='road')h=FEST_VEH.map(v=>rowH(v.id,v.id,escapeHtml(v.n)+(v.o?' <small>一方通行</small>':'')+(v.t?' <small>トンネル</small>':'')+(v.b?' <small class="fest-bl-fp">バス</small>':''),
+  if(f==='road')h=FEST_VEH.map(v=>rowH(v.id,v.id,escapeHtml(festRoadName(v.n))+(v.o?' <small>一方通行</small>':'')+(v.t?' <small>トンネル</small>':'')+(v.b?' <small class="fest-bl-fp">バス</small>':''),
     kl[v.k]+'・'+(v.w?'幅'+v.w+'m':'幅—')+'・'+v.L+'m',FEST_VEH_ST[v.k].c)).join('');
   else if(f==='ent')h=FEST_VENT.map(e=>rowH(e.id,e.id,escapeHtml(e.n),e.v.join('・'),'#e8590c')).join('');
   else h=FEST_PARK.map(k=>rowH(k.id,k.id,escapeHtml(k.n),'約'+k.a.toLocaleString()+'m²','#4dabf7')).join('')
