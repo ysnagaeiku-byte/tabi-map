@@ -23,7 +23,7 @@
     --tmoff:0px;  /* タクシーメーターを下に出した時に、FAB・時計・凡例を持ち上げる量 */
     --bg:#eef1f5; --panel:#ffffff; --panel-blur:rgba(255,255,255,.85);
     --surface:#ffffff; --surface-2:#f1f4f8; --fg:#16181d; --muted:#6b7280;
-    --line:#e3e7ee; --accent:#3b6fff; --accent-weak:#e8efff; --shadow:rgba(20,30,60,.13);
+    --line:#e3e7ee; --accent:#3b6fff; --accent-btn:#3463f0; --accent-weak:#e8efff; --shadow:rgba(20,30,60,.13);
     --c-onsen:#f76707; --c-parking:#3b6fff; --c-hotel:#ae3ec9;
     --c-conveni:#2f9e44; --c-food:#e8590c; --c-fuel:#f59f00; --c-sapa:#0ca678; --c-michi:#c92a2a; --c-onsengo:#e64980; --route:#3b82f6;
     --open:#2f9e44; --closed:#e03131;
@@ -31,7 +31,7 @@
   :root[data-theme="dark"]{
     --bg:#0c0e13; --panel:#14171e; --panel-blur:rgba(17,20,27,.80);
     --surface:#181c24; --surface-2:#212733; --fg:#e7eaf0; --muted:#98a2b0;
-    --line:#2a313d; --accent:#6f9bff; --accent-weak:rgba(111,155,255,.16); --shadow:rgba(0,0,0,.55);
+    --line:#2a313d; --accent:#6f9bff; --accent-btn:#3463f0; --accent-weak:rgba(111,155,255,.16); --shadow:rgba(0,0,0,.55);
     --c-onsen:#ff922b; --c-parking:#6f9bff; --c-hotel:#da77f2;
     --c-conveni:#51cf66; --c-food:#ff922b; --c-fuel:#ffd43b; --c-sapa:#20c997; --c-michi:#ff8787; --c-onsengo:#f06595; --route:#5b8cff;
     --open:#51cf66; --closed:#ff6b6b;
@@ -59,7 +59,7 @@
   .evac-warn{background:rgba(224,49,49,.12);border:1px solid #e03131;border-radius:8px;padding:6px 9px;color:#e03131;font-weight:700;font-size:12px;margin:2px 0 8px;line-height:1.5;}
   .evac-modes{display:flex;gap:6px;margin:8px 0;}
   .evac-modes button{flex:1;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);font-size:13px;font-weight:800;cursor:pointer;}
-  .evac-modes button.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .evac-modes button.on{background:var(--accent-btn);color:#fff;border-color:var(--accent-btn);}
   .evac-meta{font-weight:700;min-height:18px;}
   .evac-addroute{width:100%;margin:9px 0 2px;min-height:40px;border:none;border-radius:9px;background:#e03131;color:#fff;font-weight:800;font-size:13px;cursor:pointer;box-shadow:0 3px 12px rgba(224,49,49,.35);}
   .evac-addroute:active{background:#b02020;}
@@ -67,7 +67,7 @@
   #lcTime{font-family:ui-monospace,'SF Mono',Menlo,Consolas,monospace;font-variant-numeric:tabular-nums;font-weight:800;font-size:16.5px;letter-spacing:1.2px;color:var(--fg);line-height:1;}
   #lcDate{font-size:9.5px;letter-spacing:.8px;color:var(--muted);font-weight:700;line-height:1;display:flex;align-items:center;}
   #liveClock.sync #lcDate::after{content:"";display:inline-block;width:5px;height:5px;border-radius:50%;background:#0ca678;margin-left:5px;}
-  #speedChip{display:none;margin-top:4px;align-items:baseline;gap:3px;background:var(--accent);color:#fff;border-radius:999px;padding:3px 11px;font-weight:800;}
+  #speedChip{display:none;margin-top:4px;align-items:baseline;gap:3px;background:var(--accent-btn);color:#fff;border-radius:999px;padding:3px 11px;font-weight:800;}
   #speedChip.show{display:flex;}
   #spdVal{font-size:16px;line-height:1;font-variant-numeric:tabular-nums;font-family:ui-monospace,Menlo,monospace;}
   .spd-u{font-size:9px;opacity:.9;letter-spacing:.4px;}
@@ -86,7 +86,7 @@
   .top-actions{display:flex;align-items:center;gap:8px;}
   .icon-btn .ib-lab{display:none;}
   #menuBtn{display:none;}
-  #toolBtn.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  #toolBtn.on{background:var(--accent-btn);color:#fff;border-color:var(--accent-btn);}
   /* ===== 機能メニュー（レンチ） ===== */
   #toolMenu{display:none;position:fixed;top:calc(58px + env(safe-area-inset-top));right:12px;z-index:1350;width:min(300px,90vw);max-height:74vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 16px 40px var(--shadow);padding:10px 12px 12px;}
   #toolMenu.open{display:block;}
@@ -152,7 +152,7 @@
   .tabs::-webkit-scrollbar{display:none;}
   .tab{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:8px 14px;border-radius:999px;font-size:13px;font-weight:700;min-height:36px;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 3px 12px var(--shadow);}
   .tab .dot{width:8px;height:8px;border-radius:50%;}
-  .tab.active{color:#fff;border-color:transparent;}
+  .tab.active{color:#fff;border-color:transparent;text-shadow:0 1px 2px rgba(0,0,0,.35);}   /* 明るい色のタブでも白い文字が読めるように */
   #customPanel{display:none;margin:8px 12px 0;border:1px solid var(--line);border-radius:16px;padding:10px 12px;background:var(--panel);box-shadow:0 10px 30px var(--shadow);gap:8px;flex-wrap:wrap;max-height:66vh;overflow-y:auto;}
   #customPanel.open{display:flex;}
   .chk{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:7px 12px;cursor:pointer;color:var(--fg);}
@@ -160,7 +160,7 @@
   #controls{position:fixed;left:0;right:0;bottom:0;z-index:1000;display:flex;justify-content:center;gap:10px;padding:12px 12px calc(12px + env(safe-area-inset-bottom));pointer-events:none;}
   #controls button{pointer-events:auto;}
   .fab{border:none;border-radius:999px;font-size:15px;font-weight:700;padding:13px 20px;min-height:50px;cursor:pointer;box-shadow:0 6px 20px var(--shadow);display:flex;align-items:center;gap:8px;}
-  .fab.primary{background:var(--accent);color:#fff;} .fab.ghost{background:var(--surface);color:var(--fg);border:1px solid var(--line);}
+  .fab.primary{background:var(--accent-btn);color:#fff;} .fab.ghost{background:var(--surface);color:var(--fg);border:1px solid var(--line);}
   #status{position:fixed;top:calc(env(safe-area-inset-top) + 128px);left:50%;transform:translateX(-50%);z-index:1100;background:var(--fg);color:var(--bg);padding:8px 16px;border-radius:999px;font-size:13px;font-weight:600;display:none;align-items:center;gap:8px;box-shadow:0 6px 20px var(--shadow);max-width:90vw;text-align:center;opacity:.95;}
   #status.show{display:flex;}
   .spinner{width:14px;height:14px;border:2px solid rgba(127,127,127,.35);border-top-color:currentColor;border-radius:50%;animation:spin .7s linear infinite;}
@@ -218,7 +218,7 @@
   .rs-head b{font-size:15.5px;} .rs-head .clear{font-size:12.5px;font-weight:700;color:var(--accent);background:none;border:none;cursor:pointer;}
   .rs-search{display:flex;gap:8px;margin-bottom:8px;}
   .rs-search input{flex:1;padding:11px 12px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--fg);font-size:14px;}
-  .rs-search button{flex:0 0 auto;padding:0 16px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-weight:700;font-size:14px;cursor:pointer;}
+  .rs-search button{flex:0 0 auto;padding:0 16px;border:none;border-radius:11px;background:var(--accent-btn);color:#fff;font-weight:700;font-size:14px;cursor:pointer;}
   .geo-results{display:none;flex-direction:column;margin-bottom:8px;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--surface);}
   .geo-results.show{display:flex;}
   .geo-item{text-align:left;padding:11px 12px;border:none;background:var(--surface);color:var(--fg);font-size:13px;cursor:pointer;border-bottom:1px solid var(--line);}
@@ -261,13 +261,13 @@
   .opt input{accent-color:var(--accent);width:16px;height:16px;}
   .seg{display:flex;gap:5px;margin-bottom:11px;background:var(--surface-2);padding:4px;border-radius:12px;}
   .seg button{flex:1;min-height:38px;border:none;background:transparent;color:var(--fg);border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;}
-  .seg button.on{background:var(--accent);color:#fff;}
+  .seg button.on{background:var(--accent-btn);color:#fff;}
   .rs-inputs{display:flex;gap:10px;margin-bottom:4px;}
   .rs-inputs label{flex:1;font-size:11.5px;color:var(--muted);font-weight:700;}
   .rs-inputs input{width:100%;margin-top:5px;padding:10px 11px;border:1px solid var(--line);border-radius:10px;font-size:15px;background:var(--surface);color:var(--fg);}
   .rs-inputs input.ro-field{background:var(--surface-2);color:var(--muted);border-style:dashed;cursor:default;-webkit-text-fill-color:var(--muted);opacity:1;}
   .dep-now{border:1px solid var(--accent);background:var(--accent-weak);color:var(--accent);border-radius:9px;padding:8px 12px;font-size:12px;font-weight:800;cursor:pointer;flex:none;}
-  .dep-now:active{background:var(--accent);color:#fff;}
+  .dep-now:active{background:var(--accent-btn);color:#fff;}
   .dep-row{display:flex;align-items:center;gap:8px;margin:10px 0 4px;}
   .dep-lab{flex:none;font-size:12px;font-weight:800;color:var(--muted);}
   .dep-row input{flex:1;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:10px;font-size:14px;background:var(--surface);color:var(--fg);}
@@ -278,7 +278,7 @@
   #costDetails .cd-body .rs-section:first-child{border-top:none;margin-top:0;padding-top:0;}
   .ver-switch{display:flex;gap:6px;}
   .ver-switch a{flex:1;text-align:center;padding:9px 4px;border:1px solid var(--line);border-radius:9px;text-decoration:none;color:var(--fg);font-weight:800;font-size:12px;background:var(--surface);}
-  .ver-switch a.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .ver-switch a.on{background:var(--accent-btn);color:#fff;border-color:var(--accent-btn);}
   .ro-tag{display:inline-block;font-size:9.5px;font-weight:800;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:6px;padding:0 5px;vertical-align:middle;letter-spacing:.04em;}
   .seg-sel{padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--fg);font-size:12.5px;}
   .rs-result{display:none;border-top:1px solid var(--line);padding-top:12px;margin-top:10px;}
@@ -303,12 +303,12 @@
   .times-toggle{padding:8px 13px;border:1px solid #ff7a00;background:var(--surface);color:#ff7a00;border-radius:999px;font-size:12px;font-weight:800;cursor:pointer;}
   .times-toggle.on{background:#ff7a00;color:#fff;border-color:#ff7a00;}
   .adv-toggle{width:100%;padding:11px 12px;border:1px solid var(--accent);background:var(--surface);color:var(--accent);border-radius:11px;font-size:14px;font-weight:800;cursor:pointer;}
-  .adv-toggle.on{background:var(--accent);color:#fff;}
+  .adv-toggle.on{background:var(--accent-btn);color:#fff;}
   .detail-btn{border:1px solid var(--accent) !important;color:var(--accent) !important;background:var(--surface) !important;font-weight:800;}
   .set-label{font-size:12px;font-weight:800;color:var(--muted);margin-bottom:7px;text-transform:uppercase;}
   .set-sec input{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:11px;font-size:14px;background:var(--surface);color:var(--fg);}
   .set-help{font-size:11.5px;color:var(--muted);margin-top:7px;line-height:1.55;} .set-help a{color:var(--accent);}
-  .set-save{margin-top:10px;width:100%;min-height:44px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;}
+  .set-save{margin-top:10px;width:100%;min-height:44px;border:none;border-radius:11px;background:var(--accent-btn);color:#fff;font-size:14px;font-weight:700;cursor:pointer;}
   .set-save.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:600;min-height:38px;font-size:13px;} /* 補助的な保存は控えめに（緩急） */
   .set-save.ghost:active{background:var(--surface-2);}
   .set-msg{font-size:12px;color:var(--open);font-weight:700;margin-top:8px;min-height:16px;}
@@ -344,7 +344,7 @@
   .wx-chips:empty{display:none;}
   .wx-chips-lab{width:100%;font-size:11px;font-weight:800;color:var(--muted);margin-bottom:1px;}
   .wx-chip{border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;}
-  .wx-chip.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .wx-chip.on{background:var(--accent-btn);color:#fff;border-color:var(--accent-btn);}
   .wx-empty{font-size:13px;color:var(--muted);padding:20px 4px;text-align:center;}
   .wx-sec-t{font-size:11.5px;font-weight:800;color:var(--muted);letter-spacing:.03em;margin:10px 2px 6px;}
   .wx-week{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;}
@@ -370,10 +370,10 @@
   #isoClearFab.show{display:block;}
   #myLocFab{position:fixed;right:12px;bottom:calc(98px + env(safe-area-inset-bottom));z-index:1040;width:54px;height:54px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--accent);box-shadow:0 4px 16px var(--shadow);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;font-size:19px;padding:0;}
   #myLocFab:active{background:var(--accent-weak);}
-  #myLocFab.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  #myLocFab.on{background:var(--accent-btn);color:#fff;border-color:var(--accent-btn);}
   #myLocFab.on small{color:rgba(255,255,255,.9);}
   #trackFab{position:fixed;right:12px;bottom:calc(160px + env(safe-area-inset-bottom));z-index:1040;width:54px;height:54px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--accent);box-shadow:0 4px 16px var(--shadow);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;}
-  #trackFab.on{background:var(--accent);color:#fff;border-color:var(--accent);} #trackFab.on small{color:rgba(255,255,255,.9);}
+  #trackFab.on{background:var(--accent-btn);color:#fff;border-color:var(--accent-btn);} #trackFab.on small{color:rgba(255,255,255,.9);}
   #myLocFab small,#trackFab small,#layerBtn small,#settleBtn small{font-size:8.5px;font-weight:800;color:var(--muted);letter-spacing:.02em;line-height:1;}
   /* ルートシート展開中はFAB・消去ボタン・パネルをシートの上へ退避（隠れ防止） */
   body:has(#routeSheet.open:not(.collapsed)) #myLocFab{bottom:calc(46dvh + 16px);}
@@ -394,7 +394,7 @@
   .iso-lab{font-size:11.5px;font-weight:800;color:var(--muted);margin:8px 0 4px;letter-spacing:.02em;}
   .iso-row{display:flex;flex-wrap:wrap;gap:6px;}
   .iso-chip{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 12px;font-size:12.5px;font-weight:700;cursor:pointer;}
-  .iso-chip.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .iso-chip.on{background:var(--accent-btn);color:#fff;border-color:var(--accent-btn);}
   .iso-search-res{display:none;position:absolute;left:0;right:0;top:calc(100% + 4px);z-index:20;flex-direction:column;border:1px solid var(--line);border-radius:11px;overflow:hidden;background:var(--surface);box-shadow:0 8px 22px var(--shadow);max-height:240px;overflow-y:auto;}
   .iso-search-res.show{display:flex;}
   .iso-hint{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.6;}
@@ -412,7 +412,7 @@
   #routeLegend{display:none;flex-wrap:wrap;gap:10px;font-size:11px;font-weight:700;color:var(--muted);margin-top:8px;}
   #routeLegend span{display:inline-flex;align-items:center;gap:4px;}
   #routeLegend i{width:15px;height:4px;border-radius:2px;display:inline-block;}
-  .icon-btn.on{background:var(--accent);color:#fff;}
+  .icon-btn.on{background:var(--accent-btn);color:#fff;}
   .rest-note{font-size:12px;color:var(--muted);line-height:1.6;}
   .itin-note{margin-top:9px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--line);border-radius:9px;font-size:10.8px;color:var(--muted);line-height:1.6;}
   /* 区間ごとの高速/下道 色帯（橙=高速・緑=下道） */
@@ -459,7 +459,7 @@
   .rest-reset-btn{width:100%;margin-top:8px;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--fg);font-size:12px;font-weight:700;cursor:pointer;} .rest-reset-btn:hover{border-color:var(--accent);color:var(--accent);} .rest-reset-btn:disabled{opacity:.4;cursor:default;}
   .alt-row{display:flex;gap:7px;flex-wrap:wrap;}
   .alt-chip{flex:1 1 auto;min-height:40px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;font-size:12.5px;font-weight:700;cursor:pointer;padding:6px 10px;}
-  .alt-chip.on{background:var(--accent);color:#fff;border-color:transparent;}
+  .alt-chip.on{background:var(--accent-btn);color:#fff;border-color:transparent;}
   /* レイヤーパネル */
   #layerBtn{position:fixed;right:12px;bottom:calc(222px + env(safe-area-inset-bottom));z-index:1040;width:54px;height:54px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:18px;box-shadow:0 4px 16px var(--shadow);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;}
   #settleBtn{position:fixed;right:12px;bottom:calc(284px + env(safe-area-inset-bottom));z-index:1040;width:54px;height:54px;border-radius:16px;border:1px solid var(--line);background:var(--panel);color:var(--fg);font-size:18px;box-shadow:0 4px 16px var(--shadow);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;}
@@ -468,8 +468,8 @@
   /* 試験用：地図の向き（遊園側を手前）切替。小さめのボタン */
   #festRotBtn{display:none;position:fixed;right:17px;bottom:calc(408px + env(safe-area-inset-bottom));z-index:1040;width:44px;height:44px;border-radius:13px;border:1px solid var(--line);background:var(--panel);color:var(--fg);box-shadow:0 4px 14px var(--shadow);cursor:pointer;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;font-size:16px;}
   #festRotBtn.show{display:flex;}
-  #festRotBtn small{font-size:8px;font-weight:800;color:var(--muted);line-height:1;}
-  #festRotBtn.on{background:var(--accent);color:#fff;border-color:var(--accent);} #festRotBtn.on small{color:rgba(255,255,255,.92);}
+  #festRotBtn small{font-size:9px;font-weight:800;color:var(--muted);line-height:1;}
+  #festRotBtn.on{background:#2a5be0;color:#fff;border-color:#2a5be0;}   /* 白い小さな文字が読めるよう少し濃い青 */ #festRotBtn.on small{color:rgba(255,255,255,.92);}
   body:has(#routeSheet.open:not(.collapsed)) #festRotBtn{bottom:calc(46dvh + 326px);}
   html.fest #imgBtn{display:none !important;}
   /* 本祭支援ツール：短距離向けにルートタブを簡略化（休憩・割り勘を出さない） */
@@ -477,7 +477,7 @@
   /* 既定のアングルに戻す（遊園側ボタンの上） */
   #festFitBtn{display:none;position:fixed;right:17px;bottom:calc(351px + env(safe-area-inset-bottom));z-index:1040;width:44px;height:44px;border-radius:13px;border:1px solid var(--line);background:var(--panel);color:var(--fg);box-shadow:0 4px 14px var(--shadow);cursor:pointer;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0;font-size:16px;}
   #festFitBtn.show{display:flex;}
-  #festFitBtn small{font-size:8px;font-weight:800;color:var(--muted);line-height:1;}
+  #festFitBtn small{font-size:9px;font-weight:800;color:var(--muted);line-height:1;}
   html.fest body:has(#routeSheet.open:not(.collapsed)) #festFitBtn{bottom:calc(46dvh + 264px);}
   /* 本祭支援ツール：使わない機能・ボタンを出さない（機能を絞って分かりやすく） */
   html.fest #tmLP,html.fest #tmHighway,html.fest #tmSapa,html.fest #tmFestOsm,html.fest #settleBtn,html.fest #advSec,html.fest #verTrack{display:none !important;}
@@ -506,7 +506,7 @@
   .ls-main{flex:1;min-width:0;}
   .ls-name{font-size:13px;font-weight:700;color:var(--fg);word-break:break-word;}
   .ls-meta{font-size:10.5px;color:var(--muted);font-weight:500;margin-top:1px;}
-  .ls-load{flex:none;font-size:12px;font-weight:800;color:#fff;background:var(--accent);border:none;border-radius:8px;padding:6px 12px;cursor:pointer;}
+  .ls-load{flex:none;font-size:12px;font-weight:800;color:#fff;background:var(--accent-btn);border:none;border-radius:8px;padding:6px 12px;cursor:pointer;}
   .ls-ren,.ls-del{flex:none;border:none;background:none;color:var(--muted);font-size:14px;cursor:pointer;padding:4px 5px;} .ls-del:hover{color:#e03131;} .ls-ren:hover{color:var(--accent);}
   .ly-item{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px;}
   /* 保存ルート（車両）の操作は名前の下の行に、役割がわかるラベル付きで並べる */
@@ -541,6 +541,16 @@
     #liveClock{top:auto;right:auto;bottom:calc(var(--tmoff) + 26px + env(safe-area-inset-bottom));left:8px;padding:3px 8px 4px;border-radius:9px;gap:1px;flex-direction:row;align-items:baseline;}
     #lcTime{font-size:13px;letter-spacing:1px;}#lcDate{font-size:8px;letter-spacing:.5px;margin-left:5px;}
     #speedChip{display:none;} /* 左下では速度チップは省略 */
+    #festCard .fest-bi .fest-sw{width:32px;height:32px;} #festCard .fest-card-x{width:38px;height:38px;font-size:15px;right:6px;top:6px;} #festCard .fest-bi .fest-sw-x{padding:7px 12px;}
+    /* 下中央のボタン（現在地へ・このエリアを検索）は時計の上に出す（時計に隠れて押せなかった）。凡例はさらにその上 */
+    #controls{padding-bottom:calc(var(--tmoff) + 54px + env(safe-area-inset-bottom));}
+    .rs-head .clear{min-height:36px;padding:0 10px;margin-right:-10px;}   /* 押しやすく */
+    /* ルートのシートを開いている間は時計をシートの上へ（要約や中身に重なっていた）。左の消去ボタンはその上 */
+    body:has(#routeSheet.open.collapsed) #liveClock{bottom:calc(var(--tmoff) + 88px + env(safe-area-inset-bottom));}
+    body:has(#routeSheet.open:not(.collapsed)) #liveClock{bottom:calc(46dvh + 10px);}
+    body:has(#routeSheet.open:not(.collapsed)) #bufClear{bottom:calc(var(--tmoff) + 46dvh + 44px);}
+    body:has(#routeSheet.open:not(.collapsed)) #isoClearFab{bottom:calc(var(--tmoff) + 46dvh + 92px);}
+    body:not(:has(#controls[style*="none"])) #mapLegend{bottom:calc(var(--tmoff) + 112px + env(safe-area-inset-bottom));}
     /* トップ行：検索バー＋メニュー(☰)だけ。他のボタンはメニュー内へ集約 */
     .toprow{position:relative;gap:7px;padding:8px 10px 0;}
     .searchbar{height:44px;padding:0 4px 0 13px;}
@@ -569,11 +579,11 @@
     body:has(#routeSheet.open:not(.collapsed)) #settleBtn{bottom:calc(46dvh + 176px);}
     body:has(#routeSheet.open:not(.collapsed)) #imgBtn{bottom:calc(46dvh + 230px);}
     #festRotBtn{width:40px;height:40px;border-radius:50%;right:15px;bottom:calc(362px + env(safe-area-inset-bottom));font-size:14px;}
-    #festRotBtn small{font-size:7.5px;}
+    #festRotBtn small{font-size:8.5px;}
     body:has(#routeSheet.open:not(.collapsed)) #festRotBtn{bottom:calc(46dvh + 284px);}
     html.fest #festRotBtn{bottom:calc(257px + env(safe-area-inset-bottom));}
     #festFitBtn{width:40px;height:40px;border-radius:50%;right:15px;bottom:calc(305px + env(safe-area-inset-bottom));font-size:14px;}
-    #festFitBtn small{font-size:7.5px;}
+    #festFitBtn small{font-size:8.5px;}
     html.fest body:has(#routeSheet.open:not(.collapsed)) #festFitBtn{bottom:calc(46dvh + 227px);}
     html.fest body:has(#routeSheet.open:not(.collapsed)) #festRotBtn{bottom:calc(46dvh + 179px);}
     #bufClear,#isoClearFab{font-size:11.5px;padding:8px 12px;}
@@ -715,7 +725,7 @@
   .fest-scope button.on{background:#3b5bdb;border-color:#3b5bdb;color:#ffffff;}
   .fq-row{display:flex;flex-wrap:wrap;gap:4px;padding:6px 8px 5px;border-bottom:1px solid var(--line);}
   .fq{font-size:10.5px;font-weight:700;line-height:1.2;padding:3px 7px;border-radius:999px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);cursor:pointer;}
-  .fq:active{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .fq:active{background:var(--accent-btn);color:#fff;border-color:var(--accent-btn);}
   .fest-bi-sec{display:flex;justify-content:space-between;align-items:baseline;gap:8px;font-size:11.5px;font-weight:800;color:#111827;margin:10px 0 6px;border-top:1px solid #e3e6ec;padding-top:9px;}
   .fest-bi-sec small{font-size:10.5px;font-weight:700;color:#374151;}
   .fest-bi .fest-sw{border-color:#ffffff;box-shadow:0 0 0 1px #aab2c0;}
@@ -737,11 +747,11 @@
   [data-theme="dark"] .fest-bi-note.mute{background:#252c38;color:#e9ecef;border-color:#3d4657;}
   [data-theme="dark"] .fest-bi-note.evac{background:#3a1616;color:#ffc9c9;border-color:#8a2b2b;}
   [data-theme="dark"] .fest-scope button{background:#252c38;color:#ffffff;border-color:#5c6577;}
-  [data-theme="dark"] .fest-scope button.on{background:#4c6ef5;border-color:#4c6ef5;}
+  [data-theme="dark"] .fest-scope button.on{background:#3b5bdb;border-color:#3b5bdb;}
   [data-theme="dark"] .fest-bi .fest-sw{border-color:#1a1f29;box-shadow:0 0 0 1px #5c6577;}
   [data-theme="dark"] .fest-bi .fest-sw.on{box-shadow:0 0 0 2.5px #ffffff;}
   [data-theme="dark"] .fest-bi .fest-sw-x{background:#252c38;color:#ffffff;border-color:#5c6577;}
-  [data-theme="dark"] .fest-bi .fest-sw-x.on{background:#4c6ef5;color:#ffffff;border-color:#4c6ef5;}
+  [data-theme="dark"] .fest-bi .fest-sw-x.on{background:#3b5bdb;color:#ffffff;border-color:#3b5bdb;}
   .fest-bi-id,.fest-bl-id{flex:none;font-size:10.5px;font-weight:800;color:#fff;background:#7048e8;border-radius:6px;padding:2px 6px;font-variant-numeric:tabular-nums;}
 
   .fest-bl-sum{font-size:12px;color:var(--muted);font-weight:700;margin:-6px 0 8px;}
@@ -766,7 +776,7 @@
   .fest-sw-c{background:conic-gradient(#ff6b6b,#fcc419,#51cf66,#22b8cf,#4dabf7,#9775fa,#f783ac,#ff6b6b);overflow:hidden;}
   .fest-sw-c input{position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;border:0;padding:0;}
   .fest-sw-x{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;font-size:11px;font-weight:700;padding:3px 9px;cursor:pointer;}
-  .fest-sw-x.on{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .fest-sw-x.on{background:var(--accent-btn);color:#fff;border-color:var(--accent-btn);}
   .fest-sw-note{font-size:10.5px;color:var(--muted);margin-top:3px;}
   .fest-col-box{border:1px solid var(--line);border-radius:12px;padding:9px 10px;margin-bottom:9px;background:var(--surface);}
   .fest-col-h{font-size:12px;font-weight:800;margin-bottom:6px;}
@@ -790,7 +800,7 @@
   #navCard{display:none;position:fixed;top:calc(140px + env(safe-area-inset-top));left:8px;right:12px;max-width:560px;z-index:1130;
     background:var(--panel);border:1px solid var(--line);border-radius:16px;box-shadow:0 10px 32px var(--shadow);overflow:hidden;}
   #navCard.open{display:block;}
-  .nv-main{display:flex;align-items:center;gap:11px;background:var(--accent);color:#fff;padding:10px 12px;}
+  .nv-main{display:flex;align-items:center;gap:11px;background:var(--accent-btn);color:#fff;padding:10px 12px;}
   .nv-ic{flex:none;width:42px;height:42px;display:flex;align-items:center;justify-content:center;}
   .nv-ic svg{width:40px;height:40px;fill:none;stroke:#fff;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;}
   .nv-txt{flex:1;min-width:0;}
@@ -814,7 +824,7 @@
   .nv-warn{display:none;padding:6px 12px 8px;font-size:11.5px;font-weight:700;color:#fff;background:#e8590c;}
   #navCard.off-route .nv-warn{display:block;}
   #navCard.off-route .nv-main{background:#e8590c;}
-  .nav-start-btn{width:100%;min-height:44px;border:none;border-radius:11px;background:var(--accent);color:#fff;font-weight:800;font-size:13.5px;cursor:pointer;margin:0 0 8px;box-shadow:0 3px 12px rgba(59,111,255,.28);}
+  .nav-start-btn{width:100%;min-height:44px;border:none;border-radius:11px;background:var(--accent-btn);color:#fff;font-weight:800;font-size:13.5px;cursor:pointer;margin:0 0 8px;box-shadow:0 3px 12px rgba(59,111,255,.28);}
   .nav-start-btn:active{filter:brightness(.94);}
   .nav-gmap-btn{width:100%;min-height:40px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--fg);font-weight:700;font-size:12.5px;cursor:pointer;margin:0 0 8px;}
   @media(max-width:600px){
@@ -1486,7 +1496,7 @@ function festInit(){
     if(map.moveCamera)map.moveCamera(cam);else{map.setCenter(cam.center);map.setZoom(cam.zoom);}}
   else festFit();
   if(rs&&rs.tab&&rs.tab!==activeTab)try{selectTab(rs.tab);}catch(e){}
-  if(!rs){showStatus('本祭支援ツール：レンチ→「本祭支援ツール」で地図の種類・建物の色・構内の動線/施設を切替',false);hideStatusLater();}
+  if(!rs){showStatus('本祭支援ツール：'+(innerWidth<=600?'右上の☰→「機能」':'右上のレンチ（機能）')+'→「本祭支援ツール」で地図の種類・建物の色・構内の動線を切替',false);hideStatusLater();}
 }
 function festResumeSave(){   // 昼/夜の切替（再読込）の直前の状態
   try{const c=map&&map.getCenter&&map.getCenter();
@@ -1518,7 +1528,7 @@ function buildTabs(){tabsEl.innerHTML='';TAB_ORDER.forEach(key=>{const m=TAB_MET
     c.title='鳳祭 統括指令（α版）：人員・出動指令・進行を地図に重ねる';c.innerHTML='<span class="dot" style="background:#e8590c"></span>指令 α'+(onA?'：ON':'');
     c.onclick=()=>festCadToggle();tabsEl.appendChild(c);}}
 // 本祭支援ツール α版：鳳祭 統括指令（cad-alpha.js を切り替えたときだけ読み込む）。状態は端末内に保存して次回も維持
-const FEST_CAD_V=2;
+const FEST_CAD_V=3;
 function festCadLoad(cb){
   if(window.CAD){cb();return;}
   const sc=document.createElement('script');sc.src='cad-alpha.js?v='+FEST_CAD_V;
@@ -2271,16 +2281,19 @@ function renderLayerPanel(){
     h+=`<div class="ly-item ly-rt-item"><span class="ly-sw ly-rt${r.visible?' on':''}" data-i="${i}" style="border:1px solid ${r.color};"></span><span class="ly-name" style="color:${r.color}">${escapeHtml(r.name||r.label)}<br><small style="color:var(--muted);font-weight:500;">${r.distKm.toFixed(0)}km・${fmtDuration(r.trafSec)}・¥${r.toll.toLocaleString()}</small></span><button class="ly-color rt-color" data-i="${i}" style="background:${r.color};" title="ルートの色を変更（6色から選択）"></button><button class="ly-del" data-d="${i}" title="この車両を削除"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`;
     h+=`<div class="ly-acts"><button class="ly-btn ly-ren" data-e="${i}" title="この車両の表示名を変えます">${SVG_PEN}名前を変更</button>${(r.pts&&r.pts.length)?`<button class="ly-btn ly-reedit" data-ed="${i}" title="この車両の地点をルートタブに読み込み、経由地や順番を編集します">${SVG_ROUTE}工程を再編集</button>`:''}</div>`;
   });
-  if(FEST&&festWayOn){   // 本祭支援ツール：構内の動線を要素ごとに表示/非表示（ごみ箱で一括削除）
-    const nOn=FEST_WAYL.filter(x=>festWayL[x[0]]).length;
-    h=`<div class="ly-item ly-grp"><span class="ly-sw on" style="border:1px solid #f76707;"></span><span class="ly-name">構内の動線 <small style="color:var(--muted);font-weight:500;">${nOn}/${FEST_WAYL.length}要素</small></span><button class="ly-del" id="lyFestWayDel" title="構内の動線をすべて消す"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`
-      +FEST_WAYL.map(([k,lab,col])=>`<div class="ly-item" style="padding-left:14px;"><span class="ly-sw fw-sw${festWayL[k]?' on':''}" data-k="${k}" style="border:1px solid ${col};"></span><span class="ly-name">${lab}</span></div>`).join('')+h;
+  if(FEST){   // 本祭支援ツール：構内の動線を要素ごとに表示/非表示（ごみ箱で一括削除）。非表示（既定）のときもここからONにできる
+    const nOn=festWayOn?FEST_WAYL.filter(x=>festWayL[x[0]]).length:0;
+    h=`<div class="ly-item ly-grp"><span class="ly-sw fw-all${festWayOn?' on':''}" style="border:1px solid #f76707;cursor:pointer;" title="構内の動線を${festWayOn?'消す':'表示'}"></span><span class="ly-name">構内の動線 <small style="color:var(--muted);font-weight:500;">${festWayOn?nOn+'/'+FEST_WAYL.length+'要素':'非表示（左のスイッチ・各要素で表示）'}</small></span>`+(festWayOn?`<button class="ly-del" id="lyFestWayDel" title="構内の動線をすべて消す"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button>`:'')+`</div>`
+      +FEST_WAYL.map(([k,lab,col])=>`<div class="ly-item" style="padding-left:14px;"><span class="ly-sw fw-sw${festWayOn&&festWayL[k]?' on':''}" data-k="${k}" style="border:1px solid ${col};"></span><span class="ly-name">${lab}</span></div>`).join('')+h;
   }
-  if(!savedRoutes.length&&!isoShapes.length&&!onsenLayerOn&&!poiCats.length&&!lineKeys.length&&!savedPins.length&&!bufferLayers.length&&!(FEST&&festWayOn))h+='<div class="ly-empty">レイヤーは空です。カスタムタブでPOI・高速/鉄道の全国強調を表示、温泉郷タブ、到達圏、検索して「ピンを残す」、ピンの「距離円」、ルートの「保存」などで要素を地図に重ねられます（タブを切り替えても残ります）。</div>';
+  if(!savedRoutes.length&&!isoShapes.length&&!onsenLayerOn&&!poiCats.length&&!lineKeys.length&&!savedPins.length&&!bufferLayers.length&&!FEST)h+='<div class="ly-empty">レイヤーは空です。カスタムタブでPOI・高速/鉄道の全国強調を表示、温泉郷タブ、到達圏、検索して「ピンを残す」、ピンの「距離円」、ルートの「保存」などで要素を地図に重ねられます（タブを切り替えても残ります）。</div>';
   list.innerHTML=h;
   const lyOnsen=document.getElementById('lyOnsen');if(lyOnsen)lyOnsen.onclick=toggleOnsenLayer;
   const fwDel=document.getElementById('lyFestWayDel');if(fwDel)fwDel.onclick=()=>festDrawWays(false);
-  list.querySelectorAll('.fw-sw').forEach(sw=>sw.onclick=()=>festWayLToggle(sw.dataset.k));
+  list.querySelectorAll('.fw-sw').forEach(sw=>sw.onclick=()=>{const k=sw.dataset.k;
+    if(!festWayOn){FEST_WAYL.forEach(x=>festWayL[x[0]]=(x[0]===k));festWayLSave();festDrawWays(true,true);}   // 非表示のときは押した要素だけ表示
+    else festWayLToggle(k);});
+  const fwAll=list.querySelector('.fw-all');if(fwAll)fwAll.onclick=()=>festDrawWays(!festWayOn,true);
   const lyOnsenDel=document.getElementById('lyOnsenDel');if(lyOnsenDel)lyOnsenDel.onclick=toggleOnsenLayer;
   const isoDel=document.getElementById('lyIsoDel');if(isoDel)isoDel.onclick=clearIso;
   const isoSw=list.querySelector('.ly-iso-sw');if(isoSw)isoSw.onclick=toggleIsoVisible;
@@ -5703,7 +5716,7 @@ function festB3dBox(){
     Object.values(festPins).forEach(p=>festB3dLblBox.appendChild(p.el));}
   return festB3dLblBox;
 }
-function festPinSet(id,lat,lng,el,ax,ay){const o=festPins[id];if(o&&o.el!==el)o.el.remove();el.classList.add('fest-pin');
+function festPinSet(id,lat,lng,el,ax,ay){const o=festPins[id];if(o&&o.el!==el)o.el.remove();el.classList.add('fest-pin');if(!o||o.el!==el)el.style.display='none';   /* 位置が決まるまで隠す（左上に一瞬出ないように） */
   festPins[id]={lat,lng,el,ax,ay,w:null,h:null,shown:o&&o.el===el?o.shown:undefined};   /* 中身が変わることがあるので大きさは次の描画で測り直す */if(festB3d)festB3dBox().appendChild(el);if(festB3d)festB3d.requestRedraw();}
 function festPinDel(id){const o=festPins[id];if(o){o.el.remove();delete festPins[id];}}
 function festMk(id,lat,lng,html,title,onClick,gOpt,ax,ay){   // 地形ONなら地形に沿った印、OFFならGoogleの印

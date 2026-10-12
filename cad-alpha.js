@@ -30,6 +30,13 @@ const DEFAULT_LOCATIONS=[
 const STATUS={active:{label:'活動中',color:'#37d47f',rank:5},moving:{label:'移動中',color:'#28c8e0',rank:4},break:{label:'休憩中',color:'#4a90ff',rank:6},
   busy:{label:'保留中',color:'#ffb020',rank:2},respond:{label:'対応中',color:'#ff7a1a',rank:1}};
 const STATUS_ORDER=['active','moving','break','busy','respond'];
+function ink(c){   // 色付きの文字：昼モードは白地でコントラスト4.5以上になるまで暗くする
+  if(document.documentElement.dataset.theme==='dark'||!/^#[0-9a-f]{6}$/i.test(c))return c;
+  let r=parseInt(c.slice(1,3),16),g=parseInt(c.slice(3,5),16),b=parseInt(c.slice(5,7),16);
+  const L=()=>{const f=v=>{v/=255;return v<=0.03928?v/12.92:Math.pow((v+0.055)/1.055,2.4);};return 0.2126*f(r)+0.7152*f(g)+0.0722*f(b);};
+  for(let k=0;k<20&&L()>0.16;k++){r*=.9;g*=.9;b*=.9;}
+  return '#'+[r,g,b].map(v=>Math.round(v).toString(16).padStart(2,'0')).join('');
+}
 const KINDS={aid:{label:'救護要請',color:'#ff3b47'},trouble:{label:'トラブル対応',color:'#ff7a1a'},supply:{label:'物資搬送',color:'#37d47f'},
   claim:{label:'苦情/クレーム',color:'#ffb020'},facility:{label:'設備トラブル',color:'#a06bff'},lost:{label:'迷子/呼出',color:'#28c8e0'},
   patrol:{label:'巡回強化',color:'#4a90ff'},other:{label:'その他',color:'#8ea0b5'}};
@@ -148,7 +155,7 @@ body.cad-on #cadL,body.cad-on #cadR{display:flex;}
 .cad-ph .cad-sub{font-size:11px;color:var(--muted);font-weight:700;font-variant-numeric:tabular-nums;}
 .cad-ph .sp{flex:1;}
 .cad-ib{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;font-size:11.5px;font-weight:800;padding:4px 8px;cursor:pointer;flex:none;}
-.cad-ib.pri{background:#e8590c;border-color:#e8590c;color:#fff;}
+.cad-ib.pri{background:#c2410c;border-color:#c2410c;color:#fff;}
 .cad-ib.on{background:var(--accent);border-color:var(--accent);color:#fff;}
 .cad-cnt{display:grid;grid-template-columns:repeat(3,1fr);gap:5px;padding:8px 10px;flex:none;}
 .cad-cnt button{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:9px;padding:4px 2px;cursor:pointer;text-align:center;}
@@ -188,7 +195,7 @@ body.cad-on #cadL,body.cad-on #cadR{display:flex;}
 .cad-om{font-size:11px;color:var(--muted);line-height:1.45;}
 .cad-oa{display:flex;gap:5px;margin-top:6px;}
 .cad-oa button{flex:1;border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;font-size:11.5px;font-weight:800;padding:5px 4px;cursor:pointer;}
-.cad-oa button.go{background:#e8590c;border-color:#e8590c;color:#fff;}
+.cad-oa button.go{background:#c2410c;border-color:#c2410c;color:#fff;}
 .cad-ev{display:flex;align-items:center;gap:6px;padding:5px 4px;border-radius:8px;cursor:pointer;}
 .cad-ev:hover{background:var(--surface-2);}
 .cad-ev.done{opacity:.5;}
@@ -239,28 +246,37 @@ textarea.cad-inp{min-height:62px;resize:vertical;}
 #cadEditPill button{margin-left:10px;border:0;border-radius:999px;background:#fff;color:#1971c2;font-weight:900;padding:3px 10px;cursor:pointer;}
 body.cad-on #mapLegend{left:324px;}
 body.cad-on #mapAttrib{right:438px;}
+/* お知らせ（画面上部の黒い帯）は左右のパネルの間に収める（パネルに隠れて読めなかった） */
+@media (min-width:1101px){body.cad-on #status{left:calc(324px + (100vw - 762px)/2);max-width:calc(100vw - 778px);}}
 @media (max-width:1100px){#cadL{width:270px;}#cadR{width:310px;}body.cad-on #mapLegend{left:294px;}body.cad-on #mapAttrib{right:398px;}}
+@media (min-width:768px) and (max-width:1100px){body.cad-on #status{z-index:1300;}}   /* 狭い画面はパネルの間に収まらないので、パネルより手前に出す */
 @media (max-width:767px){
   body.cad-on #cadL,body.cad-on #cadR{display:none;}
   body.cad-on.cad-mob-L #cadL,body.cad-on.cad-mob-R #cadR{display:flex;}
+  .cad-ib{min-height:36px;min-width:36px;padding:6px 10px;font-size:12.5px;} .cad-oa button{min-height:38px;font-size:12.5px;}   /* 指で押しやすい大きさ */
+  #cadMob button{min-height:38px;}
+  .cad-q{gap:4px;} .cad-q button{width:30px;height:30px;font-size:12px;}
+  body.cad-on #status{top:calc(env(safe-area-inset-top) + 162px);}   /* 「人員/指令」の切替ボタンの下に出す */
   #cadL,#cadR{left:8px;right:8px;width:auto;top:auto;bottom:calc(8px + env(safe-area-inset-bottom));height:64vh;}
   body.cad-on #cadMob{display:flex;position:fixed;left:8px;top:calc(112px + env(safe-area-inset-top));z-index:1160;gap:6px;}
   body.cad-on.cad-mob-L #cadL,body.cad-on.cad-mob-R #cadR{z-index:1260;}
   #cadEm{top:calc(156px + env(safe-area-inset-top));max-width:92vw;}
   #cadMob button{border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:999px;font-size:12px;font-weight:900;padding:7px 12px;box-shadow:0 4px 14px var(--shadow);}
-  #cadMob button.on{background:#e8590c;border-color:#e8590c;color:#fff;}
+  #cadMob button.on{background:#c2410c;border-color:#c2410c;color:#fff;}
   body.cad-on #mapLegend{left:8px;}body.cad-on #mapAttrib{right:8px;}
 }
-.tab.cad-tab{border-color:#e8590c!important;color:#e8590c!important;font-weight:900;}
+.tab.cad-tab{border-color:#e8590c!important;color:#c2410c!important;font-weight:900;}
+[data-theme="dark"] .tab.cad-tab:not(.active){color:#ff9a5c!important;}
 .cad-pin{min-width:22px;height:22px;padding:0 4px;box-sizing:border-box;border-radius:11px;border:2px solid #fff;color:#0b1220;font:900 11px/18px sans-serif;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.35);}
 .cad-pin.hq{background:#ffd43b;color:#5c3d00;border-radius:6px;}
 .cad-pin.ord{background:none;border:0;box-shadow:none;width:26px;height:24px;position:relative;}
 .cad-pin.ord::before{content:"";position:absolute;inset:0;background:var(--c);clip-path:polygon(50% 0,100% 100%,0 100%);}
 .cad-pin.ord span{position:relative;display:block;color:#fff;font-size:9px;line-height:30px;}
 .cad-dot{width:8px;height:8px;border-radius:50%;border:1px solid #0b1220;}
+.cad-raise{padding-bottom:10px;background:linear-gradient(#495057,#495057) center bottom/2px 10px no-repeat;display:flex;flex-direction:column;align-items:center;}
 .cad-blink{animation:cadblink .3s 5 alternate;}
 @keyframes cadblink{from{transform:scale(1)}to{transform:scale(1.6)}}
-.tab.cad-tab.active{background:#e8590c!important;color:#fff!important;}
+.tab.cad-tab.active{background:#c2410c!important;border-color:#c2410c!important;color:#fff!important;}
 `;
 function injectDom(){
   if(!document.getElementById('cadCss')){const st=document.createElement('style');st.id='cadCss';st.textContent=CSS;document.head.appendChild(st);}
@@ -320,7 +336,7 @@ function renderRoster(){
   const box=$('#cadRoster');
   if(!list.length){box.innerHTML='<div class="cad-empty">該当する人員なし</div>';return;}
   box.innerHTML=list.map(m=>{const b=BU[m.bureau]||{color:'#999',code:'?'},s=STATUS[m.status];
-    const qb=['active','break','busy','respond'].map(k=>'<button style="color:'+STATUS[k].color+'" title="'+STATUS[k].label+'にする" data-q="'+m.id+'|'+k+'">'+STATUS[k].label[0]+'</button>').join('');
+    const qb=['active','break','busy','respond'].map(k=>'<button style="color:'+ink(STATUS[k].color)+'" title="'+STATUS[k].label+'にする" data-q="'+m.id+'|'+k+'">'+STATUS[k].label[0]+'</button>').join('');
     return '<div class="cad-row'+(S.selected===m.id?' sel':'')+'" data-m="'+m.id+'"><span class="cad-chip" style="background:'+b.color+'">'+esc(b.code)+'</span><span class="cad-cs">'+esc(m.callsign)+'</span>'
       +'<span class="cad-who"><div class="nm">'+esc(m.name)+'</div><div class="mt">'+esc(m.role)+'・'+(LOC[m.loc]?esc(LOC[m.loc].name):'未配置')+'</div></span>'
       +'<span class="cad-q">'+qb+'</span><span class="cad-sd" style="background:'+s.color+'" title="'+s.label+'"></span></div>';}).join('');
@@ -335,8 +351,8 @@ function renderOrders(){
   if(!shown.length){box.innerHTML='<div class="cad-empty">出動指令なし（＋ 新規指令 で発令）</div>';return;}
   box.innerHTML=shown.map(o=>{const k=KINDS[o.kind]||KINDS.other,sm=OST[o.status],u=(o.assignees||[]).map(mem).filter(Boolean);
     return '<div class="cad-ord'+(o.prio==='urgent'&&o.status!=='done'?' urg':'')+'" style="'+(o.status==='done'?'opacity:.55':'')+'">'
-      +'<div class="cad-oh"><span class="cad-kind" style="background:'+k.color+'26;color:'+k.color+'">'+(o.prio==='urgent'?'緊急・':(o.prio==='high'?'高・':''))+esc(k.label)+'</span>'
-      +'<span class="cad-oid">#'+o.seq+'</span><span class="cad-ost" style="color:'+sm.c+'">'+sm.l+'</span>'
+      +'<div class="cad-oh"><span class="cad-kind" style="background:'+k.color+'26;color:'+ink(k.color)+'">'+(o.prio==='urgent'?'緊急・':(o.prio==='high'?'高・':''))+esc(k.label)+'</span>'
+      +'<span class="cad-oid">#'+o.seq+'</span><span class="cad-ost" style="color:'+ink(sm.c)+'">'+sm.l+'</span>'
       +(o.status!=='done'?'<span class="cad-oel" id="cadEl-'+o.id+'">経過 '+fmtElapsed(o.created)+'</span>':'<span class="cad-oel">発令 '+fmtHM(o.created)+'</span>')+'</div>'
       +'<div class="cad-ob">'+esc(o.text)+'</div>'
       +'<div class="cad-om">場所　'+esc(o.locLabel||(LOC[o.loc]?LOC[o.loc].name:'—'))+'<br>出動隊 '+u.length+'名　'+(u.length?esc(u.map(m=>m.callsign).join(' / ')):'未割当')+'</div>'
@@ -354,7 +370,7 @@ function renderSchedule(){
   const box=$('#cadSched');
   box.innerHTML=evs.length?evs.map(e=>{const st=evStatus(e),b=BU[e.bureau]||{color:'#999',code:'?'},l=LOC[e.loc];
     return '<div class="cad-ev '+st+'" data-l="'+esc(e.loc)+'"><span class="tm">'+pad(e.sh)+':'+pad(e.sm)+'–'+pad(e.eh)+':'+pad(e.em)+'</span><span class="cad-chip" style="background:'+b.color+'">'+esc(b.code)+'</span>'
-      +'<span class="tx">'+esc(e.t)+(l?'<small>'+esc(l.name)+'</small>':'')+'</span><span class="es" style="color:'+EVS[st].c+'">'+EVS[st].l+'</span></div>';}).join(''):'<div class="cad-empty">予定なし</div>';
+      +'<span class="tx">'+esc(e.t)+(l?'<small>'+esc(l.name)+'</small>':'')+'</span><span class="es" style="color:'+ink(EVS[st].c)+'">'+EVS[st].l+'</span></div>';}).join(''):'<div class="cad-empty">予定なし</div>';
   box.querySelectorAll('.cad-ev').forEach(r=>r.onclick=()=>focusLoc(r.dataset.l));
 }
 function renderProg(){
@@ -382,9 +398,9 @@ function pinEl(html,title,onClick){const el=document.createElement('div');el.inn
 function refreshPins(){
   const seen={};
   S.locations.forEach(l=>{const n=membersAt(l.id).length,w=worstAt(l.id),col=w?STATUS[w].color:'#868e96',hasOrd=activeOrders().some(o=>o.loc===l.id);seen['L'+l.id]=1;
-    const html=l.hq?'<div class="cad-pin hq">本</div>':'<div class="cad-pin" style="background:'+col+';'+(hasOrd?'box-shadow:0 0 0 3px #ff3b47;':'')+(n?'':'width:12px;height:12px;opacity:.75;')+'">'+(n||'')+'</div>';
+    const html=l.hq?'<div class="cad-pin hq">本</div>':'<div class="cad-pin" style="background:'+col+';'+(hasOrd?'box-shadow:0 0 0 3px #ff3b47;':'')+(n?'':'min-width:0;width:12px;height:12px;padding:0;border-width:2px;opacity:.85;')+'">'+(n||'')+'</div>';
     let o=locMk[l.id];if(!o||!o.pin){if(o&&o.setMap)o.setMap(null);o=locMk[l.id]={pin:'cadL_'+l.id,el:pinEl('',l.name,()=>{if(!editLoc)openLocation(l.id);})};}
-    o.el.innerHTML=html;o.el.title=l.name+'（'+n+'名）';window.festPinSet(o.pin,l.lat,l.lng,o.el);});
+    o.el.innerHTML=html;o.el.title=l.name+'（'+n+'名）';o.el.classList.add('cad-raise');window.festPinSet(o.pin,l.lat,l.lng,o.el,undefined,(l.hq||n?22:12)+10);});
   Object.keys(locMk).forEach(id=>{if(!seen['L'+id]){if(locMk[id].pin)window.festPinDel(locMk[id].pin);else locMk[id].setMap(null);delete locMk[id];}});
   const os={};
   activeOrders().forEach(o=>{const l=LOC[o.loc];if(!l)return;os[o.id]=1;const k=KINDS[o.kind]||KINDS.other;
@@ -452,7 +468,7 @@ function openMember(id){
   openModal(MH('人員の詳細')+'<div class="cad-mb">'
     +'<div style="display:flex;gap:10px;align-items:center;margin-bottom:12px"><span class="cad-chip" style="background:'+b.color+';font-size:13px;padding:6px 8px">'+esc(b.code)+'</span>'
     +'<div><div style="font-size:16px;font-weight:900">'+esc(m.name)+'</div><div style="font-size:12px;color:var(--muted)">'+esc(m.callsign)+'・'+esc(b.name)+'・'+esc(m.role)+'</div></div></div>'
-    +'<div class="cad-fld"><label>状態</label><div class="cad-stg">'+STATUS_ORDER.map(k=>'<button class="'+(m.status===k?'on':'')+'" style="color:'+STATUS[k].color+'" data-st="'+k+'">'+STATUS[k].label+'</button>').join('')+'</div></div>'
+    +'<div class="cad-fld"><label>状態</label><div class="cad-stg">'+STATUS_ORDER.map(k=>'<button class="'+(m.status===k?'on':'')+'" style="color:'+ink(STATUS[k].color)+'" data-st="'+k+'">'+STATUS[k].label+'</button>').join('')+'</div></div>'
     +'<div class="cad-fld"><label>配置</label><select class="cad-inp" id="cadMl">'+S.locations.map(l=>'<option value="'+l.id+'"'+(m.loc===l.id?' selected':'')+'>'+esc(l.name)+'</option>').join('')+'</select></div>'
     +'<div class="cad-fld"><label>メモ</label><textarea class="cad-inp" id="cadMn" placeholder="連絡事項など">'+esc(m.note||'')+'</textarea></div>'
     +'<div class="cad-kv"><span class="k">最終更新</span><span>'+fmtClock(m.upd)+'</span></div></div>'
@@ -468,7 +484,7 @@ function openLocation(id){
   const l=LOC[id];if(!l)return;const ms=membersAt(id).sort((a,b)=>STATUS[a.status].rank-STATUS[b.status].rank);
   const ord=activeOrders().filter(o=>o.loc===id);
   openModal(MH((l.hq?'本部　':'')+esc(l.name))+'<div class="cad-mb">'
-    +(ord.length?'<div class="cad-fld"><label>この場所の指令</label>'+ord.map(o=>'<div class="cad-row" data-o="'+o.id+'"><span class="cad-kind" style="background:'+(KINDS[o.kind]||KINDS.other).color+'26;color:'+(KINDS[o.kind]||KINDS.other).color+'">'+esc((KINDS[o.kind]||KINDS.other).label)+'</span><span class="cad-who"><div class="nm">#'+o.seq+' '+esc(o.text)+'</div></span></div>').join('')+'</div>':'')
+    +(ord.length?'<div class="cad-fld"><label>この場所の指令</label>'+ord.map(o=>'<div class="cad-row" data-o="'+o.id+'"><span class="cad-kind" style="background:'+(KINDS[o.kind]||KINDS.other).color+'26;color:'+ink((KINDS[o.kind]||KINDS.other).color)+'">'+esc((KINDS[o.kind]||KINDS.other).label)+'</span><span class="cad-who"><div class="nm">#'+o.seq+' '+esc(o.text)+'</div></span></div>').join('')+'</div>':'')
     +'<div class="cad-kv"><span class="k">配置人員</span><span>'+ms.length+'名</span></div>'
     +'<div class="cad-fld"><label>人員（タップで詳細）</label>'+(ms.length?ms.map(m=>{const b=BU[m.bureau]||{color:'#999',code:'?'},s=STATUS[m.status];
       return '<div class="cad-row" data-m="'+m.id+'"><span class="cad-chip" style="background:'+b.color+'">'+esc(b.code)+'</span><span class="cad-cs">'+esc(m.callsign)+'</span><span class="cad-who"><div class="nm">'+esc(m.name)+'</div><div class="mt">'+esc(m.role)+'</div></span><span style="font-size:11px;font-weight:900;color:'+s.color+'">'+s.label+'</span></div>';}).join(''):'<div class="cad-empty">配置人員なし</div>')+'</div></div>'
@@ -479,7 +495,7 @@ function openLocation(id){
 }
 function openOrder(id){
   const o=S.orders.find(x=>x.id===id);if(!o)return;const k=KINDS[o.kind]||KINDS.other,u=(o.assignees||[]).map(mem).filter(Boolean);
-  openModal(MH('指令 #'+o.seq)+'<div class="cad-mb"><div class="cad-oh" style="margin-bottom:8px"><span class="cad-kind" style="background:'+k.color+'26;color:'+k.color+'">'+(o.prio==='urgent'?'緊急・':'')+esc(k.label)+'</span><span class="cad-ost" style="color:'+OST[o.status].c+'">'+OST[o.status].l+'</span><span class="cad-oel">発令 '+fmtHM(o.created)+'</span></div>'
+  openModal(MH('指令 #'+o.seq)+'<div class="cad-mb"><div class="cad-oh" style="margin-bottom:8px"><span class="cad-kind" style="background:'+k.color+'26;color:'+ink(k.color)+'">'+(o.prio==='urgent'?'緊急・':'')+esc(k.label)+'</span><span class="cad-ost" style="color:'+ink(OST[o.status].c)+'">'+OST[o.status].l+'</span><span class="cad-oel">発令 '+fmtHM(o.created)+'</span></div>'
     +'<div class="cad-ob" style="font-size:13px">'+esc(o.text)+'</div><div class="cad-om" style="margin-top:6px">場所　'+esc(o.locLabel||'')+'<br>出動隊　'+(u.length?esc(u.map(m=>m.callsign+' '+m.name).join('、')):'未割当')+'</div></div>'
     +'<div class="cad-mf"><span class="sp"></span>'+(o.status==='dispatch'?'<button class="cad-btn pri" data-oa="respond">対応中にする</button>':'')+(o.status!=='done'?'<button class="cad-btn" data-oa="done">完了</button>':'')+'</div>');
   document.querySelectorAll('#cadModal [data-oa]').forEach(b=>b.onclick=()=>{advanceOrder(id,b.dataset.oa);closeModal();});
@@ -499,7 +515,7 @@ function openDispatch(prefLoc,prefMember){
 }
 function renderDispatch(){
   const d=draft;if(!d)return;
-  const kinds=Object.entries(KINDS).map(([k,v])=>'<button class="cad-kc'+(d.kind===k?' on':'')+'" style="color:'+v.color+'" data-k="'+k+'">'+v.label+'</button>').join('');
+  const kinds=Object.entries(KINDS).map(([k,v])=>'<button class="cad-kc'+(d.kind===k?' on':'')+'" style="color:'+ink(v.color)+'" data-k="'+k+'">'+v.label+'</button>').join('');
   const nodes=d.cursor?((zoneFind(d.cursor)||{node:{}}).node.children||[]):ZONES,cur=d.cursor?(zoneFind(d.cursor)||{}).node:null;
   const crumb=cur?'<button class="cad-kc" data-zu>‹ 戻る</button> <b style="font-size:12px">'+esc(cur.label)+'</b>':'<span style="font-size:11.5px;color:var(--muted)">場所を選ぶ（▸は詳しく選べる）</span>';
   const zones=nodes.map(n=>'<button class="cad-kc'+(d.zoneId===n.id?' on':'')+'" data-z="'+n.id+'">'+esc(n.label)+(n.children&&n.children.length?' ▸':'')+'</button>').join('');
@@ -507,9 +523,9 @@ function renderDispatch(){
     return '<div class="cad-row"><span class="cad-chip" style="background:'+b.color+'">'+esc(b.code)+'</span><span class="cad-cs">'+esc(m.callsign)+'</span><span class="cad-who"><div class="nm">'+esc(m.name)+'</div><div class="mt">'+distLabel(m,d.loc)+'・'+s.label+'</div></span><button class="cad-ib" data-ur="'+id+'">✕</button></div>';}).join(''):'<div class="cad-empty">未編成（自動編成／局から一括／個別追加）</div>';
   const scale=Object.entries(SCALE).map(([k,v])=>'<button class="cad-kc'+(d.scale===k?' on':'')+'" data-s="'+k+'">'+v.label+'（'+v.n+'名）</button>').join('');
   const bus=S.bureaus.map(b=>{const n=S.members.filter(m=>m.bureau===b.code&&m.status!=='respond'&&!d.unit.includes(m.id)).length;
-    return '<button class="cad-kc" style="color:'+b.color+(n?'':';opacity:.4')+'" '+(n?'':'disabled')+' data-b="'+esc(b.code)+'">'+esc(b.name)+' ＋'+n+'</button>';}).join('');
+    return '<button class="cad-kc" style="color:'+ink(b.color)+(n?'':';opacity:.4')+'" '+(n?'':'disabled')+' data-b="'+esc(b.code)+'">'+esc(b.name)+' ＋'+n+'</button>';}).join('');
   const add='<option value="">＋ 個別に人員を追加…</option>'+S.members.filter(m=>!d.unit.includes(m.id)).sort((a,b)=>a.callsign.localeCompare(b.callsign)).map(m=>'<option value="'+m.id+'">'+esc(m.callsign+' '+m.name)+'（'+STATUS[m.status].label+'）</option>').join('');
-  const prio=[['normal','通常','#868e96'],['high','高','#f59f00'],['urgent','緊急','#e03131']].map(([k,l,c])=>'<button class="cad-kc'+(d.prio===k?' on':'')+'" style="color:'+c+'" data-p="'+k+'">'+l+'</button>').join('');
+  const prio=[['normal','通常','#868e96'],['high','高','#f59f00'],['urgent','緊急','#e03131']].map(([k,l,c])=>'<button class="cad-kc'+(d.prio===k?' on':'')+'" style="color:'+ink(c)+'" data-p="'+k+'">'+l+'</button>').join('');
   openModal(MH('出動指令の発令')+'<div class="cad-mb">'
     +'<div class="cad-fld"><label>区分</label><div class="cad-chips">'+kinds+'</div></div>'
     +'<div class="cad-fld"><label>発生場所　<span style="color:#e8590c">'+esc(d.locLabel)+'</span></label><div style="margin-bottom:6px">'+crumb+'</div><div class="cad-chips">'+zones+'</div></div>'
