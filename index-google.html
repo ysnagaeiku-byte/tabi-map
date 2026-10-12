@@ -318,6 +318,16 @@
   .share-pub{flex:1;}
   .share-code-in{flex:1;text-transform:uppercase;letter-spacing:3px;font-weight:800;}
   .share-imp{flex:none;width:auto;padding:0 20px;}
+  .fest-sh-list{display:flex;flex-direction:column;gap:6px;margin:4px 0 12px;}
+  .fest-sh-row{display:flex;align-items:center;gap:9px;width:100%;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--fg);font-size:13.5px;text-align:left;cursor:pointer;}
+  .fest-sh-row i{flex:none;width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);}
+  .fest-sh-row b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .fest-sh-row span{flex:none;font-size:12px;color:var(--muted);font-weight:700;}
+  .fest-sh-empty{font-size:12px;color:var(--muted);padding:6px 2px;}
+  .fest-peer-lbl{text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff,0 0 4px #fff;white-space:nowrap;}
+  .fest-r3 .fest-peer{display:flex;flex-direction:column;align-items:center;z-index:5;}
+  .fest-peer svg{display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));} .fest-peer b{margin-top:1px;font-size:11px;font-weight:800;color:#1c1f24;white-space:nowrap;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff,0 0 4px #fff;}
+  #trackFab .sh-n{position:absolute;top:-6px;right:-6px;min-width:19px;height:19px;padding:0 4px;border-radius:10px;background:#e8590c;color:#fff;font-size:10.5px;font-weight:800;line-height:15px;text-align:center;border:2px solid var(--panel);box-sizing:border-box;}
+  #trackFab .sh-n.stale{background:#868e96;}
   .share-code-box:empty{display:none;}
   .share-code-box{margin-top:10px;}
   .share-code-box .code{font-size:26px;font-weight:900;letter-spacing:5px;text-align:center;padding:12px;border:2px dashed var(--accent);border-radius:12px;color:var(--accent);background:var(--accent-weak);}
@@ -903,6 +913,7 @@
     <button class="tm-item" id="tmFestBldList"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg></span><span class="tm-lab">建物一覧・色<small>仮番号・名称・階数・高さ。建物の色を一括で変更</small></span><span class="tm-ex">開く</span></button>
     <button class="tm-item" id="tmFestWay"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M5 21 9 3M19 21 15 3M10.5 8h3M10 13h4M9.5 18h5"/></svg></span><span class="tm-lab">構内の動線<small>車両動線（構内・周辺の道路・出入口・駐車場・路線バス）・歩道・階段</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestVehList"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M3.5 5h1.5v2H3.5zM3.5 11h1.5v2H3.5zM3.5 17h1.5v2H3.5z"/></svg></span><span class="tm-lab">車両動線一覧（下書き）<small>道路・出入口・駐車場。タップでその場所へ</small></span></button>
+    <button class="tm-item" id="tmFestShare"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="6" cy="17" r="2.6"/><circle cx="18" cy="17" r="2.6"/><circle cx="12" cy="6" r="2.6"/><path d="M8.2 15.3 10.6 8.3M15.8 15.3 13.4 8.3M8.6 17h6.8"/></svg></span><span class="tm-lab">位置の共有（車両）<small>追跡中の位置を仲間（トラックなど）とリアルタイムで共有・地図に表示</small></span><span class="tm-ex">設定</span></button>
     <button class="tm-item" id="tmFestWalk"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="13" cy="4.2" r="2"/><path d="M11 21l2-6-3-3 1.5-5L14 9l3 1.5M10 12l-3 3"/></svg></span><span class="tm-lab">駅からの徒歩ルート<small>向ヶ丘遊園駅→構内入口の距離・所要時間</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestOsm"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><rect x="3" y="10" width="7" height="10"/><rect x="14" y="5" width="7" height="15"/><path d="M3 20h18"/></svg></span><span class="tm-lab">周辺の建物<small>表示中の範囲をOpenStreetMapから取得</small></span><span class="tm-sw"></span></button>
   </div>
@@ -926,7 +937,7 @@
 <button id="layerBtn" title="レイヤー（温泉郷・圏域・保存ルート）" aria-label="レイヤー管理"><svg class="svgi" viewBox="0 0 24 24"><path d="M12 2 22 7.5 12 13 2 7.5 12 2z"/><path d="m2 12.2 10 5.5 10-5.5"/><path d="m2 16.7 10 5.5 10-5.5"/></svg><small>レイヤー</small></button>
 <button id="settleBtn" title="複数車両の割り勘決算" aria-label="複数車両の割り勘決算"><svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m8.6 7.6 3.4 4.3 3.4-4.3M12 11.9V17M9.4 13.4h5.2M9.4 15.6h5.2"/></svg><small>割り勘</small></button>
 <button id="imgBtn" title="表示中の地図・レイヤーを画像で保存" aria-label="画像出力"><svg class="svgi" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.6"/><path d="m4 17 5-5 4 4 3-3 4 4"/></svg><small>画像出力</small></button>
-<button id="festRotBtn" title="向ヶ丘遊園側を手前に（地図を180°回転・もう一度押すと北が上）" aria-label="向ヶ丘遊園側を手前に回転" aria-pressed="false"><svg class="svgi" viewBox="0 0 24 24"><path d="M4.5 10a8 8 0 0 1 14.2-3.2"/><path d="M19.6 3.4v4.1h-4.1"/><path d="M19.5 14a8 8 0 0 1-14.2 3.2"/><path d="M4.4 20.6v-4.1h4.1"/></svg><small>遊園側</small></button>
+<button id="festRotBtn" title="向ヶ丘遊園側を手前に（構内を通る道路が正面にまっすぐ伸びる向き・もう一度押すと北が上）" aria-label="向ヶ丘遊園側を手前に回転" aria-pressed="false"><svg class="svgi" viewBox="0 0 24 24"><path d="M4.5 10a8 8 0 0 1 14.2-3.2"/><path d="M19.6 3.4v4.1h-4.1"/><path d="M19.5 14a8 8 0 0 1-14.2 3.2"/><path d="M4.4 20.6v-4.1h4.1"/></svg><small>遊園側</small></button>
 <button id="festFitBtn" title="既定のアングル（キャンパス全体を斜め上から）に戻す" aria-label="既定のアングルに戻す"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 9V4h5M20 15v5h-5M20 9V4h-5M4 15v5h5"/><circle cx="12" cy="12" r="2.2"/></svg><small>既定</small></button><div id="festTiltBox" title="地図の傾き（俯瞰する角度）。上へ動かすほど斜め、下で真上から"><small>斜め</small><div class="ft-track"><input type="range" id="festTilt" min="0" max="67.5" step="0.5" value="47" aria-label="地図の傾き（俯瞰する角度）"></div><small>真上</small></div>
 <div id="layerPanel"><div class="ly-head"><span>レイヤー</span><button id="lySaveSetBtn" class="ly-save-set" title="現在のレイヤー（ルート・ピン・距離円）を名前を付けて保存">保存</button><button id="layerClose">✕</button></div><div id="layerList"></div></div>
 <div id="settlePanel"><div class="ly-head"><span>複数車両 割り勘決算</span><button id="settleClose">✕</button></div><div id="settleList"></div></div>
@@ -1112,6 +1123,17 @@
   <div class="seg" id="festVehSeg"><button data-f="road" class="on">道路</button><button data-f="ent">出入口</button><button data-f="park">駐車場・バス停</button></div>
   <div id="festVehList" class="fest-bl-list"></div>
   <div class="fest-bl-note">道路の線形：OpenStreetMap（国土地理院の空中写真と照合）／幅員：国土交通省 PLATEAU（川崎市2022）の道路面から計測／路線バス：OpenStreetMapの路線データ。番号（V01・E1・P1）は確認用の仮番号です。本祭期間の通行可否・搬入ルート・駐車場の割り当ては一部のみ反映しています（未設定のものは今後）。行をタップすると、地図のアングルはそのままで該当の場所へ移動します。</div>
+</div></div>
+<div class="overlay" id="festShareOverlay"><div class="modal"><div class="modal-h"><b>位置の共有（車両）</b><button id="festShClose">✕</button></div>
+  <div class="set-sec"><div class="set-label">表示名（仲間の地図に出る名前）</div><input id="festShName" maxlength="12" placeholder="例：1号車" autocomplete="off" /></div>
+  <div class="set-sec"><div class="set-label">合言葉（同じ合言葉の人どうしで共有）</div><div class="share-row"><input id="festShCode" placeholder="例：k7m2-x9qp-4tav" autocomplete="off" autocapitalize="off" spellcheck="false" style="flex:1;width:auto;" /><button class="set-save ghost share-imp" id="festShGen" type="button">作る</button></div>
+    <button class="set-save" id="festShJoin" type="button">この設定で参加</button>
+    <div class="share-row"><button class="set-save ghost share-pub" id="festShLink" type="button">招待リンクを送る</button><button class="set-save ghost share-pub" id="festShLeave" type="button">共有をやめる</button></div>
+    <div class="set-msg" id="festShMsg"></div></div>
+  <div class="fest-sh-list" id="festShList"></div>
+  <div class="set-help"><b>使い方</b>：運転する人がそれぞれ同じ合言葉で参加し、走るときに右の<b>「追跡」</b>を押します。押している間だけ自分の位置を約3〜15秒ごとに送り、もう一度押すと送信が止まって仲間の地図から消えます。仲間の位置は、参加していれば追跡していなくても表示されます（1分以上更新がないと灰色、15分で消えます）。<br>
+  <b>安全</b>：位置は合言葉から作った鍵で暗号化してから、無料の公開中継サーバー（EMQX・HiveMQ）を通して送ります。合言葉を知らない人には読めません。合言葉と招待リンクは仲間にだけ伝えてください。<br>
+  <b>注意</b>：スマホは画面を消したり別のアプリに切り替えたりすると送信が止まります。運転中はこの地図を開いたままにしてください（送信中は画面が自動で消えないようにします）。公開の中継サーバーのため、つながりにくい時があります。</div>
 </div></div>
 <div class="overlay" id="wxOverlay"><div class="modal">
   <div class="modal-h"><b id="wxTitle">天気予報</b><button id="wxClose">✕</button></div>
@@ -1507,6 +1529,7 @@ function festInit(){
   festSetBase(b);
   festDrawCampus(true);if(rs&&rs.way)festDrawWays(true,true);   // 構内の動線は既定でOFF（レイヤー・メニューから表示）
   try{if(localStorage.getItem('tabi_fest_cad_on')==='1')festCadToggle(true);}catch(e){}
+  try{festShInit();}catch(e){console.warn('share',e);}   // 位置の共有（参加中なら仲間の位置の受信を始める）
   // 端末がベクター描画に対応せずラスターへ切り替わった場合も、建物名（地図側ラベル）を出し直す
   try{map.addListener('renderingtype_changed',()=>{if(festCampusOn)festDrawCampus(true);});}catch(e){}
   try{map.addListener('click',()=>{if(!festB3d)festCardHide();});}catch(e){}
@@ -1514,6 +1537,7 @@ function festInit(){
     if(map.moveCamera)map.moveCamera(cam);else{map.setCenter(cam.center);map.setZoom(cam.zoom);}}
   else festFit();
   if(rs&&rs.tab&&rs.tab!==activeTab)try{selectTab(rs.tab);}catch(e){}
+  if(rs&&rs.trk&&liveWatchId==null)try{startLiveLoc();}catch(e){}   // 昼/夜の切替の再読込で追跡（位置の共有）が途切れないように
   if(!rs){showStatus('本祭支援ツール：'+(innerWidth<=600?'右上の☰→「機能」':'右上のレンチ（機能）')+'→「本祭支援ツール」で地図の種類・建物の色・構内の動線を切替',false);hideStatusLater();}
 }
 let festTiltDrag=false;
@@ -1528,7 +1552,7 @@ function festTiltSet(v){
 }
 function festResumeSave(){   // 昼/夜の切替（再読込）の直前の状態
   try{const c=map&&map.getCenter&&map.getCenter();
-    sessionStorage.setItem('fest_resume',JSON.stringify({b:festBase,c:c?{lat:c.lat(),lng:c.lng()}:null,z:map.getZoom(),t:map.getTilt?map.getTilt():0,h:map.getHeading?map.getHeading():0,way:!!festWayOn,tab:activeTab||null,ts:Date.now()}));}catch(e){}
+    sessionStorage.setItem('fest_resume',JSON.stringify({b:festBase,c:c?{lat:c.lat(),lng:c.lng()}:null,z:map.getZoom(),t:map.getTilt?map.getTilt():0,h:map.getHeading?map.getHeading():0,way:!!festWayOn,tab:activeTab||null,trk:liveWatchId!=null,ts:Date.now()}));}catch(e){}
 }
 function festResumeTake(){let r=null;try{r=JSON.parse(sessionStorage.getItem('fest_resume')||'null');sessionStorage.removeItem('fest_resume');}catch(e){}return(r&&Date.now()-r.ts<120000)?r:null;}
 function bootGoogle(){
@@ -1791,7 +1815,7 @@ function speedChip(show){const c=document.getElementById('speedChip');if(!c)retu
 function liveFabUi(){
   const fab=document.getElementById('trackFab');if(!fab)return;const sm=fab.querySelector('small');
   fab.classList.toggle('on',liveWatchId!=null);
-  if(sm)sm.textContent=liveWatchId==null?'追跡':(liveFollow?'追跡中':'追従再開');
+  if(sm)sm.textContent=liveWatchId==null?'追跡':(liveFollow?((typeof festShActive==='function'&&festShActive())?'共有中':'追跡中'):'追従再開');
 }
 function updateLiveLoc(lat,lng,acc){
   const r=Math.max(acc||0,15);
@@ -1811,9 +1835,9 @@ function startLiveLoc(){
   liveWatchId=navigator.geolocation.watchPosition(pos=>{
     const la=pos.coords.latitude,ln=pos.coords.longitude,acc=pos.coords.accuracy;
     updateLiveLoc(la,ln,acc);updateSpeed(pos);
-    try{taxiSync();taxiOnFix(pos);}catch(e){console.warn('taxi',e);}try{navOnFix(pos);}catch(e){console.warn('nav',e);}
+    try{taxiSync();taxiOnFix(pos);}catch(e){console.warn('taxi',e);}try{navOnFix(pos);}catch(e){console.warn('nav',e);}try{festShOnFix(pos);}catch(e){console.warn('share',e);}
     if(!liveFirstFix){liveFirstFix=true;statusEl.classList.remove('show');map.setCenter({lat:la,lng:ln});if(map.getZoom()<15)map.setZoom(16);
-      showStatus('リアルタイム追跡中（ドラッグで追従解除・ボタン再タップで停止）',false);hideStatusLater();
+      showStatus((typeof festShActive==='function'&&festShActive())?'追跡中・位置を仲間と共有しています（ボタン再タップで停止）':'リアルタイム追跡中（ドラッグで追従解除・ボタン再タップで停止）',false);hideStatusLater();
       if(activeTab&&activeTab!=='route'&&activeTab!=='iso'&&activeTab!=='onsengo')runSearch();
     }else if(liveFollow){map.panTo({lat:la,lng:ln});}
     liveFabUi();
@@ -1832,6 +1856,213 @@ function stopLiveLoc(){
   liveWatchId=null;liveFollow=true;liveFabUi();speedChip(false);
   try{taxiOnTrackStop();}catch(e){console.warn('taxi',e);}  // メーターは一時停止（内容は保持）
   try{if(navOn)navStop('追跡の終了にともない走行支援ナビを終了しました');}catch(e){}
+  try{festShTrackStop();}catch(e){console.warn('share',e);}   // 位置の共有：送信をやめ、仲間の地図から消す
+}
+// ===== 本祭支援ツール：位置の共有（車両）=====
+//  追跡ボタンを押している間だけ自分の位置を仲間へ送り、同じ合言葉の仲間の位置を地図に描く（受信は参加中ずっと）
+//  中継は公開のMQTTブローカー（EMQX・HiveMQの2か所へ同時に接続して片方が止まっても続ける）。中身は合言葉から作った鍵で暗号化（AES-GCM）し、
+//  合言葉を知らない人には読めない。部屋（トピック）の名前も合言葉から作る。合言葉・表示名は端末内だけに保存
+const FEST_SH_BROKERS=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt'];
+const FEST_SH_STALE=60000, FEST_SH_GONE=15*60000;   // 1分更新なし＝灰色、15分＝消す
+const FEST_SH_COLS=['#e8590c','#2b8a3e','#c2255c','#1864ab','#5f3dc4','#0b7285','#a61e4d','#5c940d'];
+let festSh={cfg:null,key:null,room:null,dev:null,ss:null,mq:[],peers:{},lastPub:0,lastFix:null,on:false,tick:null,wake:null,pend:null};
+function FestMq(url,o){this.url=url;this.o=o;this.ws=null;this.buf=new Uint8Array(0);this.up=false;this.closed=false;this.wait=2000;this.rt=null;this.pt=null;}
+(function(){   // 最小限のMQTT 3.1.1（WebSocket・QoS0）
+  const te=new TextEncoder(),td=new TextDecoder();
+  const S=s=>{const b=te.encode(s);return [b.length>>8,b.length&255,...b];},B=b=>[b.length>>8,b.length&255,...b];
+  const PK=(t,body)=>{const o=[t];let n=body.length;do{let d=n%128;n=Math.floor(n/128);if(n>0)d|=128;o.push(d);}while(n>0);const a=new Uint8Array(o.length+body.length);a.set(o);a.set(body,o.length);return a;};
+  const P=FestMq.prototype;
+  P.open=function(){
+    if(this.closed)return;let ws;try{ws=new WebSocket(this.url,['mqtt']);}catch(e){this.retry();return;}
+    this.ws=ws;ws.binaryType='arraybuffer';this.buf=new Uint8Array(0);
+    ws.onopen=()=>{const w=this.o.will,cid='tabimap-'+festSh.dev+'-'+Math.random().toString(36).slice(2,8);
+      const body=[...S('MQTT'),4,0x02|(w?0x04:0),0,30,...S(cid)].concat(w?[...S(w.topic),...B(Array.from(w.payload))]:[]);
+      ws.send(PK(0x10,body));};
+    ws.onmessage=e=>this.feed(new Uint8Array(e.data));
+    ws.onerror=()=>{};
+    ws.onclose=()=>{if(this.ws!==ws)return;this.ws=null;const was=this.up;this.up=false;clearInterval(this.pt);this.pt=null;if(was&&this.o.onState)this.o.onState();this.retry();};
+  };
+  P.retry=function(){if(this.closed||this.rt)return;this.rt=setTimeout(()=>{this.rt=null;this.open();},this.wait);this.wait=Math.min(30000,this.wait*2);};
+  P.feed=function(a){
+    const b=new Uint8Array(this.buf.length+a.length);b.set(this.buf);b.set(a,this.buf.length);this.buf=b;
+    while(this.buf.length>=2){let i=1,m=1,len=0,d;do{if(i>=this.buf.length)return;d=this.buf[i++];len+=(d&127)*m;m*=128;}while(d&128);
+      if(this.buf.length<i+len)return;const ty=this.buf[0]>>4,fl=this.buf[0]&15,p=this.buf.slice(i,i+len);this.buf=this.buf.slice(i+len);
+      if(ty===2){if(p[1]!==0){try{this.ws.close();}catch(e){}return;}   // 接続を断られた
+        this.up=true;this.wait=2000;(this.o.subs||[]).forEach((f,k)=>this.ws.send(PK(0x82,[0,k+1,...S(f),0])));
+        clearInterval(this.pt);this.pt=setInterval(()=>{if(this.up&&this.ws)try{this.ws.send(new Uint8Array([0xC0,0]));}catch(e){}},20000);
+        if(this.o.onState)this.o.onState();}
+      else if(ty===3){const tl=(p[0]<<8)|p[1],q=(fl>>1)&3,off=2+tl+(q?2:0);if(this.o.onMsg)this.o.onMsg(td.decode(p.subarray(2,2+tl)),p.slice(off),!!(fl&1));}
+    }
+  };
+  P.pub=function(topic,payload,retain){if(!this.up||!this.ws)return false;try{this.ws.send(PK(0x30|(retain?1:0),[...S(topic),...payload]));return true;}catch(e){return false;}};
+  P.close=function(){this.closed=true;clearTimeout(this.rt);clearInterval(this.pt);const ws=this.ws;this.ws=null;this.up=false;
+    if(ws){try{if(ws.readyState===1)ws.send(new Uint8Array([0xE0,0]));ws.close();}catch(e){}}};
+})();
+function festShNorm(c){return String(c||'').normalize('NFKC').toLowerCase().replace(/[\s\-‐－ー_]/g,'');}
+function festShGenCode(){const A='abcdefghjkmnpqrstuvwxyz23456789',r=crypto.getRandomValues(new Uint8Array(12));let s='';r.forEach((v,i)=>{s+=A[v%A.length];if(i===3||i===7)s+='-';});return s;}
+function festShCfgLoad(){try{const c=JSON.parse(localStorage.getItem('tabi_share')||'null');if(c&&c.code&&c.name)return c;}catch(e){}return null;}
+function festShCfgSave(c){try{if(c)localStorage.setItem('tabi_share',JSON.stringify(c));else localStorage.removeItem('tabi_share');}catch(e){}}
+function festShDev(){let d='';try{d=localStorage.getItem('tabi_share_dev')||'';}catch(e){}
+  if(!/^[0-9a-f]{16}$/.test(d)){d=Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>b.toString(16).padStart(2,'0')).join('');try{localStorage.setItem('tabi_share_dev',d);}catch(e){}}return d;}
+async function festShKey(code){   // 合言葉 → 暗号鍵＋部屋の名前（PBKDF2で総当たりを遅くする）
+  const te=new TextEncoder(),base=await crypto.subtle.importKey('raw',te.encode(festShNorm(code)),'PBKDF2',false,['deriveBits']);
+  const bits=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:te.encode('tabimap-fest-share-v1'),iterations:150000,hash:'SHA-256'},base,384));
+  return {key:await crypto.subtle.importKey('raw',bits.slice(0,32),'AES-GCM',false,['encrypt','decrypt']),room:Array.from(bits.slice(32,48),b=>b.toString(16).padStart(2,'0')).join('')};
+}
+async function festShEnc(o){const iv=crypto.getRandomValues(new Uint8Array(12)),ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},festSh.key,new TextEncoder().encode(JSON.stringify(o))));
+  const out=new Uint8Array(12+ct.length);out.set(iv);out.set(ct,12);return out;}
+async function festShDec(b){if(!festSh.key||b.length<29)return null;try{return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(0,12)},festSh.key,b.slice(12))));}catch(e){return null;}}
+function festShTopic(){return 'tabimap/f1/'+festSh.room+'/'+festSh.dev;}
+function festShActive(){return !!(FEST&&festSh.cfg&&festSh.key);}
+function festShUp(){return festSh.mq.some(m=>m.up);}
+async function festShConnect(){   // 参加：受信を始める（送信は追跡中だけ）
+  const c=festSh.cfg;festShDisconnect();if(!c)return;
+  if(!window.crypto||!crypto.subtle){festShMsg('この端末・ブラウザは暗号化に対応していないため共有できません');return;}
+  festShMsg('接続の準備中…');
+  const k=await festShKey(c.code);if(festSh.cfg!==c)return;   // 準備中に設定が変わった
+  festSh.key=k.key;festSh.room=k.room;festSh.dev=festShDev();festSh.ss=Math.random().toString(36).slice(2,10);
+  const will=await festShEnc({v:1,id:festSh.dev,ss:festSh.ss,n:c.name,s:'lost',t:Date.now()});   // 通信が切れたら仲間に「途絶」を知らせる
+  festSh.mq=FEST_SH_BROKERS.map(u=>new FestMq(u,{will:{topic:festShTopic(),payload:will},subs:['tabimap/f1/'+festSh.room+'/+'],
+    onMsg:(t,p,r)=>{festShOnMsg(t,p,r);},onState:()=>{festShUi();if(festShUp()&&festSh.on)festShSendPos();}}));
+  festSh.mq.forEach(m=>m.open());
+  clearInterval(festSh.tick);festSh.tick=setInterval(()=>{festShRender();festShUi();if(festSh.on&&festSh.lastFix&&Date.now()-festSh.lastPub>=20000)festShSendPos();},5000);   // 止まっていても20秒ごとに送る
+  festShUi();
+}
+function festShDisconnect(){festSh.mq.forEach(m=>m.close());festSh.mq=[];clearInterval(festSh.tick);festSh.tick=null;festSh.key=null;festSh.on=false;
+  Object.keys(festSh.peers).forEach(festShDrop);festShUi();}
+async function festShPub(o,retain){if(!festSh.key)return;const p=await festShEnc(o),t=festShTopic();festSh.mq.forEach(m=>m.pub(t,p,retain));}
+function festShSendPos(){const f=festSh.lastFix;if(!f||!festSh.cfg)return;festSh.lastPub=Date.now();
+  festShPub(Object.assign({v:1,id:festSh.dev,ss:festSh.ss,n:festSh.cfg.name,s:'on',t:Date.now()},f),true);}   // 保持（後から参加した人にも最後の位置が届く）
+function festShOnFix(pos){   // 追跡の位置ごと：動いたら3秒ごと、止まっていても15秒ごと
+  if(!festShActive())return;
+  if(!festSh.on){festSh.on=true;festShWakeOn();festShUi();}
+  const c=pos.coords,f={la:+c.latitude.toFixed(6),ln:+c.longitude.toFixed(6),ac:Math.round(c.accuracy||0),
+    sp:(c.speed!=null&&isFinite(c.speed)&&c.speed>=0)?Math.round(c.speed*3.6):null,hd:(c.heading!=null&&isFinite(c.heading))?Math.round(c.heading):null};
+  const lf=festSh.lastFix,now=Date.now(),moved=!lf||distMeters({lat:lf.la,lng:lf.ln},{lat:f.la,lng:f.ln})>=4;festSh.lastFix=f;
+  if(now-festSh.lastPub<3000||(!moved&&now-festSh.lastPub<15000))return;
+  festShSendPos();
+}
+async function festShTrackStop(){   // 追跡を止めた：仲間の地図から自分を消す（保持していた位置も消す）
+  if(!festSh.on)return;festSh.on=false;festSh.lastFix=null;festShWakeOff();festShUi();
+  if(!festSh.key)return;await festShPub({v:1,id:festSh.dev,ss:festSh.ss,n:festSh.cfg?festSh.cfg.name:'',s:'off',t:Date.now()},false);
+  const t=festShTopic();festSh.mq.forEach(m=>m.pub(t,new Uint8Array(0),true));
+}
+async function festShOnMsg(topic,payload,retained){
+  if(!payload.length)return;const id=topic.slice(topic.lastIndexOf('/')+1);if(id===festSh.dev)return;
+  const o=await festShDec(payload);if(!o||o.id!==id||!isFinite(o.t))return;
+  const p=festSh.peers[id],now=Date.now();
+  if(o.s==='off'){if(p&&o.t>=p.t)festShDrop(id);festShRender();festShUi();return;}
+  if(o.s==='lost'){if(p&&p.ss===o.ss&&!p.lost){p.lost=true;festShRender();festShUi();}return;}   // 同じ接続のときだけ（つなぎ直した後の古い知らせは無視）
+  if(o.s!=='on'||!isFinite(o.la)||!isFinite(o.ln))return;
+  if(p&&o.t<=p.t)return;   // 2か所の中継から同じものが届く→新しいものだけ
+  const rx=retained?now-Math.max(0,now-o.t):now;   // 保持の位置は送った時刻で古さを判断
+  if(now-rx>FEST_SH_GONE)return;
+  festSh.peers[id]=Object.assign(p||{},{n:String(o.n||'仲間').slice(0,16),la:o.la,ln:o.ln,ac:o.ac,sp:o.sp,hd:o.hd,t:o.t,ss:o.ss,rx,lost:false});
+  festShRender();festShUi();
+}
+function festShCol(id){let h=0;for(let i=0;i<id.length;i++)h=(h*31+id.charCodeAt(i))>>>0;return FEST_SH_COLS[h%FEST_SH_COLS.length];}
+function festShAgo(ms){const s=Math.round(ms/1000);return s<60?s+'秒前':(s<3600?Math.floor(s/60)+'分前':Math.floor(s/3600)+'時間前');}
+function festShSvg(col,rot){   // 丸に車両（トラック）の形、進行方向の三角
+  return '<svg xmlns="http://www.w3.org/2000/svg" width="30" height="30" viewBox="0 0 30 30">'
+    +(rot!=null?'<g transform="rotate('+Math.round(rot)+' 15 15)"><path d="M15 .6 19.6 5.6H10.4z" fill="'+col+'" stroke="#ffffff" stroke-width="1.2" stroke-linejoin="round"/></g>':'')
+    +'<circle cx="15" cy="15" r="10" fill="'+col+'" stroke="#ffffff" stroke-width="2.4"/>'
+    +'<path d="M8.6 11.2h7.6v6.6H8.6zM16.2 13.2h3.1l2.1 2.4v2.2h-5.2z" fill="#ffffff"/><circle cx="11.2" cy="18.6" r="1.7" fill="#ffffff" stroke="'+col+'" stroke-width=".9"/><circle cx="18.8" cy="18.6" r="1.7" fill="#ffffff" stroke="'+col+'" stroke-width=".9"/></svg>';
+}
+function festShDrop(id){const p=festSh.peers[id];if(!p)return;if(p.gm)p.gm.setMap(null);festPinDel('peer_'+id);if(p.m3)try{p.m3.remove();}catch(e){}delete festSh.peers[id];}
+function festShRender(){
+  const now=Date.now(),mode=(festBase==='p3d'&&fest3d)?'p3d':(festPinsActive()?'pin':'gm');
+  const mh=mode==='p3d'?(+fest3d.heading||0):((map&&map.getHeading)?(+map.getHeading()||0):0);
+  Object.keys(festSh.peers).forEach(id=>{
+    const p=festSh.peers[id],age=now-p.rx;if(age>FEST_SH_GONE){festShDrop(id);return;}
+    const stale=p.lost||age>FEST_SH_STALE,col=stale?'#868e96':festShCol(id);
+    const rot=(!stale&&p.hd!=null&&(p.sp==null||p.sp>=3))?((p.hd-mh+720)%360):null;   // 進行方向（地図の回転ぶんを差し引く）
+    const svg=festShSvg(col,rot),lbl=p.n+(stale?'（'+(p.lost&&age<FEST_SH_STALE?'途絶':festShAgo(age))+'）':'');
+    if(mode==='gm'){
+      if(!p.gm){p.gm=new google.maps.Marker({map,zIndex:90,clickable:true,title:''});p.gm.addListener('click',()=>festShInfo(id));p.gk=null;}
+      p.gm.setPosition({lat:p.la,lng:p.ln});const k=svg+lbl;
+      if(p.gk!==k){p.gk=k;p.gm.setOptions({title:lbl,icon:{url:'data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(svg),scaledSize:new google.maps.Size(30,30),anchor:new google.maps.Point(15,15),labelOrigin:new google.maps.Point(15,37)},
+        label:{text:lbl,className:'fest-peer-lbl',color:'#1c1f24',fontSize:'11px',fontWeight:'800'}});}
+      if(p.gm.getMap()!==map)p.gm.setMap(map);
+    }else if(p.gm){p.gm.setMap(null);p.gm=null;}
+    if(mode==='pin'){
+      if(!p.el){p.el=document.createElement('div');p.el.className='fest-peer';p.el.onclick=ev=>{ev.stopPropagation();festShInfo(id);};p.ek=null;}
+      const k=svg+lbl;if(p.ek!==k){p.ek=k;p.el.innerHTML=svg+'<b>'+escapeHtml(lbl)+'</b>';p.el.title=lbl;}
+      festPinSet('peer_'+id,p.la,p.ln,p.el,null,15);
+    }else if(p.el){festPinDel('peer_'+id);p.el=null;}
+    if(mode==='p3d'){
+      try{const M3=google.maps.maps3d&&google.maps.maps3d.Marker3DElement;
+        if(M3&&(!p.m3||p.m3h!==fest3d)){if(p.m3)p.m3.remove();
+          p.m3=new M3({position:{lat:p.la,lng:p.ln,altitude:4},altitudeMode:'RELATIVE_TO_GROUND',label:lbl,sizePreserved:true,drawsWhenOccluded:true,collisionBehavior:'REQUIRED',zIndex:20000});
+          const t=document.createElement('template');t.innerHTML=festShSvg(col,null);p.m3.append(t);fest3d.append(p.m3);p.m3h=fest3d;p.mk=col;}
+        else if(p.m3){p.m3.position={lat:p.la,lng:p.ln,altitude:4};p.m3.label=lbl;
+          if(p.mk!==col){p.mk=col;p.m3.innerHTML='';const t=document.createElement('template');t.innerHTML=festShSvg(col,null);p.m3.append(t);}}}catch(e){console.warn('share p3d',e);}
+    }else if(p.m3){try{p.m3.remove();}catch(e){}p.m3=null;}
+  });
+}
+function festShInfo(id){
+  const p=festSh.peers[id];if(!p)return;const age=Date.now()-p.rx,stale=p.lost||age>FEST_SH_STALE;
+  festCardShow(festCard({title:p.n,kind:'位置の共有（仲間）',dot:stale?'#868e96':festShCol(id),
+    stats:[[age<5000?'いま':festShAgo(age),'更新'],[p.sp!=null?String(p.sp):'—','km/h'],[p.ac?'±'+p.ac:'—','精度 m']],
+    notes:stale?[['warn',p.lost?'通信途絶':'更新なし',(p.lost?'仲間の通信が切れました。':'')+'最後に届いた位置を灰色で表示しています（15分で消えます）']]:[],
+    extra:routeActionsHtml(p.la,p.ln,p.n)}));
+}
+function festShMsg(t){const e=document.getElementById('festShMsg');if(e)e.textContent=t||'';}
+function festShUi(){
+  const ids=Object.keys(festSh.peers),now=Date.now(),live=ids.filter(id=>{const p=festSh.peers[id];return !p.lost&&now-p.rx<=FEST_SH_STALE;}).length;
+  const sm=document.querySelector('#tmFestShare .tm-lab small');
+  if(sm)sm.textContent=!festSh.cfg?'追跡中の位置を仲間（トラックなど）とリアルタイムで共有・地図に表示'
+    :(festSh.cfg.name+'として参加中・仲間'+live+'台'+(festSh.on?'・自分の位置を送信中':'（追跡ボタンで送信）'));
+  const fab=document.getElementById('trackFab');
+  if(fab){let b=fab.querySelector('.sh-n');if(festShActive()&&ids.length){if(!b){b=document.createElement('span');b.className='sh-n';fab.appendChild(b);}b.textContent=String(ids.length);b.classList.toggle('stale',!live);}else if(b)b.remove();}
+  try{liveFabUi();}catch(e){}
+  const ov=document.getElementById('festShareOverlay');if(!ov||!ov.classList.contains('open'))return;
+  if(festSh.cfg&&festSh.key&&!festSh.pend)festShMsg(festShUp()?('接続中・仲間'+live+'台'+(festSh.on?'・自分の位置を送信中':'（自分の位置は「追跡」を押すと送ります）')):'中継サーバーへ接続しています…');
+  const box=document.getElementById('festShList');if(!box)return;
+  box.innerHTML=ids.length?ids.map(id=>{const p=festSh.peers[id],age=now-p.rx,stale=p.lost||age>FEST_SH_STALE;
+    return '<button type="button" class="fest-sh-row" data-id="'+id+'"><i style="background:'+(stale?'#868e96':festShCol(id))+'"></i><b>'+escapeHtml(p.n)+'</b><span>'+(p.lost?'通信途絶':(age<5000?'いま':festShAgo(age)))+(p.sp!=null&&!stale?'・'+p.sp+'km/h':'')+'</span></button>';}).join('')
+    :(festSh.cfg?'<div class="fest-sh-empty">仲間の位置はまだ届いていません（仲間が「追跡」を押すと表示されます）</div>':'');
+  box.querySelectorAll('.fest-sh-row').forEach(b=>b.onclick=()=>{const p=festSh.peers[b.dataset.id];if(!p)return;ov.classList.remove('open');
+    if(festBase==='p3d'&&fest3d){try{fest3d.flyCameraTo({endCamera:{center:{lat:p.la,lng:p.ln,altitude:0},range:Math.min(fest3d.range||600,600),tilt:fest3d.tilt,heading:fest3d.heading},durationMillis:900});}catch(e){}}
+    else map.panTo({lat:p.la,lng:p.ln});festShInfo(b.dataset.id);});
+}
+async function festShWakeOn(){try{if(!festSh.wake&&'wakeLock' in navigator&&document.visibilityState==='visible'){festSh.wake=await navigator.wakeLock.request('screen');festSh.wake.addEventListener('release',()=>{festSh.wake=null;});}}catch(e){}}
+function festShWakeOff(){try{if(festSh.wake)festSh.wake.release();}catch(e){}festSh.wake=null;}
+function festShOpen(prefill){
+  const ov=document.getElementById('festShareOverlay');if(!ov)return;const c=festSh.cfg||{};
+  festSh.pend=(prefill&&(!festSh.cfg||festShNorm(prefill)!==festShNorm(c.code)))?prefill:null;   // 招待リンクの合言葉がまだ未参加
+  document.getElementById('festShName').value=c.name||'';document.getElementById('festShCode').value=prefill||c.code||'';
+  festShMsg(festSh.pend?(festSh.cfg?'招待リンクの合言葉は、いま参加中のものと違います。切り替えるなら「この設定で参加」を押してください':'招待リンクから開きました。表示名を入れて「参加」を押してください'):(festSh.cfg?'':'未参加'));
+  ov.classList.add('open');festShUi();if(prefill)setTimeout(()=>{try{document.getElementById('festShName').focus();}catch(e){}},50);
+}
+function festShInit(){
+  if(!FEST)return;
+  const ov=document.getElementById('festShareOverlay');if(!ov)return;
+  document.getElementById('festShClose').onclick=()=>{ov.classList.remove('open');festSh.pend=null;};
+  ov.addEventListener('click',e=>{if(e.target===ov){ov.classList.remove('open');festSh.pend=null;}});
+  document.getElementById('festShGen').onclick=()=>{document.getElementById('festShCode').value=festShGenCode();festShMsg('合言葉を作りました。「参加」を押した後、「招待リンクを送る」で仲間に伝えてください');};
+  document.getElementById('festShJoin').onclick=async()=>{
+    const name=document.getElementById('festShName').value.trim().slice(0,12),code=document.getElementById('festShCode').value.trim();
+    if(!name){festShMsg('表示名を入れてください（例：1号車）');return;}
+    if(festShNorm(code).length<8){festShMsg('合言葉は8文字以上にしてください（「作る」で自動作成できます）');return;}
+    if(festSh.on)await festShTrackStop();   // 送信中に切り替える：前の合言葉の仲間からは消える
+    festSh.pend=null;festSh.cfg={name,code};festShCfgSave(festSh.cfg);festShConnect().then(()=>{if(liveWatchId!=null&&!festSh.on)festShMsg('参加しました。追跡中のため、次の位置から送信します');});
+  };
+  document.getElementById('festShLeave').onclick=async()=>{if(!festSh.cfg){festShMsg('参加していません');return;}
+    if(!confirm('位置の共有をやめます（自分の位置の送信をやめ、仲間の位置も表示しなくなります）。よろしいですか？'))return;
+    await festShTrackStop();setTimeout(()=>festShDisconnect(),400);festSh.cfg=null;festShCfgSave(null);festShMsg('共有をやめました');festShUi();};
+  document.getElementById('festShLink').onclick=async()=>{
+    const c=festSh.cfg;if(!c){festShMsg('先に「参加」してください');return;}
+    const url=location.origin+location.pathname+'?m=senshu#share='+encodeURIComponent(c.code);
+    try{if(navigator.share){await navigator.share({title:'本祭支援ツール 位置の共有',text:'位置の共有に参加してください（表示名を入れて「参加」）',url});return;}}catch(e){if(e&&e.name==='AbortError')return;}
+    try{await navigator.clipboard.writeText(url);festShMsg('招待リンクをコピーしました（LINEなどで仲間だけに送ってください）');}catch(e){prompt('招待リンク（仲間だけに送ってください）',url);}
+  };
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(festSh.on)festShWakeOn();festSh.mq.forEach(m=>{if(!m.ws&&!m.closed){clearTimeout(m.rt);m.rt=null;m.wait=2000;m.open();}});}});
+  try{map.addListener('heading_changed',()=>{if(Object.keys(festSh.peers).length)festShRender();});}catch(e){}
+  festSh.cfg=festShCfgLoad();if(festSh.cfg)festShConnect();
+  const m=/^#share=([^&]+)/.exec(location.hash||'');
+  if(m){let code='';try{code=decodeURIComponent(m[1]);}catch(e){}try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}   // 合言葉をアドレス欄に残さない
+    if(code)festShOpen(code);}
+  festShUi();
 }
 function addPoiMarker(lat,lng,cat,tags){
   const c=CATS[cat]||{emoji:''},color=catColor(cat);
@@ -2029,7 +2260,8 @@ document.getElementById('isoClearFab').onclick=clearIso;
 
 // ===== ルート =====
 const routeSheet=document.getElementById('routeSheet');
-function addPoint(lat,lng,label){touchDepTime();points.push({lat:+lat.toFixed(6),lng:+lng.toFixed(6),label:label||null,stay:0});renderPoints();if(points.length>=2)computeRoute();else map.panTo({lat,lng});}
+function lonePending(){return points.length===1&&points[0].role==='dest';}   // 目的地だけが決まっている（出発地は未設定）
+function addPoint(lat,lng,label){touchDepTime();const np={lat:+lat.toFixed(6),lng:+lng.toFixed(6),label:label||null,stay:0};if(lonePending())points.unshift(np);else points.push(np);renderPoints();if(points.length>=2)computeRoute();else map.panTo({lat,lng});}
 // 地図ダブルタップからの追加：逆ジオコーディングで陸地判定（海上・領域外はピンを立てさせない）
 let _geocoder=null;
 function addPointMap(lat,lng){
@@ -2048,7 +2280,7 @@ function samePlace(a,b){return a&&b&&Math.abs(a.lat-b.lat)<3e-4&&Math.abs(a.lng-
 function computePointRoles(){
   const n=points.length,roles=[];let via=0,dest=0;
   for(let i=0;i<n;i++){
-    if(i===0){roles.push('出発');continue;}
+    if(i===0){roles.push(n===1&&points[0].role==='dest'?'目的地1':'出発');continue;}   // 目的地だけを先に決めたときは「出発」と表示しない
     if(i===n-1&&n>2&&samePlace(points[i],points[0])){roles.push('帰宅');continue;}
     const r=points[i].role;
     if(r==='via'){via++;roles.push('経由地'+via);}
@@ -2064,7 +2296,7 @@ function renderPoints(){
   clearArr(routeMarkers);updateSegExport();renderFavs();
   const roles=computePointRoles();
   const list=document.getElementById('ptList');
-  if(points.length===0){list.innerHTML='<div class="pt-empty">地点未設定 — 検索・地図ダブルタップ・現在地で追加</div>';return;}
+  if(points.length===0){list.innerHTML='<div class="pt-empty">地点未設定 — 検索・地図ダブルタップ・現在地で追加</div>';persistState();return;}   // 0件も保存する（消したピンが再読込・次回起動で復活しないように）
   list.innerHTML='';
   points.forEach((p,i)=>{
     const isLast=(i===points.length-1&&points.length>1);
@@ -2079,7 +2311,7 @@ function renderPoints(){
     row.innerHTML=`<span class="pt-badge" style="background:${color}">${badge}</span><span class="pt-label">${escapeHtml(p.label||(p.lat+', '+p.lng))}</span>${isMid?`<button class="pt-role" data-i="${i}" title="経由地⇄目的地を切替" style="border:1px solid ${color};color:${color};background:none;border-radius:999px;font-size:10.5px;font-weight:800;padding:2px 8px;cursor:pointer;flex:none;">${isDest?'目的':'経由'}</button>`:''}${isMid?`<span class="pt-stay">滞在<input type="number" min="0" max="600" class="pt-stay-in" data-i="${i}" value="${p.stay||0}">分</span>`:''}<button class="pt-mv" data-i="${i}" data-d="-1" ${i===0?'disabled':''}>▲</button><button class="pt-mv" data-i="${i}" data-d="1" ${i===points.length-1?'disabled':''}>▼</button><button class="pt-del" data-i="${i}">✕</button>`;
     list.appendChild(row);
   });
-  list.querySelectorAll('.pt-del').forEach(b=>b.onclick=()=>{points.splice(+b.dataset.i,1);renderPoints();computeRoute();});
+  list.querySelectorAll('.pt-del').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;points.splice(i,1);if(i===0&&points.length===1)points[0].role='dest';renderPoints();computeRoute();});   // 出発地を消して1件だけ残ったら目的地
   list.querySelectorAll('.pt-role').forEach(b=>b.onclick=()=>{const i=+b.dataset.i;if(!points[i])return;const cur=computePointRoles()[i];points[i].role=(cur.indexOf('目的')===0)?'via':'dest';renderPoints();renderItinerary();updateCost();persistState();});
   list.querySelectorAll('.pt-mv').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,dr=+b.dataset.d,j=i+dr;if(j<0||j>=points.length)return;const t=points[i];points[i]=points[j];points[j]=t;renderPoints();computeRoute();});
   list.querySelectorAll('.pt-stay-in').forEach(inp=>inp.onchange=()=>{const i=+inp.dataset.i;if(points[i]){points[i].stay=Math.max(0,Math.min(600,parseInt(inp.value)||0));points[i].depOv=null;renderItinerary();updateCost();persistState();}});
@@ -2094,7 +2326,7 @@ function openRoutePointPopup(i,m){
   const html=`<div class="popup"><h3>${escapeHtml(nm)}</h3><div class="meta"><span style="display:inline-block;background:${color};color:#fff;font-weight:800;font-size:10px;border-radius:4px;padding:1px 6px;margin-right:4px;">${role}</span> ${p.lat.toFixed(4)}, ${p.lng.toFixed(4)}</div><div class="links">${circleIsoBtns(p.lat,p.lng,p.label||role)}<button class="pin-del-btn" onclick="window.delRoutePoint(${i})">この地点を削除</button></div></div>`;
   openInfo(m,html);
 }
-window.delRoutePoint=function(i){infoWindow.close();points.splice(i,1);renderPoints();if(points.length>=2)computeRoute();else{clearRouteLine();lastDistanceKm=lastDurationSec=null;document.getElementById('rsResult').classList.remove('show');document.getElementById('rsPeek').classList.remove('show');}};
+window.delRoutePoint=function(i){infoWindow.close();points.splice(i,1);if(i===0&&points.length===1)points[0].role='dest';renderPoints();if(points.length>=2)computeRoute();else{clearRouteLine();lastDistanceKm=lastDurationSec=null;document.getElementById('rsResult').classList.remove('show');document.getElementById('rsPeek').classList.remove('show');}};
 function clearRouteLine(){if(routeLine){routeLine.setMap(null);routeLine=null;}if(routeCasing){routeCasing.setMap(null);routeCasing=null;}clearArr(routeSegs);}
 function stepClass(s){const n=s.name||'',r=s.ref||'';if(/首都高/.test(n)||/\bC[12]\b/.test(r))return 'shutoko';if(/(高速道路|自動車道|有料道路|スカイライン)/.test(n)||/\bE\d/.test(r)||/\bC\d/.test(r))return 'nexco';return null;}
 async function routeOSRM(pts){const path=pts.map(p=>`${p.lng},${p.lat}`).join(';');const d=await (await fetch(`https://router.project-osrm.org/route/v1/driving/${path}?overview=full&geometries=geojson&steps=true`)).json();if(d.code!=='Ok')throw new Error(d.message||'OSRM');const r=d.routes[0];let nexco=0,shu=0;const legs=[];(r.legs||[]).forEach(lg=>{let ln=0,ls=0;(lg.steps||[]).forEach(s=>{const c=stepClass(s);if(c==='nexco')ln+=s.distance;else if(c==='shutoko')ls+=s.distance;});nexco+=ln;shu+=ls;legs.push({km:lg.distance/1000,sec:lg.duration,nexcoKm:ln/1000,shutokoKm:ls/1000});});return{km:r.distance/1000,sec:r.duration,line:r.geometry.coordinates.map(c=>({lat:c[1],lng:c[0]})),nexcoKm:nexco/1000,shutokoKm:shu/1000,legs};}
@@ -4820,7 +5052,7 @@ window.delPin=function(id){infoWindow.close();removeSavedPin(id);showStatus('ピ
 function routeActionsHtml(lat,lng,name){const e=encodeURIComponent(name||'');return `<div class="route-act"><span class="ra-lab">このピンをルートに：</span><button onclick="window.routeUse(${lat},${lng},'${e}','start')">出発地</button><button onclick="window.routeUse(${lat},${lng},'${e}','via')">経由地</button><button onclick="window.routeUse(${lat},${lng},'${e}','end')">目的地</button></div>`;}
 // 距離円＋到達圏 ボタン（各ポップアップ共通。距離円はレイヤー名に施設名を使うので name を渡す）
 function circleIsoBtns(lat,lng,name){const e=encodeURIComponent(name||'');return `<button onclick="window.buffer(${lat},${lng},'${e}')">距離円</button><button onclick="window.isoAt(${lat},${lng})">到達圏</button>`;}
-window.routeUse=function(lat,lng,enc,role){if(activeTab!=='route')selectTab('route');routeSheet.classList.remove('collapsed');const p={lat:+(+lat).toFixed(6),lng:+(+lng).toFixed(6),label:enc?decodeURIComponent(enc):null,stay:0};if(role==='start')points.unshift(p);else if(role==='via'){if(points.length===0)points.push(p);else points.splice(points.length-1,0,p);}else points.push(p);infoWindow.close();removeTempPin();renderPoints();if(points.length>=2)computeRoute();else map.panTo({lat:p.lat,lng:p.lng});const rn={start:'出発地',via:'経由地',end:'目的地'}[role];showStatus((p.label||'地点')+' を'+rn+'に設定',false);hideStatusLater();};
+window.routeUse=function(lat,lng,enc,role){if(activeTab!=='route')selectTab('route');routeSheet.classList.remove('collapsed');const p={lat:+(+lat).toFixed(6),lng:+(+lng).toFixed(6),label:enc?decodeURIComponent(enc):null,stay:0};if(role==='start')points.unshift(p);else if(points.length===0){p.role='dest';points.push(p);}else if(role==='via')points.splice(points.length-1,0,p);else if(lonePending()){p.role='dest';points[0]=p;}else points.push(p);   /* 地点が無いときの経由地・目的地は「目的地」として置く（出発地のピンにしない）。目的地だけのときに目的地を選び直したら置き換え */infoWindow.close();removeTempPin();renderPoints();if(points.length>=2)computeRoute();else map.panTo({lat:p.lat,lng:p.lng});const rn=lonePending()?'目的地':(points.indexOf(p)===0?'出発地':{start:'出発地',via:'経由地',end:'目的地'}[role]);showStatus((p.label||'地点')+' を'+rn+'に設定'+(lonePending()?'（出発地は検索・地図ダブルタップ・現在地で追加）':''),false);hideStatusLater();};
 window.routeTo=function(lat,lng,enc){if(activeTab!=='route')selectTab('route');routeSheet.classList.remove('collapsed');addPoint(lat,lng,enc?decodeURIComponent(enc):null);infoWindow.close();};
 window.addFav2=function(enc,lat,lng){addFav(decodeURIComponent(enc),lat,lng);};
 function getFavs(){try{return JSON.parse(localStorage.getItem('tabi_favs')||'[]');}catch(e){return [];}}
@@ -4891,6 +5123,7 @@ document.getElementById('rsClear').onclick=()=>{if(points.length>=2&&!confirm('�
   wire('tmFestBldList',()=>festBldOpen());
   wire('tmFestWay',()=>festDrawWays(!festWayOn));
   wire('tmFestVehList',()=>festVehOpen());
+  wire('tmFestShare',()=>{toggleToolMenu(false);festShOpen();});
   wire('tmFestFac',()=>festDrawFac(!festFacOn));
   wire('tmFestWalk',()=>festWalkRoute(!festWalkOn));
   wire('tmFestOsm',()=>festOsmLoad(!festOsmOn));
@@ -4908,7 +5141,7 @@ document.getElementById('trackFab').onclick=()=>{
   const now=Date.now();if(now-trackTapAt<600)return;trackTapAt=now;              // 二重タップで即停止するのを防ぐ
   if(liveWatchId==null){startLiveLoc();}                                        // 追跡開始
   else if(!liveFollow){liveFollow=true;if(liveMarker)map.setCenter(liveMarker.getPosition());liveFabUi();showStatus('追従を再開しました',false);hideStatusLater();} // 追従再開
-  else{stopLiveLoc();showStatus('リアルタイム追跡を終了しました（青ドットは残ります）',false);hideStatusLater();}                     // 停止
+  else{const sh=festShActive();stopLiveLoc();showStatus(sh?'追跡と位置の共有（送信）を終了しました（仲間の位置は引き続き表示）':'リアルタイム追跡を終了しました（青ドットは残ります）',false);hideStatusLater();}                     // 停止
   try{taxiSync();}catch(e){console.warn('taxi',e);}
 };
 (function(){   // 試験用：ベクター地図のMap ID
@@ -5360,8 +5593,8 @@ const FEST_EMPH_DARK=[
   {featureType:'transit',stylers:[{visibility:'on'}]}
 ];
 function festMapIdGet(){try{return localStorage.getItem('tabi_fest_mapid')||'';}catch(e){return '';}}
-// 既定の画角：構内全体を斜め上から（ユーザー指定のアングル。画面幅に合わせてズームを調整）
-const FEST_CAM={center:{lat:35.6102,lng:139.5543},zoom:17.4,tilt:47};
+// 既定の画角：構内全体を斜め上から、少し引きで（ユーザー指定のアングル。画面幅に合わせてズームを調整）。向きは FEST_ROT_HEADING
+const FEST_CAM={center:{lat:35.6101,lng:139.5546},zoom:17.0,tilt:47};
 function festCamZoom(){const w=(map&&map.getDiv&&map.getDiv().clientWidth)||910;return Math.max(15.6,Math.min(18.2,FEST_CAM.zoom+Math.log2(w/910)));}
 function festFit(){
   if(fest3d){try{fest3d.flyCameraTo({endCamera:Object.assign({},FEST_P3D_CAM,{heading:festP3dHeading()}),durationMillis:1200});}catch(e){}return;}
@@ -5398,6 +5631,7 @@ function festSetBase(b){
   if(festCampusOn)festDrawCampus(true);        // 航空写真・白地図では配色を変える（3Dの立体化もここで連動）
   else festB3dSync();
   if(festWayOn)festDrawWays(true,true);        // 3D（高低差あり）⇔ それ以外で動線・印の描き方が変わる
+  try{festShRender();}catch(e){}               // 位置の共有：仲間の印
 }
 // --- キャンパス外周・建物・駅
 function festDrawCampus(on){
@@ -5414,7 +5648,7 @@ function festDrawCampus(on){
     strokeColor:'#7048e8',strokeOpacity:tilt3d?.7:.95,strokeWeight:tilt3d?2:2.6,fillColor:'#7048e8',fillOpacity:tilt3d?0:(sat?.03:.05),map,clickable:false,zIndex:3}));
   const cadSm=!!(window.CAD&&CAD.isOn());   // 指令αのときは駐車場・避難場所の印を小さく
   FEST_PARK.forEach(k=>{   // 駐車場（キャンパス詳細の一部）
-    if(!terr){const pg=new google.maps.Polygon({paths:k.p.map(p=>({lat:p[0],lng:p[1]})),strokeColor:'#1971c2',strokeOpacity:.9,strokeWeight:1.5,fillColor:'#4dabf7',fillOpacity:.22,map,clickable:true,zIndex:3});
+    if(!terr){const pg=new google.maps.Polygon({paths:k.p.map(p=>({lat:p[0],lng:p[1]})),strokeColor:k.fee?'#e67700':'#1971c2',strokeOpacity:.9,strokeWeight:1.5,fillColor:k.fee?'#ffd43b':'#4dabf7',fillOpacity:k.fee?.38:.22,map,clickable:true,zIndex:3});   // 有料は黄色
       pg.addListener('click',e=>festVehInfo(k,e.latLng));festShapes.push(pg);festVehObj[k.id]=pg;}
     festShapes.push(festMk('pk_'+k.id,k.c[0],k.c[1],'<div class="fp-p">P</div>',k.n,()=>festVehInfo(k,null),
       {clickable:true,zIndex:6,icon:{url:FEST_P_ICON,scaledSize:new google.maps.Size(cadSm?13:18,cadSm?13:18),anchor:new google.maps.Point(cadSm?6.5:9,cadSm?6.5:9)}}));
@@ -5475,7 +5709,7 @@ function festLabelZoom(){   // ズームの段（整数）が変わったとき�
   if(festBase==='white')festShiroStyle();
 }
 // --- 実写3D（Googleのフォトリアル3D＝Google Earth風）。2Dの地図の上に3D地図要素を重ねて表示する
-const FEST_P3D_CAM={center:{lat:35.6103,lng:139.5552,altitude:60},range:950,tilt:62,heading:330};
+const FEST_P3D_CAM={center:{lat:35.6103,lng:139.5552,altitude:60},range:1200,tilt:62,heading:330};
 let fest3d=null, fest3dBox=null, fest3dLoading=false;
 async function festP3dOpen(){
   if(fest3d||fest3dLoading)return;
@@ -5515,6 +5749,7 @@ async function festP3dOpen(){
     if(festFacOn)FEST_FAC.forEach(f=>mk(f.c[0],f.c[1],(f.n||FEST_FAC_JP[f.k]||f.k),6,4,1,'#0ca678',false));
     festP3dTier();
     let rq=0;fest3d.addEventListener('gmp-rangechange',()=>{if(rq)return;rq=requestAnimationFrame(()=>{rq=0;festP3dTier();});});
+    try{festShRender();}catch(e){}   // 位置の共有：仲間の印を実写3Dにも
     statusEl.classList.remove('show');
     showStatus('実写3D：ドラッグで移動／右ドラッグ・2本指で回転と傾き。「対象エリアへ戻る」で初期位置へ',false);hideStatusLater();
   }catch(e){
@@ -5565,9 +5800,10 @@ function festWhiteOff(){
   if(festWhiteCover)festWhiteCover.setMap(null);
   festShiroShow(false);
 }
-// --- 地図の向き：「遊園側を手前」＝向ヶ丘遊園駅から歩いて来る人が見慣れた向き（南が上・北が下。大学の配置図と同じ）
+// --- 地図の向き：「遊園側を手前」＝向ヶ丘遊園駅から歩いて来る人が見慣れた向き（ほぼ南が上・北が下。大学の配置図と同じ）
+//     構内を通る道路（V09・正門前〜図書館前の直線部分は方位約197°）が画面の奥へまっすぐ伸びるよう、真南から17°回す
 //     回転はベクター地図（Map ID）のときだけ。建物名などの文字は回転しても正立のまま
-const FEST_ROT_HEADING=180;
+const FEST_ROT_HEADING=197;
 let festRotOn=false, festWhiteVec=false, festWhiteCover=null;
 function festRotLoad(){try{const v=localStorage.getItem('fest_rot');festRotOn=(v===null)?true:(v==='1');}catch(e){festRotOn=true;}}   // 未設定なら遊園側（既定の向き）
 function festRotUi(){const b=document.getElementById('festRotBtn');if(!b)return;b.classList.toggle('on',festRotOn);b.setAttribute('aria-pressed',festRotOn?'true':'false');}
@@ -5579,7 +5815,7 @@ function festRotToggle(){
   festRotUi();
   if(festBase==='white'&&!festRotOn&&festWhiteVec)map.setMapTypeId('fest_white');
   festApplyHeading();
-  showStatus(festRotOn?'向ヶ丘遊園側を手前に表示しました（南が上・大学の配置図と同じ向き）':'北が上の向きに戻しました',false);hideStatusLater();
+  showStatus(festRotOn?'向ヶ丘遊園側を手前に表示しました（ほぼ南が上・構内を通る道路が正面にまっすぐ伸びる向き）':'北が上の向きに戻しました',false);hideStatusLater();
 }
 function festApplyHeading(){
   if(!map)return;
@@ -5841,6 +6077,7 @@ function festTerrainChanged(){   // 地形の有無で、外周・動線・印�
     if(festCampusOn)festDrawCampus(true);if(festWayOn)festDrawWays(true,true);
     try{renderToolMenu();}catch(e){}
     try{window.dispatchEvent(new Event('festterrain'));}catch(e){}
+    try{festShRender();}catch(e){}   // 位置の共有：仲間の印も描き方を切り替える
   }finally{festTerrBusy=false;}
 }
 // 地形に沿った印（DOM）：地図の点を3Dの高さ付きで画面に投影して置く（地形ONの間、Googleの印の代わりに使う）
@@ -5983,8 +6220,8 @@ function festB3dGeom(dark){
   FEST_STN3D.forEach(st=>st.parts.forEach(([h,LL])=>one(festRing(LL.map(q=>festB3dXY(q[0],q[1]))),h,kst,0,ground(LL))));   // 一般の建物は高さ2/3（構内・名前つきの施設を引き立てる）
   let tc=null;
   if(terr){const sig=[dark,festCampusOn,festWayOn,JSON.stringify(festWayL),!!festTerrRd].join('|');
-    if(!festTerrCache||festTerrCache.sig!==sig){const TT=[],TD=[],TL=[],TC=[],TR=[];const nRc=festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR);
-      festTerrCache={sig,TT:new Float32Array(TT),TD:new Float32Array(TD),TL:new Float32Array(TL),TC:new Float32Array(TC),TR:new Float32Array(TR),nR:nRc};}
+    if(!festTerrCache||festTerrCache.sig!==sig){const TT=[],TD=[],TL=[],TC=[],TR=[],TB=[];const nRc=festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR,TB);
+      festTerrCache={sig,TT:new Float32Array(TT),TD:new Float32Array(TD),TL:new Float32Array(TL),TC:new Float32Array(TC),TR:new Float32Array(TR),TB:new Float32Array(TB),nR:nRc};}
     tc=festTerrCache;}
   return {T:new Float32Array(T),L:new Float32Array(L),terr:tc};
 }
@@ -6034,7 +6271,7 @@ function festRailGeom(add,T,L,C,dark,terr,one){
     const g=terr?festTerrainZ(ll[0],ll[1]):0,h=pl.l>=2?8:0;
     one(P,1.6,col.pf,0,{z0:g+h-0.2,zm:g+h-0.2});});
 }
-function festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR){
+function festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR,TB){
   const D=festDem,nx=D.nx,ny=D.ny,H=D.h,sc=D.scale,base=D.base,Zd=festTerrZd,cls=festTerrCls;
   let mn=1e9,mx=-1e9;for(let k=0;k<H.length;k++){const v=H[k]*sc;if(v<mn)mn=v;if(v>mx)mx=v;}
   const X=new Float64Array(nx),Y=new Float64Array(ny);
@@ -6107,15 +6344,18 @@ function festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR){
     const x=[],y=[],z0=[],ins=d.map(q=>inBox(q[0],q[1]));d.forEach((q,k)=>{const xy=festB3dXY(q[0],q[1]);x.push(xy[0]);y.push(xy[1]);if(!closed&&inTun(xy[0],xy[1]))ins[k]=false;});
     for(let k=0;k<n;k++){const a=Math.max(0,k-1),b=Math.min(n-1,k+1);let tx=x[b]-x[a],ty=y[b]-y[a];const l=Math.hypot(tx,ty)||1;tx/=l;ty/=l;const h=wd/2;
       z0.push(Math.max(SZ(x[k],y[k]),SZ(x[k]-ty*h,y[k]+tx*h),SZ(x[k]+ty*h,y[k]-tx*h)));}   // 帯の中心と両端で、地面・路面の一番高い所
+    if(closed){   // 大学の境界線：高さを前後約16mでならす（G倉庫の付近などで上下に波打たないように）。地面より少し低くなる所は、描くときに手前へ寄せて隠れないようにする
+      const m=n-1,at=(A,i)=>A[((i%m)+m)%m],avg=A=>A.map((_,i)=>{let t=0;for(let q=i-4;q<=i+4;q++)t+=at(A,q);return t/9;});
+      const zs=avg(avg(z0.slice(0,m))).map(v=>v+dz);zs.push(zs[0]);festStrip(add,TB,x,y,zs,ins,wd/2,c,false);return;}
     const z=z0.map((_,k)=>{let t=0,c2=0;for(let q=Math.max(0,k-2);q<=Math.min(n-1,k+2);q++){t+=z0[q];c2++;}return Math.max(z0[k],t/c2)+dz;});   // 高さをならす（地面・路面にもぐらない）
     festStrip(add,TD,x,y,z,ins,wd/2,c,!closed);};
   // キャンパス詳細：外周・駐車場
   if(festCampusOn){
     ribbon(FEST_CAMPUS.concat([FEST_CAMPUS[0]]),1.6,C('#7048e8'),.4,true);
-    const pc=C(dark?'#1c4f80':'#74c0fc'),po=C(dark?'#74c0fc':'#1971c2');
+    const pc=C(dark?'#1c4f80':'#74c0fc'),po=C(dark?'#74c0fc':'#1971c2'),fc=C(dark?'#7a5c00':'#ffe066'),fo=C(dark?'#ffd43b':'#e67700');   // 有料は黄色
     FEST_PARK.forEach(k=>{   // 多角形どおりに切り抜いて地面の起伏どおりに敷く＋縁取り
-      festFillPoly(add,TD,k.p,pc,.2,(la,ln,x,y)=>SZ(x,y));
-      lineDrape(k.p.concat([k.p[0]]),po,.35);});
+      festFillPoly(add,TD,k.p,k.fee?fc:pc,.2,(la,ln,x,y)=>SZ(x,y));
+      lineDrape(k.p.concat([k.p[0]]),k.fee?fo:po,.35);});
   }
   // 構内の動線（レイヤーで選んだ要素だけ）
   if(festWayOn){
@@ -6126,25 +6366,29 @@ function festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR){
   }
   return nR;
 }
+const FEST_LINE_LIFT=6;   // 境界線を視線に沿って手前へ寄せる量（m）。画面上の位置は変えず、奥行きだけ
+function festEyeOf(M){   // 変換行列（列優先）の射影中心＝カメラの位置（M⁻¹·(0,0,1,0)）
+  const I=festInv4(M);if(!I||!I[11]||!isFinite(I[11]))return null;return [I[8]/I[11],I[9]/I[11],I[10]/I[11]];
+}
 function festB3dMake(){
   const ov=new google.maps.WebGLOverlayView();
-  let gl0=null,prog=null,bT=null,bL=null,bTT=null,bTD=null,bTL=null,bTC=null,bTR=null,nT=0,nL=0,nTT=0,nTD=0,nTL=0,nTC=0,nTR=0,nRc=0,upT=null,lP=-1,lC=-1,lM=null,vao=null,vx=null,g2=false;
+  let gl0=null,prog=null,bT=null,bL=null,bTT=null,bTD=null,bTL=null,bTC=null,bTR=null,bTB=null,nT=0,nL=0,nTT=0,nTD=0,nTL=0,nTC=0,nTR=0,nTB=0,nRc=0,upT=null,lP=-1,lC=-1,lM=null,lE=null,vao=null,vx=null,g2=false;
   ov.onAdd=()=>{};
   ov.onContextRestored=({gl})=>{
     gl0=gl;g2=(typeof WebGL2RenderingContext!=='undefined'&&gl instanceof WebGL2RenderingContext);
     const sh=(t,src)=>{const o=gl.createShader(t);gl.shaderSource(o,src);gl.compileShader(o);
       if(!gl.getShaderParameter(o,gl.COMPILE_STATUS))throw new Error(gl.getShaderInfoLog(o));return o;};
     prog=gl.createProgram();
-    gl.attachShader(prog,sh(gl.VERTEX_SHADER,'attribute vec3 aP;attribute vec3 aC;uniform mat4 uM;varying vec3 vC;void main(){vC=aC;gl_Position=uM*vec4(aP,1.0);}'));
+    gl.attachShader(prog,sh(gl.VERTEX_SHADER,'attribute vec3 aP;attribute vec3 aC;uniform mat4 uM;uniform vec4 uE;varying vec3 vC;void main(){vC=aC;vec3 p=aP;if(uE.w>0.0)p+=normalize(uE.xyz-aP)*uE.w;gl_Position=uM*vec4(p,1.0);}'));
     gl.attachShader(prog,sh(gl.FRAGMENT_SHADER,'precision mediump float;varying vec3 vC;void main(){gl_FragColor=vec4(vC,1.0);}'));
     gl.linkProgram(prog);
-    lP=gl.getAttribLocation(prog,'aP');lC=gl.getAttribLocation(prog,'aC');lM=gl.getUniformLocation(prog,'uM');
-    bT=gl.createBuffer();bL=gl.createBuffer();bTT=gl.createBuffer();bTD=gl.createBuffer();bTL=gl.createBuffer();bTC=gl.createBuffer();bTR=gl.createBuffer();upT=null;
+    lP=gl.getAttribLocation(prog,'aP');lC=gl.getAttribLocation(prog,'aC');lM=gl.getUniformLocation(prog,'uM');lE=gl.getUniformLocation(prog,'uE');
+    bT=gl.createBuffer();bL=gl.createBuffer();bTT=gl.createBuffer();bTD=gl.createBuffer();bTL=gl.createBuffer();bTC=gl.createBuffer();bTR=gl.createBuffer();bTB=gl.createBuffer();upT=null;
     vx=g2?null:gl.getExtension('OES_vertex_array_object');
     vao=g2?gl.createVertexArray():(vx?vx.createVertexArrayOES():null);
     festB3dDirty=true;
   };
-  ov.onContextLost=()=>{prog=bT=bL=bTT=bTD=bTL=bTC=bTR=vao=null;upT=null;};
+  ov.onContextLost=()=>{prog=bT=bL=bTT=bTD=bTL=bTC=bTR=bTB=vao=null;upT=null;};
   ov.onDraw=({gl,transformer})=>{
     if(!prog)return;
     const M=transformer.fromLatLngAltitude({lat:FEST_B3D_O.lat,lng:FEST_B3D_O.lng,altitude:0});
@@ -6158,12 +6402,12 @@ function festB3dMake(){
       nT=g.T.length/6;nL=g.L.length/6;festB3dDirty=false;
       const t=g.terr;
       if(t!==upT){upT=t;
-        if(t){[[bTT,t.TT],[bTD,t.TD],[bTL,t.TL],[bTC,t.TC],[bTR,t.TR]].forEach(([b,a])=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,a,gl.STATIC_DRAW);});
-          nTT=t.TT.length/6;nTD=t.TD.length/6;nTL=t.TL.length/6;nTC=t.TC.length/6;nTR=t.TR.length/6;nRc=t.nR;}
-        else{nTT=nTD=nTL=nTC=nTR=0;nRc=null;}}
+        if(t){[[bTT,t.TT],[bTD,t.TD],[bTL,t.TL],[bTC,t.TC],[bTR,t.TR],[bTB,t.TB]].forEach(([b,a])=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.bufferData(gl.ARRAY_BUFFER,a,gl.STATIC_DRAW);});
+          nTT=t.TT.length/6;nTD=t.TD.length/6;nTL=t.TL.length/6;nTC=t.TC.length/6;nTR=t.TR.length/6;nTB=t.TB.length/6;nRc=t.nR;}
+        else{nTT=nTD=nTL=nTC=nTR=nTB=0;nRc=null;}}
     }
     gl.useProgram(prog);
-    gl.uniformMatrix4fv(lM,false,new Float32Array(M));
+    gl.uniformMatrix4fv(lM,false,new Float32Array(M));gl.uniform4f(lE,0,0,0,0);
     gl.enable(gl.DEPTH_TEST);gl.depthFunc(gl.LEQUAL);gl.depthMask(true);gl.disable(gl.CULL_FACE);gl.disable(gl.BLEND);
     const attrs=b=>{gl.bindBuffer(gl.ARRAY_BUFFER,b);gl.enableVertexAttribArray(lP);gl.vertexAttribPointer(lP,3,gl.FLOAT,false,24,0);
       gl.enableVertexAttribArray(lC);gl.vertexAttribPointer(lC,3,gl.FLOAT,false,24,12);};
@@ -6176,6 +6420,7 @@ function festB3dMake(){
       if(nTR&&nRc){attrs(bTR);let a0=0;nRc.forEach((b,ix)=>{if(b>a0){gl.depthMask(ix>0);gl.polygonOffset(-1-ix,-2-ix*2);gl.drawArrays(gl.TRIANGLES,a0,b-a0);}a0=b;});gl.depthMask(true);}   // 縁取り→歩道→車道→主要→構内を通る道路の順に手前へ
       gl.polygonOffset(-7,-14);
       if(nTD){attrs(bTD);gl.drawArrays(gl.TRIANGLES,0,nTD);}
+      if(nTB){const e=festEyeOf(M);gl.uniform4f(lE,e?e[0]:0,e?e[1]:0,e?e[2]:0,e?FEST_LINE_LIFT:0);attrs(bTB);gl.drawArrays(gl.TRIANGLES,0,nTB);gl.uniform4f(lE,0,0,0,0);}   // 大学の境界線：視線に沿って手前へ寄せて、地面に少しもぐる所も見せる
       gl.disable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(0,0);
       if(nTL){attrs(bTL);gl.drawArrays(gl.LINES,0,nTL);}
     }
@@ -6517,8 +6762,8 @@ function festVehInfo(o,ll){
     rows.push(['系統',escapeHtml(o.r)]);
     card={title:o.n,kind:'バス停',dot:'#1c7ed6',rows};
   }else{
-    rows.push(['出典','OpenStreetMap']);if(o.r)rows.push(['備考',escapeHtml(o.r)]);
-    card={id:o.id,title:o.n,kind:'駐車場',dot:'#4dabf7',stats:[[o.a.toLocaleString(),'面積 m²']],rows};
+    if(o.fee)rows.push(['料金','有料']);rows.push(['出典','OpenStreetMap']);if(o.r)rows.push(['備考',escapeHtml(o.r)]);
+    card={id:o.id,title:o.n,kind:o.fee?'駐車場（有料）':'駐車場',dot:o.fee?'#fcc419':'#4dabf7',stats:[[o.a.toLocaleString(),'面積 m²']],rows};
   }
   if(!o.bs&&!(o.r&&/本祭期間/.test(o.r)))notes.push(['mute','本祭期間','未設定（通行可否・搬入・駐車の割り当ては今後設定）']);
   card.notes=notes;
@@ -6549,7 +6794,7 @@ function festVehList(){
   if(f==='road')h=FEST_VEH.map(v=>rowH(v.id,v.id,escapeHtml(festRoadName(v.n))+(v.o?' <small>一方通行</small>':'')+(v.t?' <small>トンネル</small>':'')+(v.b?' <small class="fest-bl-fp">バス</small>':''),
     kl[v.k]+'・'+(v.w?'幅'+v.w+'m':'幅—')+'・'+v.L+'m',FEST_VEH_ST[v.k].c)).join('');
   else if(f==='ent')h=FEST_VENT.map(e=>rowH(e.id,e.id,escapeHtml(e.n),e.v.join('・'),'#e8590c')).join('');
-  else h=FEST_PARK.map(k=>rowH(k.id,k.id,escapeHtml(k.n),'約'+k.a.toLocaleString()+'m²','#4dabf7')).join('')
+  else h=FEST_PARK.map(k=>rowH(k.id,k.id,escapeHtml(k.n),(k.fee?'有料・':'')+'約'+k.a.toLocaleString()+'m²',k.fee?'#fcc419':'#4dabf7')).join('')
     +FEST_BSTOP.map(b=>rowH('S:'+b.n,'バス',escapeHtml(b.n),escapeHtml(b.r),'#1c7ed6')).join('');
   box.innerHTML=h;
   box.querySelectorAll('.fest-bl-row').forEach(r=>r.onclick=()=>festVehGo(r.dataset.id));
@@ -6752,8 +6997,8 @@ const FEST_VEH=[
 ];
 // 車両の出入り地点（候補）：車両道路とキャンパス外周の交点・構内道路の接続点。学園祭期間の通行可否は未設定
 const FEST_VENT=[{"id":"E1","n":"西グラウンド側の出入口","c":[35.60987,139.551017],"v":["V02"]},{"id":"E2","n":"総合体育館南西の出入口","c":[35.610089,139.552152],"v":["V04"]},{"id":"E3","n":"西口（120年記念館前・路線バスが入る）","c":[35.610992,139.551548],"v":["V06"]},{"id":"E4","n":"構内を通る道路の北口（第3学生自治会館付近）","c":[35.611365,139.556027],"v":["V09"]},{"id":"E5","n":"正門（守衛場前）","c":[35.6091,139.555017],"v":["V09","V14"],"r":"OSMに門（車両は目的地への出入りのみ＝access=destination）の登録あり"},{"id":"E6","n":"構内を通る道路の南口（図書館生田分館付近）","c":[35.608707,139.554854],"v":["V09"]},{"id":"E7","n":"構内道路の東口（第1体育館前）","c":[35.610073,139.55541],"v":["V01","V09"]}];
-// 駐車場（OSM）。6号館の駐車場利用は FEST_BLD の fp で表示
-const FEST_PARK=[{"id":"P1","n":"10・9号館前の駐車場（9号館駐車場）","r":"OSM：access=destination（関係者用とみられる）。本祭期間は車椅子利用者・ベビーマーク掲示車両が利用可。10号館芝生へつながる坂道入口の車止めを開放（消防車の誘導経路と重なる）","a":3094,"c":[35.611282,139.553644],"p":[[35.611129,139.553398],[35.611124,139.553559],[35.611165,139.553588],[35.611187,139.553624],[35.611192,139.553676],[35.611188,139.553741],[35.61117,139.553766],[35.61118,139.553923],[35.611767,139.553844],[35.611721,139.553323]]},{"id":"P2","n":"第一体育館前の駐車スペース","r":"車十数台分（狭いので注意）。G倉庫からの搬出先として頻繁に使用。本祭期間は車止めを開放し車両通行可（第一体育館駐車場・第一体育館裏〜5号館の間も同様）","a":241,"c":[35.610137,139.555053],"p":[[35.610042,139.555295],[35.610189,139.554793],[35.610232,139.554812],[35.610085,139.555314]]},{"id":"P3","n":"ゴルフ場駐車場","r":"学生課の避難経路図の表記。利用条件は未確認","a":4300,"c":[35.608848,139.553242],"p":[[35.609143,139.55258],[35.608874,139.55394],[35.608787,139.553913],[35.608563,139.553849],[35.608817,139.55259],[35.608905,139.552582]]},{"id":"P4","n":"生田緑地西口駐車場","r":"有料・一般（川崎市）","a":1378,"c":[35.609195,139.556534],"p":[[35.609183,139.55627],[35.609318,139.556277],[35.609322,139.556909],[35.609251,139.557052],[35.609114,139.556921],[35.609112,139.556459],[35.609173,139.556458],[35.609172,139.556362],[35.609144,139.556334],[35.609163,139.556302]]},{"id":"P5","n":"ゴルフ場駐車場（東側）","r":"ゴルフ場駐車場の東隣（遊園側の向きでは左）の舗装の駐車場。実際に利用できる（航空写真で範囲を確認）","a":1251,"c":[35.608707,139.554205],"p":[[35.608838,139.553931],[35.60883,139.554163],[35.608754,139.554537],[35.608666,139.554524],[35.608578,139.554163],[35.608578,139.55391]]},{"id":"P6","n":"教員用駐車スペース（守衛場の隣）","r":"守衛場の西隣（遊園側の向きでは右）の正方形の駐車スペース。普段は教員用、本祭期間は駐車場として利用（航空写真で範囲を確認）","a":558,"c":[35.609112,139.554905],"p":[[35.609259,139.554773],[35.609221,139.555033],[35.609065,139.554991],[35.608997,139.554966],[35.60902,139.554761]]}];
+// 駐車場（OSM）。fee:1＝有料（黄色で塗る）。6号館の駐車場利用は FEST_BLD の fp で表示
+const FEST_PARK=[{"id":"P1","n":"10・9号館前の駐車場（9号館駐車場）","r":"OSM：access=destination（関係者用とみられる）。本祭期間は車椅子利用者・ベビーマーク掲示車両が利用可。10号館芝生へつながる坂道入口の車止めを開放（消防車の誘導経路と重なる）","a":3094,"c":[35.611282,139.553644],"p":[[35.611129,139.553398],[35.611124,139.553559],[35.611165,139.553588],[35.611187,139.553624],[35.611192,139.553676],[35.611188,139.553741],[35.61117,139.553766],[35.61118,139.553923],[35.611767,139.553844],[35.611721,139.553323]]},{"id":"P2","n":"第一体育館前の駐車スペース","r":"車十数台分（狭いので注意）。G倉庫からの搬出先として頻繁に使用。本祭期間は車止めを開放し車両通行可（第一体育館駐車場・第一体育館裏〜5号館の間も同様）","a":241,"c":[35.610137,139.555053],"p":[[35.610042,139.555295],[35.610189,139.554793],[35.610232,139.554812],[35.610085,139.555314]]},{"id":"P3","n":"ゴルフ場駐車場","fee":1,"r":"学生課の避難経路図の表記。東側の舗装部分（遊園側の向きでは左）とあわせて一つの駐車場として運用（航空写真で範囲を確認）","a":5663,"c":[35.608816,139.553462],"p":[[35.609143,139.55258],[35.608874,139.55394],[35.60883,139.554163],[35.608754,139.554537],[35.608666,139.554524],[35.608578,139.554163],[35.608578,139.55391],[35.608563,139.553849],[35.608817,139.55259],[35.608905,139.552582]]},{"id":"P4","n":"生田緑地西口駐車場","fee":1,"r":"有料・一般（川崎市）","a":1378,"c":[35.609195,139.556534],"p":[[35.609183,139.55627],[35.609318,139.556277],[35.609322,139.556909],[35.609251,139.557052],[35.609114,139.556921],[35.609112,139.556459],[35.609173,139.556458],[35.609172,139.556362],[35.609144,139.556334],[35.609163,139.556302]]},{"id":"P6","n":"教員用駐車スペース（守衛場の隣）","r":"守衛場の西隣（遊園側の向きでは右）の正方形の駐車スペース。普段は教員用、本祭期間は駐車場として利用（航空写真で範囲を確認）","a":558,"c":[35.609112,139.554905],"p":[[35.609259,139.554773],[35.609221,139.555033],[35.609065,139.554991],[35.608997,139.554966],[35.60902,139.554761]]}];
 // 路線バス：向10 専明線（向ヶ丘遊園駅→専修大学9号館＝構内まで入る／専修大学前）ほか周辺の系統（OSMの路線データ）。m=向10 9号館行きの経路
 const FEST_BUS=[{"p":[[35.614608,139.552791],[35.614931,139.552853],[35.61536,139.552983],[35.615642,139.553047],[35.616118,139.55322]],"m":1},{"p":[[35.616105,139.553332],[35.616078,139.553575],[35.616066,139.553803],[35.616067,139.5541],[35.616087,139.554391],[35.616122,139.554685],[35.616169,139.554974]],"m":1},{"p":[[35.616105,139.553332],[35.615579,139.553142],[35.614912,139.552938],[35.614608,139.552791]],"m":1},{"p":[[35.616169,139.554974],[35.616209,139.555169],[35.616252,139.555346],[35.616344,139.55566]],"m":1},{"p":[[35.62037,139.562017],[35.620296,139.561908],[35.619856,139.561263],[35.619819,139.561209],[35.619768,139.561133],[35.619267,139.560389],[35.619249,139.560362],[35.619182,139.560262],[35.619093,139.560147],[35.619059,139.560097],[35.619019,139.560045],[35.618954,139.559962],[35.618889,139.559879],[35.61867,139.559605],[35.618474,139.559331],[35.618174,139.558883],[35.618113,139.558792],[35.618099,139.55877]],"m":1},{"p":[[35.618859,139.562419],[35.619027,139.562658],[35.619226,139.562942],[35.61927,139.563005]],"m":1},{"p":[[35.616344,139.55566],[35.616482,139.555931],[35.616596,139.556106]],"m":1},{"p":[[35.619878,139.561134],[35.619819,139.561209],[35.619794,139.56124],[35.619428,139.561702],[35.619101,139.562114],[35.619011,139.562226],[35.618899,139.562368],[35.618859,139.562419]],"m":1},{"p":[[35.61102,139.551444],[35.610988,139.551561],[35.610951,139.551763],[35.610947,139.551814],[35.610959,139.551911],[35.610992,139.552014],[35.61103,139.552104]],"m":1},{"p":[[35.61927,139.563005],[35.619224,139.563079],[35.618845,139.563686],[35.618596,139.564086],[35.618535,139.564184],[35.618501,139.56424],[35.618442,139.564334],[35.618361,139.564472],[35.618306,139.564576],[35.618262,139.564663]],"m":1},{"p":[[35.616118,139.55322],[35.616105,139.553332]],"m":1},{"p":[[35.616568,139.556456],[35.616419,139.555967],[35.616344,139.55566]],"m":1},{"p":[[35.616596,139.556106],[35.616739,139.556367],[35.616787,139.556447],[35.616864,139.556562],[35.61708,139.556888],[35.617237,139.557129],[35.617277,139.557183],[35.617402,139.557369],[35.617482,139.557488]],"m":1},{"p":[[35.617879,139.558071],[35.617971,139.558208],[35.618161,139.558488],[35.618173,139.558504]],"m":1},{"p":[[35.611079,139.553558],[35.611119,139.553594],[35.611142,139.553637],[35.611148,139.553694],[35.611136,139.553741],[35.611108,139.553775],[35.611026,139.553794],[35.610937,139.553787],[35.610907,139.553753],[35.610898,139.553714],[35.610898,139.553685],[35.610897,139.553648],[35.610903,139.55363],[35.610913,139.5536],[35.61094,139.553579],[35.611003,139.553557],[35.611079,139.553558]],"m":1},{"p":[[35.611087,139.553307],[35.611079,139.553558]],"m":1},{"p":[[35.61103,139.552104],[35.611087,139.553307]],"m":1},{"p":[[35.618099,139.55877],[35.618036,139.558677]],"m":1},{"p":[[35.618036,139.558677],[35.6179,139.558474],[35.617861,139.558417],[35.617772,139.558283]],"m":1},{"p":[[35.618173,139.558504],[35.618237,139.558598]],"m":1},{"p":[[35.618237,139.558598],[35.618254,139.558624],[35.618282,139.558665],[35.618327,139.558733],[35.618502,139.558993],[35.618741,139.55936],[35.618935,139.55968],[35.618998,139.559796],[35.619031,139.559854],[35.619099,139.559979],[35.619246,139.560213],[35.619299,139.560286],[35.61932,139.560316],[35.61952,139.560607]],"m":1},{"p":[[35.614608,139.552791],[35.613945,139.552597],[35.613706,139.552515],[35.613502,139.552436],[35.613201,139.552344],[35.613079,139.552293],[35.612947,139.552236],[35.612707,139.552083],[35.612247,139.551712],[35.612081,139.551562],[35.611948,139.551496],[35.611794,139.551457],[35.611526,139.551465],[35.61102,139.551444]],"m":1},{"p":[[35.617772,139.558283],[35.617654,139.558107],[35.617634,139.558076],[35.617519,139.557896],[35.617318,139.557603],[35.617287,139.557559],[35.617238,139.557486],[35.616741,139.556743],[35.616711,139.556697],[35.616631,139.556578],[35.616568,139.556456]],"m":1},{"p":[[35.618262,139.564663],[35.618238,139.564715],[35.618189,139.564844],[35.618163,139.564918]],"m":1},{"p":[[35.618163,139.564918],[35.618107,139.565076],[35.618092,139.5651],[35.618075,139.565113],[35.618033,139.565136],[35.617901,139.565208],[35.617882,139.565206],[35.617866,139.565198],[35.617855,139.565186],[35.617814,139.565083],[35.617803,139.565055]],"m":1},{"p":[[35.617688,139.564766],[35.617686,139.564744],[35.617694,139.564722],[35.617712,139.564699],[35.61777,139.564642],[35.6178,139.564613],[35.617841,139.564591],[35.617923,139.564548],[35.61798,139.564564],[35.618071,139.564577],[35.618091,139.564578]],"m":1},{"p":[[35.618091,139.564578],[35.618114,139.564613],[35.618113,139.564673],[35.618076,139.564764],[35.618025,139.564809],[35.618004,139.56489],[35.618006,139.56492],[35.618019,139.56496]],"m":1},{"p":[[35.617482,139.557488],[35.617551,139.557585],[35.61773,139.557843],[35.617767,139.557899],[35.617879,139.558071]],"m":1},{"p":[[35.617803,139.565055],[35.617688,139.564766]],"m":1},{"p":[[35.618019,139.56496],[35.618058,139.56497],[35.618095,139.564968],[35.618134,139.564949],[35.618163,139.564918]],"m":1},{"p":[[35.607166,139.551685],[35.607085,139.55153],[35.606912,139.551239],[35.606839,139.551146],[35.606772,139.55107],[35.606689,139.551004],[35.60658,139.550944],[35.606488,139.550909],[35.606397,139.550889],[35.605887,139.550815],[35.605572,139.550781],[35.60535,139.550793],[35.605175,139.550834],[35.604938,139.550929],[35.604534,139.551113],[35.604363,139.551191],[35.604228,139.551302],[35.604115,139.551432],[35.604013,139.551575],[35.60397,139.551645],[35.603759,139.552046],[35.60366,139.552201],[35.603543,139.552328],[35.603462,139.552405],[35.603361,139.55246],[35.603297,139.552496],[35.603198,139.552529],[35.603119,139.552555],[35.603025,139.552562],[35.602675,139.552558],[35.602322,139.552557],[35.602125,139.552558],[35.601938,139.552568],[35.601663,139.552587],[35.601554,139.552595]],"m":0},{"p":[[35.608511,139.554047],[35.608333,139.554128]],"m":0},{"p":[[35.608428,139.55378],[35.608511,139.554047]],"m":0},{"p":[[35.608428,139.55378],[35.608413,139.553606],[35.608381,139.553469],[35.608328,139.553361],[35.608241,139.55324],[35.608063,139.55302],[35.608037,139.552986],[35.607737,139.552585],[35.607657,139.552474],[35.607578,139.552382],[35.607512,139.552337],[35.607368,139.552252],[35.607252,139.552179],[35.607066,139.552063],[35.607033,139.552026],[35.607008,139.551979],[35.606999,139.551922],[35.607004,139.551865],[35.607033,139.551819],[35.607065,139.55178],[35.607087,139.551759],[35.607166,139.551685]],"m":0},{"p":[[35.608333,139.554128],[35.608428,139.55378]],"m":0},{"p":[[35.61102,139.551444],[35.610942,139.551416],[35.610824,139.551347],[35.610766,139.551304],[35.6106,139.551192],[35.610451,139.551079],[35.610323,139.550993],[35.610218,139.550936],[35.610117,139.550897],[35.610005,139.550868],[35.609919,139.550862],[35.609775,139.550877],[35.609622,139.550924],[35.609478,139.550996],[35.609406,139.55106],[35.609176,139.551238],[35.609001,139.55146],[35.60891,139.551622],[35.608815,139.551767],[35.60865,139.55194],[35.608567,139.552008],[35.608478,139.552063],[35.608308,139.552152],[35.608116,139.552189],[35.607904,139.552177],[35.60765,139.552107],[35.607523,139.55203],[35.607402,139.551934],[35.607259,139.551799],[35.607166,139.551685]],"m":0}];
 // 避難場所（学生課の避難経路図）。建物ごとの割り当ては FEST_BLD の ev
