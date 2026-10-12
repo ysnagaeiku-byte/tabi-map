@@ -5510,7 +5510,7 @@ function festP3dTier(){   // カメラの距離(range)で表示する段階を�
 }
 // --- 白地図（国土地理院 基盤地図情報の道路縁・建物外周線・鉄道・水涯線を白地に描く）
 //     データは fest-shiro.json（約210KB）。白地図を初めて開いたときだけ読み込む。構内の建物は FEST_BLD（PLATEAU）で描く
-const FEST_DATA_V=3;
+const FEST_DATA_V=4;
 const FEST_P_ICON='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22"><rect x="1" y="1" width="20" height="20" rx="4" fill="#1971c2" stroke="#ffffff" stroke-width="2"/><path d="M8 17V5.5h4.2a3.6 3.6 0 0 1 0 7.2H8" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round"/></svg>');
 const FEST_SHIRO_ST={rd:{c:'#5c6370',w:1,z:0},sw:{c:'#b5bbc4',w:.8,z:17},bk:{c:'#5f6670',w:1,z:15},bd:{c:'#9ba2ac',w:.75,z:15},wl:{c:'#4a90d9',w:1,z:0}};
 let festShiro=null, festShiroLoading=false, festShiroData=null, festShiroLines=[], festShiroTowns=[], festWhiteOv=null;
@@ -5633,9 +5633,11 @@ function festShiroStyle(force){
 //     構内63棟＝FEST_BLD（名前あり=紫系・未確認=グレー）、周辺の約900棟＝fest-3d.json（白系）。建物をタップすると詳細
 //     ※Google側の建物も立体のままだと重なるため、Map IDのスタイル設定で建物を「Footprints（平面）」にする前提
 const FEST_B3D_O={lat:35.6100,lng:139.5540}, FEST_ER=6371010;
+// 3Dで描く駅舎（PLATEAU 川崎市2022 の運輸施設のうち OSM の駅舎に重なるもの）
+const FEST_STN3D=[{"n":"向ヶ丘遊園駅","c":[35.617508,139.56479],"parts":[[11.6,[[35.617452,139.564616],[35.617465,139.564607],[35.617374,139.564401],[35.617375,139.564401],[35.617344,139.56433],[35.617315,139.564349],[35.617331,139.564384],[35.617295,139.564408],[35.617309,139.564441],[35.617358,139.564411],[35.617358,139.564412],[35.617362,139.564409]]],[10.9,[[35.616989,139.564684],[35.617043,139.564651],[35.616971,139.564483],[35.616999,139.564466],[35.616928,139.5643],[35.616897,139.56432],[35.616878,139.564275],[35.616865,139.564284],[35.616917,139.564406],[35.616869,139.564439],[35.616936,139.564589],[35.616948,139.564582]]],[3.9,[[35.6176,139.565073],[35.617644,139.565043],[35.617607,139.56496],[35.617562,139.564989]]],[4.4,[[35.616835,139.564452],[35.61691,139.564402],[35.616835,139.564232],[35.616761,139.564282]]],[10.6,[[35.617044,139.564809],[35.617109,139.564769],[35.617064,139.564658],[35.61705,139.564668],[35.617047,139.564662],[35.616997,139.564693]]],[9.3,[[35.61752,139.564933],[35.617633,139.564859],[35.617566,139.564706],[35.617553,139.564714],[35.61753,139.564661],[35.617498,139.564682],[35.61747,139.564618],[35.617451,139.564631],[35.617435,139.564595],[35.617398,139.564619],[35.617465,139.564773],[35.617453,139.56478]]],[6.9,[[35.617619,139.56494],[35.617597,139.564887],[35.617511,139.564943],[35.617546,139.565025],[35.617567,139.565011],[35.617554,139.564982]]]]},{"n":"登戸駅","c":[35.621113,139.569546],"parts":[[11.4,[[35.620692,139.570398],[35.62069,139.570401],[35.620651,139.570505],[35.620607,139.570598],[35.620531,139.570748],[35.620568,139.570774],[35.620591,139.570736],[35.620667,139.570597],[35.620744,139.57045],[35.620752,139.570435]]],[6.1,[[35.620491,139.570436],[35.620464,139.570504],[35.620518,139.570539],[35.620516,139.570543],[35.620475,139.570629],[35.620413,139.570741],[35.620358,139.570842],[35.620306,139.570936],[35.620293,139.570956],[35.620321,139.570983],[35.620333,139.570965],[35.620366,139.570907],[35.62043,139.570792],[35.620486,139.570691],[35.620544,139.570574],[35.620598,139.570455],[35.620639,139.570365],[35.620617,139.570352],[35.620564,139.570481]]],[18.3,[[35.620693,139.569751],[35.620619,139.569532],[35.620674,139.569423],[35.620743,139.569478],[35.62092,139.569607],[35.621144,139.569744],[35.621152,139.569749],[35.621325,139.56984],[35.62175,139.570042],[35.621798,139.56993],[35.621689,139.569862],[35.621685,139.569871],[35.621604,139.569819],[35.621597,139.56983],[35.621517,139.569779],[35.62151,139.569789],[35.621436,139.569739],[35.621432,139.569748],[35.621384,139.56972],[35.621381,139.569729],[35.621143,139.569588],[35.621133,139.569581],[35.621143,139.569554],[35.621145,139.569549],[35.621461,139.569731],[35.621705,139.569864],[35.621805,139.569917],[35.621849,139.569812],[35.621419,139.569543],[35.621143,139.56938],[35.621114,139.569363],[35.620927,139.569254],[35.620544,139.569029],[35.620241,139.56885],[35.620119,139.568776],[35.620091,139.568842],[35.620521,139.569142],[35.620507,139.569172],[35.620409,139.569109],[35.620376,139.569162],[35.6205,139.569263],[35.620494,139.569278],[35.620422,139.569441],[35.620458,139.569464],[35.620443,139.569497],[35.620495,139.569644],[35.620584,139.569905],[35.6206,139.569913],[35.620582,139.569952],[35.620601,139.569966],[35.620527,139.570143],[35.620587,139.570178],[35.620747,139.569793],[35.62069,139.569758]]],[17.4,[[35.620898,139.570365],[35.620912,139.570373],[35.621048,139.569968],[35.621039,139.569962],[35.621016,139.569948],[35.621008,139.569943],[35.621001,139.569959],[35.620977,139.569944],[35.621043,139.569784],[35.621011,139.569764],[35.621023,139.569736],[35.620765,139.569577],[35.620753,139.569607],[35.620693,139.569751],[35.62069,139.569758],[35.620747,139.569793],[35.620587,139.570178],[35.620539,139.570296],[35.620547,139.570301],[35.620491,139.570436],[35.620564,139.570481],[35.620617,139.570352],[35.620639,139.570365],[35.620692,139.570398],[35.620752,139.570435],[35.620803,139.570467],[35.620856,139.570339],[35.620868,139.570347]]]]},{"n":"生田駅","c":[35.615039,139.542241],"parts":[[16.3,[[35.615124,139.542365],[35.615119,139.542318],[35.615257,139.542292],[35.615251,139.542218],[35.615128,139.542248],[35.615109,139.542043],[35.615071,139.542048],[35.615033,139.542053],[35.614976,139.542061],[35.614953,139.542065],[35.61491,139.542071],[35.614901,139.542009],[35.614893,139.541947],[35.614887,139.541895],[35.614869,139.541897],[35.61489,139.542123],[35.614878,139.542125],[35.614885,139.542197],[35.614912,139.542193],[35.614919,139.54227],[35.614793,139.542286],[35.614802,139.542376],[35.614922,139.542359],[35.614973,139.542352],[35.614976,139.542386],[35.615002,139.542383],[35.615064,139.542374]]],[14.2,[[35.614924,139.542362],[35.614799,139.542386],[35.614804,139.542422],[35.614943,139.542395]]],[13.5,[[35.614943,139.542395],[35.614983,139.542462],[35.615021,139.54284],[35.615051,139.542835],[35.615002,139.542383],[35.614976,139.542386],[35.614973,139.542352],[35.614922,139.542359],[35.614924,139.542362]]]]}];
 // --- 3Dの高低差（地形）：国土地理院 5mメッシュ標高を約6m間隔にした fest-dem.json で大学周辺の地面を立体化（ON/OFFで平らな3Dに戻せる）
 //     基準＝構内の建物の地面の中央値（約76m）。地面・等高線・道路縁・動線・駐車場をWebGLで地形に沿って描き、建物は地面の高さから立ち上げる
-const FEST_DEM_V=1, FEST_TERR_EXAG=2, FEST_TERR_V=1;   // 高低差を2倍に強調して描く（建物・印・当たり判定も同じ倍率の地面に乗る）
+const FEST_DEM_V=2, FEST_TERR_EXAG=2, FEST_TERR_V=2;   // 範囲は北東の枡形6丁目（セブン-イレブン・枡形天神社）まで。高低差を2倍に強調して描く（建物・印・当たり判定も同じ倍率の地面に乗る）
 let festTerrainOn=true, festDem=null, festDemLoading=false, festTerrBusy=false, festB3dTop={};
 // 道路・緑地・水面（fest-terr.json：道路中心線＝国土地理院、緑地・水面＝OSM）。道路は道に沿って高さをならし、道路まわりの地面もその高さへ寄せる
 let festTerrData=null, festTerrDataP=null, festTerrZd=null, festTerrRd=null, festTerrCls=null, festTerrCache=null;
@@ -5654,7 +5656,8 @@ function festTerrainZ(lat,lng){   // 描画する地面の高さ（道路まわ�
   const fx=(lng-D.w)/(D.e-D.w)*(D.nx-1),fy=(lat-D.s)/(D.n-D.s)*(D.ny-1);
   if(!(fx>=0&&fy>=0&&fx<=D.nx-1&&fy<=D.ny-1))return 0;
   const i=Math.min(D.nx-2,Math.floor(fx)),j=Math.min(D.ny-2,Math.floor(fy)),u=fx-i,v=fy-j,nx=D.nx;
-  return Z[j*nx+i]*(1-u)*(1-v)+Z[j*nx+i+1]*u*(1-v)+Z[(j+1)*nx+i]*(1-u)*v+Z[(j+1)*nx+i+1]*u*v;
+  const z00=Z[j*nx+i],z10=Z[j*nx+i+1],z01=Z[(j+1)*nx+i],z11=Z[(j+1)*nx+i+1];
+  return u>=v?z00+u*(z10-z00)+v*(z11-z10):z00+u*(z11-z01)+v*(z01-z00);   // 描画と同じ三角形で補間
 }
 function festTerrDataFetch(){
   if(festTerrData)return Promise.resolve(festTerrData);
@@ -5683,6 +5686,26 @@ function festStrip(add,A,x,y,z,ins,hw,c,caps){
     add(A,x[k]+na[0],y[k]+na[1],z[k],c);add(A,x[k+1]-nb2[0],y[k+1]-nb2[1],z[k+1],c);add(A,x[k]-na[0],y[k]-na[1],z[k],c);}
   if(caps)[0,n-1].forEach(k=>{if(!ins[k])return;const S=10;for(let q=0;q<S;q++){const t1=q/S*Math.PI*2,t2=(q+1)/S*Math.PI*2;
     add(A,x[k],y[k],z[k],c);add(A,x[k]+Math.cos(t1)*hw,y[k]+Math.sin(t1)*hw,z[k],c);add(A,x[k]+Math.cos(t2)*hw,y[k]+Math.sin(t2)*hw,z[k],c);}});
+}
+// 多角形を地形に沿って敷く：地形の三角形ごとに多角形を切り抜き（Sutherland–Hodgman）、地面と平行に dz だけ浮かせる。縁は多角形どおり、地面にもぐらない
+function festFillPoly(add,A,LL,c,dz){
+  const D=festDem;if(!D)return;const nx=D.nx,ny=D.ny;
+  const P=festRing(LL.map(q=>festB3dXY(q[0],q[1])));if(P.length<3)return;
+  const gxy=(i,j)=>festB3dXY(D.s+(D.n-D.s)*j/(ny-1),D.w+(D.e-D.w)*i/(nx-1));
+  const lat=LL.map(q=>q[0]),lng=LL.map(q=>q[1]);
+  const i0=Math.max(0,Math.floor((Math.min(...lng)-D.w)/(D.e-D.w)*(nx-1))),i1=Math.min(nx-2,Math.floor((Math.max(...lng)-D.w)/(D.e-D.w)*(nx-1)));
+  const j0=Math.max(0,Math.floor((Math.min(...lat)-D.s)/(D.n-D.s)*(ny-1))),j1=Math.min(ny-2,Math.floor((Math.max(...lat)-D.s)/(D.n-D.s)*(ny-1)));
+  const cr=(a,b,p)=>(b[0]-a[0])*(p[1]-a[1])-(b[1]-a[1])*(p[0]-a[0]);
+  const clipTri=(poly,T)=>{let o=poly;for(let e=0;e<3&&o.length>2;e++){const a=T[e],b=T[(e+1)%3],src=o;o=[];
+    for(let k=0;k<src.length;k++){const p=src[k],q=src[(k+1)%src.length],ip=cr(a,b,p)>=-1e-9,iq=cr(a,b,q)>=-1e-9;
+      const X=()=>{const d1=cr(a,b,p),d2=cr(a,b,q),t=d1/(d1-d2);return[p[0]+(q[0]-p[0])*t,p[1]+(q[1]-p[1])*t];};
+      if(ip&&iq)o.push(q);else if(ip&&!iq)o.push(X());else if(!ip&&iq){o.push(X());o.push(q);}}}return o;};
+  const zAt=(x,y)=>{const q=festB3dLL(x,y);return festTerrainZ(q[0],q[1])+dz;};
+  for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){
+    const v00=gxy(i,j),v10=gxy(i+1,j),v01=gxy(i,j+1),v11=gxy(i+1,j+1);
+    [[v00,v10,v11],[v00,v11,v01]].forEach(T=>{const Q=clipTri(P,T);if(Q.length<3)return;const R=festRing(Q);if(R.length<3)return;
+      const tri=festTri(R);for(let k=0;k<tri.length;k++){const q=R[tri[k]];add(A,q[0],q[1],zAt(q[0],q[1]),c);}});
+  }
 }
 function festTerrPrep(){
   const D=festDem;if(!D||!festTerrData||festTerrRd)return;
@@ -5731,6 +5754,14 @@ function festTerrPrep(){
         const t=d<=1.5?1:1-(d-1.5)/6.5,f=t*t*(3-2*t);if(f>bf+1e-6||(Math.abs(f-bf)<1e-6&&d<bd)){bf=f;bz=a[q+2];bd=d;}}}
     if(bf>0){const k=j*nx+i;Zd[k]=Z0[k]+(bz-Z0[k])*bf;}
   }
+  {const fxy=(x,y)=>{const q=festB3dLL(x,y);return[(q[1]-D.w)/(D.e-D.w)*(nx-1),(q[0]-D.s)/(D.n-D.s)*(ny-1)];};
+    const cut=(x,y,zmax)=>{const f=fxy(x,y);if(!(f[0]>=0&&f[1]>=0&&f[0]<=nx-1&&f[1]<=ny-1))return;const i=Math.min(nx-2,Math.floor(f[0])),j=Math.min(ny-2,Math.floor(f[1]));
+      [[i,j],[i+1,j],[i,j+1],[i+1,j+1]].forEach(([a,b])=>{const k=b*nx+a;if(Zd[k]>zmax)Zd[k]=zmax;});};
+    rd.forEach(r=>{if(r.fl&1)return;const n=r.x.length,hw=r.dw/2+0.9;
+      for(let k=0;k<n;k++){const a=Math.max(0,k-1),b=Math.min(n-1,k+1);let tx=r.x[b]-r.x[a],ty=r.y[b]-r.y[a];const l=Math.hypot(tx,ty)||1;tx/=l;ty/=l;
+        const zm=r.z[k]+0.2,m=Math.max(2,Math.ceil(hw/1.5));
+        for(let q=-m;q<=m;q++){const o=hw*q/m;cut(r.x[k]-ty*o,r.y[k]+tx*o,zm);
+          if(k<n-1){const zm2=Math.min(zm,r.z[k+1]+0.2);cut((r.x[k]+r.x[k+1])/2-ty*o,(r.y[k]+r.y[k+1])/2+tx*o,zm2);}}}});}
   const cls=new Uint8Array(nx*ny);   // 1=公園・草地 2=樹林 3=水面
   [['p',1],['f',2],['w',3]].forEach(([k,c])=>(festTerrData[k]||[]).forEach(LL=>{
     const P=LL.map(q=>festB3dXY(q[0],q[1])),xs=P.map(q=>q[0]),ys=P.map(q=>q[1]),x0=Math.min(...xs),x1=Math.max(...xs),y0=Math.min(...ys),y1=Math.max(...ys);
@@ -5886,7 +5917,9 @@ function festB3dGeom(dark){
     const xs=P.map(p=>p[0]),ys=P.map(p=>p[1]);festB3dTop[b.id]=g.zm+h;
     festB3dPick.push({b,P,h,z0:g.z0,z1:g.zm+h,bb:[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)]});
   });
-  const ks=K('s');(festB3dSur||[]).forEach(o=>one(festRing(o.P),o.h,ks,0,o.LL?ground(o.LL):null));
+  const ks=K('s');(festB3dSur||[]).forEach(o=>one(festRing(o.P),o.h*2/3,ks,0,o.LL?ground(o.LL):null));
+  const kst=dark?{r:'#3b4a8c',w:'#5c7cfa',e:'#bac8ff'}:CC('#5c7cfa');   // 駅舎：青で区別
+  FEST_STN3D.forEach(st=>st.parts.forEach(([h,LL])=>one(festRing(LL.map(q=>festB3dXY(q[0],q[1]))),h,kst,0,ground(LL))));   // 一般の建物は高さ2/3（構内・名前つきの施設を引き立てる）
   let tc=null;
   if(terr){const sig=[dark,festCampusOn,festWayOn,JSON.stringify(festWayL),!!festTerrRd].join('|');
     if(!festTerrCache||festTerrCache.sig!==sig){const TT=[],TD=[],TL=[],TC=[],TR=[];const nRc=festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR);
@@ -5903,9 +5936,9 @@ function festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR){
   const EX=FEST_TERR_EXAG,E=(i,j)=>H[j*nx+i]*sc,Z=Zd?((i,j)=>Zd[j*nx+i]):((i,j)=>(H[j*nx+i]*sc-base)*EX);
   // Googleマップに近い配色：陸地は淡いグレー（高い所ほどわずかに濃く）、公園・樹林は控えめな緑、水面は青。陰影は弱め
   const pal=dark?{lo:'#1b2129',hi:'#242b35',park:'#1e382e',wood:'#1a3128',water:'#152e47',soil:'#13171d',c5:'#242b34',c25:'#2c343e',
-                   rf:'#465061',rc:'#14181e',mf:'#566174',mc:'#14181e',pf:'#3a4350',pc:'#14181e',tf:'#6a768b',tc:'#0b0e12',plz:'#2b323d'}
+                   rf:'#465061',rc:'#2a313b',mf:'#566174',mc:'#2a313b',pf:'#3a4350',pc:'#2a313b',tf:'#6a768b',tc:'#2a313b',plz:'#2b323d'}
                 :{lo:'#ecebe6',hi:'#e2dfd8',park:'#cfe8c2',wood:'#bfdeb0',water:'#a6d0f0',soil:'#d3cec2',c5:'#e1ded6',c25:'#d4d0c5',
-                   rf:'#ffffff',rc:'#bcc2ca',mf:'#ffffff',mc:'#aab1ba',pf:'#ffffff',pc:'#c5cad1',tf:'#ffffff',tc:'#8a939e',plz:'#f7f6f3'};
+                   rf:'#ffffff',rc:'#cdd1d7',mf:'#ffffff',mc:'#cdd1d7',pf:'#ffffff',pc:'#d6d9de',tf:'#ffffff',tc:'#cdd1d7',plz:'#f7f6f3'};
   const LX=-0.42,LY=0.52,LZ=0.74,sh0=dark?0.8:0.9;   // 北西からの光（弱め）
   const col=new Array(nx*ny);
   for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
@@ -5938,13 +5971,15 @@ function festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR){
   // 道路：通常の3Dと同じように面で描く（縁取り→路面）。高さは道路網でならした値（festTerrPrep）。表示幅はデフォルメ（dw）
   const nR=[0,0,0,0,0];
   if(festTerrRd){
-    const plz=C(pal.plz),st=2.5;   // 広場・歩行者空間（面）
-    (festTerrData&&festTerrData.a||[]).forEach(LL=>{const XY=LL.map(q=>festB3dXY(q[0],q[1])),xs=XY.map(q=>q[0]),ys=XY.map(q=>q[1]);
-      const zc=(x,y)=>{const q=festB3dLL(x,y);return festTerrainZ(q[0],q[1])+.35;};
-      for(let x=Math.min(...xs);x<Math.max(...xs);x+=st)for(let y=Math.min(...ys);y<Math.max(...ys);y+=st){if(!festPip(x+st/2,y+st/2,XY))continue;
-        const a=zc(x,y),b=zc(x+st,y),c=zc(x+st,y+st),d=zc(x,y+st);add(TR,x,y,a,plz);add(TR,x+st,y,b,plz);add(TR,x+st,y+st,c,plz);add(TR,x,y,a,plz);add(TR,x+st,y+st,c,plz);add(TR,x,y+st,d,plz);}});
+    const plz=C(pal.plz);   // 広場・歩行者空間（面）
+    (festTerrData&&festTerrData.a||[]).forEach(LL=>festFillPoly(add,TR,LL,plz,.35));
     const ZO=(o,dz)=>Array.from(o.z,v=>v+dz);
-    festTerrRd.forEach(o=>{const k=o.cls;strip0(o,o.dw/2+(k==='p'?.45:(k==='t'?1.1:.7)),.4,C(pal[k+'c']));});
+    festTerrRd.forEach(o=>{strip0(o,o.dw/2+.3,.4,C(o.cls==='p'?pal.pc:pal.rc));});   // 縁取りは細く（太い道も同じ）
+    const bank=C(festMix(pal.lo,'#000000',dark?.0:.1));   // 土手：道路の端から下へ（地面が道路より低い所の隙間を隠す）
+    festTerrRd.forEach(o=>{const n=o.x.length,hw=o.dw/2+.3;for(let k=0;k<n-1;k++){if(!o.ins[k]||!o.ins[k+1])continue;
+      let tx=o.x[k+1]-o.x[k],ty=o.y[k+1]-o.y[k];const l=Math.hypot(tx,ty)||1;tx/=l;ty/=l;
+      [1,-1].forEach(sd=>{const ax=o.x[k]-ty*hw*sd,ay=o.y[k]+tx*hw*sd,bx=o.x[k+1]-ty*hw*sd,by=o.y[k+1]+tx*hw*sd,za=o.z[k]+.35,zb=o.z[k+1]+.35;
+        add(TT,ax,ay,za,bank);add(TT,bx,by,zb,bank);add(TT,bx,by,zb-4,bank);add(TT,ax,ay,za,bank);add(TT,bx,by,zb-4,bank);add(TT,ax,ay,za-4,bank);});}});
     nR[0]=TR.length/6;
     ['p','r','m','t'].forEach((k,ix)=>{festTerrRd.forEach(o=>{if(o.cls===k)strip0(o,o.dw/2,.5+ix*.04,C(pal[k+'f']));});nR[ix+1]=TR.length/6;});
     function strip0(o,hw,dz,c){festStrip(add,TR,o.x,o.y,ZO(o,dz),o.ins,hw,c,true);}
@@ -5952,7 +5987,7 @@ function festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR){
   const inBox=(la,ln)=>la>=D.s&&la<=D.n&&ln>=D.w&&ln<=D.e;
   const dense=(LL,step)=>{const o=[];for(let k=0;k<LL.length-1;k++){const a=LL[k],b=LL[k+1],xa=festB3dXY(a[0],a[1]),xb=festB3dXY(b[0],b[1]),n=Math.max(1,Math.ceil(Math.hypot(xb[0]-xa[0],xb[1]-xa[1])/step));
     for(let t=0;t<n;t++)o.push([a[0]+(b[0]-a[0])*t/n,a[1]+(b[1]-a[1])*t/n]);}if(LL.length)o.push(LL[LL.length-1]);return o;};
-  const lineDrape=(LL,c,dz)=>{const d=dense(LL,4);for(let k=0;k<d.length-1;k++){const a=d[k],b=d[k+1];if(!inBox(a[0],a[1])||!inBox(b[0],b[1]))continue;
+  const lineDrape=(LL,c,dz)=>{const d=dense(LL,2);for(let k=0;k<d.length-1;k++){const a=d[k],b=d[k+1];if(!inBox(a[0],a[1])||!inBox(b[0],b[1]))continue;
     const xa=festB3dXY(a[0],a[1]),xb=festB3dXY(b[0],b[1]);add(TL,xa[0],xa[1],festTerrainZ(a[0],a[1])+dz,c);add(TL,xb[0],xb[1],festTerrainZ(b[0],b[1])+dz,c);}};
   const ribbon=(LL,wd,c,dz,closed)=>{const d=dense(closed?LL:festChaikin(LL,2),2.5),n=d.length;if(n<2)return;
     const x=[],y=[],z0=[],ins=d.map(q=>inBox(q[0],q[1]));d.forEach(q=>{const xy=festB3dXY(q[0],q[1]);x.push(xy[0]);y.push(xy[1]);z0.push(festTerrainZ(q[0],q[1]));});
@@ -5961,14 +5996,9 @@ function festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR){
   // キャンパス詳細：外周・駐車場
   if(festCampusOn){
     ribbon(FEST_CAMPUS.concat([FEST_CAMPUS[0]]),1.6,C('#7048e8'),.7,true);
-    const pc=C(dark?'#1c4f80':'#74c0fc'),po=C(dark?'#74c0fc':'#1971c2'),st=2;
-    FEST_PARK.forEach(k=>{   // 2m角の格子で地面の起伏どおりに敷く＋縁取り
-      const XY=k.p.map(p=>festB3dXY(p[0],p[1])),xs=XY.map(p=>p[0]),ys=XY.map(p=>p[1]);
-      const zc=(x,y)=>{const q=festB3dLL(x,y);return festTerrainZ(q[0],q[1])+.75;};
-      for(let x=Math.min(...xs);x<Math.max(...xs);x+=st)for(let y=Math.min(...ys);y<Math.max(...ys);y+=st){
-        if(!festPip(x+st/2,y+st/2,XY))continue;
-        const a=zc(x,y),b=zc(x+st,y),c=zc(x+st,y+st),d=zc(x,y+st);
-        add(TD,x,y,a,pc);add(TD,x+st,y,b,pc);add(TD,x+st,y+st,c,pc);add(TD,x,y,a,pc);add(TD,x+st,y+st,c,pc);add(TD,x,y+st,d,pc);}
+    const pc=C(dark?'#1c4f80':'#74c0fc'),po=C(dark?'#74c0fc':'#1971c2');
+    FEST_PARK.forEach(k=>{   // 多角形どおりに切り抜いて地面の起伏どおりに敷く＋縁取り
+      festFillPoly(add,TD,k.p,pc,.75);
       lineDrape(k.p.concat([k.p[0]]),po,.9);});
   }
   // 構内の動線（レイヤーで選んだ要素だけ）
@@ -6027,7 +6057,7 @@ function festB3dMake(){
       gl.disable(gl.POLYGON_OFFSET_FILL);
       if(nTC){attrs(bTC);gl.drawArrays(gl.LINES,0,nTC);}
       gl.enable(gl.POLYGON_OFFSET_FILL);
-      if(nTR&&nRc){attrs(bTR);let a0=0;nRc.forEach((b,ix)=>{if(b>a0){gl.polygonOffset(-1-ix,-2-ix*2);gl.drawArrays(gl.TRIANGLES,a0,b-a0);}a0=b;});}   // 縁取り→歩道→車道→主要→構内を通る道路の順に手前へ
+      if(nTR&&nRc){attrs(bTR);let a0=0;nRc.forEach((b,ix)=>{if(b>a0){gl.depthMask(ix>0);gl.polygonOffset(-1-ix,-2-ix*2);gl.drawArrays(gl.TRIANGLES,a0,b-a0);}a0=b;});gl.depthMask(true);}   // 縁取り→歩道→車道→主要→構内を通る道路の順に手前へ
       gl.polygonOffset(-7,-14);
       if(nTD){attrs(bTD);gl.drawArrays(gl.TRIANGLES,0,nTD);}
       gl.disable(gl.POLYGON_OFFSET_FILL);gl.polygonOffset(0,0);
