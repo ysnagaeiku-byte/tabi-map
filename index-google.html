@@ -6078,9 +6078,20 @@ function festDemFlat(D,z,kx,ky){
       if(d>=R)continue;let w=d<=M?1:1-(d-M)/F;w=w*w*(3-2*w);const k=j*nx+i;
       if(w>Wt[k]||(over&&w>0&&w>=Wt[k])){Wt[k]=w;PZ[k]=pad;}}
   };
-  FEST_BLD.forEach(b=>{if(b.p&&b.p.length>2)item(b.p,4,14,false);});
+  FEST_BLD.forEach(b=>{if(b.p&&b.p.length>2&&!b.pd)item(b.p,4,14,false);});   // pd＝低層部（屋上が上の地面の高さ）は平らにしない
   (typeof FEST_AREAS!=='undefined'?FEST_AREAS:[]).forEach(a=>{if(a.flat)item(a.p,0,8,true);});   // 芝生・テニスコートは区画ごとに真っ平（建物より優先）
   for(let k=0;k<z.length;k++)if(Wt[k]>0)z[k]+=(PZ[k]-z[k])*Wt[k];
+  // 低層部（9号館のロータリー側・10号館の駐車場側）：壁の外側の斜面を下の道路の高さまで下げ、まっすぐな壁が立つようにする（壁の内側8mも同じ高さにして、壁をまたぐ地面の三角形が外へはみ出さないように）
+  const z1=z.slice(),zA=(x,y)=>{const fi=Math.max(0,Math.min(nx-1.001,x/gx)),fj=Math.max(0,Math.min(ny-1.001,y/gy)),i=Math.floor(fi),j=Math.floor(fj),u=fi-i,v=fj-j;
+    return z1[j*nx+i]*(1-u)*(1-v)+z1[j*nx+i+1]*u*(1-v)+z1[(j+1)*nx+i]*(1-u)*v+z1[(j+1)*nx+i+1]*u*v;};
+  FEST_BLD.forEach(b=>{if(!b.pd||!b.p)return;const P=b.p.map(XY),xs=P.map(p=>p[0]),ys=P.map(p=>p[1]),RO=10,RI=8;
+    const i0=Math.max(0,Math.floor((Math.min(...xs)-RO)/gx)),i1=Math.min(nx-1,Math.ceil((Math.max(...xs)+RO)/gx)),j0=Math.max(0,Math.floor((Math.min(...ys)-RO)/gy)),j1=Math.min(ny-1,Math.ceil((Math.max(...ys)+RO)/gy));
+    for(let j=j0;j<=j1;j++)for(let i=i0;i<=i1;i++){const x=i*gx,y=j*gy;let d=1e9,qx=0,qy=0;
+      for(let q=0;q<P.length;q++){const A=P[q],B2=P[(q+1)%P.length],dx=B2[0]-A[0],dy=B2[1]-A[1],L=dx*dx+dy*dy;let t=L?((x-A[0])*dx+(y-A[1])*dy)/L:0;t=Math.max(0,Math.min(1,t));
+        const ex=A[0]+t*dx,ey=A[1]+t*dy,e=Math.hypot(x-ex,y-ey);if(e<d){d=e;qx=ex;qy=ey;}}
+      if(d<1e-3)continue;const ins=festPip(x,y,P);if(d>(ins?RI:RO))continue;
+      const sx=(ins?qx-x:x-qx)/d,sy=(ins?qy-y:y-qy)/d,zf=zA(qx+sx*RO,qy+sy*RO),k=j*nx+i;if(zf<z[k])z[k]=zf;}
+  });
   D.padW=Wt;D.padZ=PZ;   // 道路・通路の高さも建物の周りではこれにそろえる（festTerrPrep）
 }
 function festTerrainZ(lat,lng){   // 描画する地面の高さ（道路まわりをならした後。未計算なら元の標高）
@@ -6171,6 +6182,8 @@ function festTerrPrep(){
   for(let i=0;i<nx;i++)X[i]=festB3dXY(D.s,D.w+(D.e-D.w)*i/(nx-1))[0];
   for(let j=0;j<ny;j++)Y[j]=festB3dXY(D.s+(D.n-D.s)*j/(ny-1),D.w)[1];
   const inB=(la,ln)=>la>=D.s&&la<=D.n&&ln>=D.w&&ln<=D.e,rd=[];
+  const pdP=FEST_BLD.filter(b=>b.pd&&b.p).map(b=>{const P=b.p.map(q=>festB3dXY(q[0],q[1])),xs=P.map(q=>q[0]),ys=P.map(q=>q[1]);return {P,bb:[Math.min(...xs),Math.min(...ys),Math.max(...xs),Math.max(...ys)]};});
+  const inPd=(px,py)=>pdP.some(o=>px>=o.bb[0]&&px<=o.bb[2]&&py>=o.bb[1]&&py<=o.bb[3]&&festPip(px,py,o.P));   // 低層部（屋上が上の地面の高さ）の中の道は描かない（屋上を突き抜けないように）
   festTerrData.r.forEach(r=>{
     const out=!r.LL.some(q=>festInCore(q[0],q[1]));if(out&&(r.fl&4))return;   // 大学から離れた所（登戸・生田の方）は歩道・通路を省く
     const ST=out?5:2.5,x=[],y=[],z=[],ins=[],LL=festChaikin(r.LL,2);   // 角を丸める。離れた所は点の間隔を広く
@@ -6181,7 +6194,10 @@ function festTerrPrep(){
     let zz=Float64Array.from(z);const R=Math.max(2,Math.round(12/ST));
     for(let pass=0;pass<2;pass++){const o=new Float64Array(n);for(let k=0;k<n;k++){let s=0,c=0;for(let q=Math.max(0,k-R);q<=Math.min(n-1,k+R);q++){s+=zz[q];c++;}o[k]=s/c;}zz=o;}
     if(r.fl&1){const a=zz[0],b=zz[n-1];for(let k=0;k<n;k++)zz[k]=a+(b-a)*k/(n-1);}
-    rd.push({w:r.w,fl:r.fl,x,y,z:zz,ins,out});
+    const pin=out?null:x.map((_,k)=>inPd(x[k],y[k]));
+    if(!pin||!pin.some(Boolean)){rd.push({w:r.w,fl:r.fl,x,y,z:zz,ins,out});return;}
+    for(let k=0;k<n;){while(k<n&&pin[k])k++;let e=k;while(e<n&&!pin[e])e++;
+      if(e-k>=2)rd.push({w:r.w,fl:r.fl,x:x.slice(k,e),y:y.slice(k,e),z:zz.slice(k,e),ins:ins.slice(k,e),out});k=e;}
   });
   // 種類と表示の幅：構内を通る道路（FEST_VEH の thru に沿う道）は太く強調、構外の車道は少し太く（見やすさ優先のデフォルメ）
   const thru=FEST_VEH.filter(v=>v.k==='thru').map(v=>v.p.map(q=>festB3dXY(q[0],q[1]))),camp=FEST_CAMPUS.map(q=>festB3dXY(q[0],q[1]));
@@ -6425,7 +6441,8 @@ function festB3dGeom(dark){
   FEST_BLD.forEach(b=>{
     if(festTiny(b))return;   // 名前のない極小の付属物（数〜数十m²）は描かない
     const P=festRing(b.p.map(p=>festB3dXY(p[0],p[1]))), g=ground(b.p);let h=(b.h||((b.f||1)*3.5))*FEST_BLD_HX;
-    if(terr){let rm=-1e9;for(let i=0;i<P.length;i++){const p=P[i],q=P[(i+1)%P.length],L=Math.hypot(q[0]-p[0],q[1]-p[1])||1,nx=(q[1]-p[1])/L,ny=-(q[0]-p[0])/L,m=Math.max(1,Math.ceil(L/4));
+    if(b.zr){h=terr?festTerrainZ(b.zr[0],b.zr[1])+b.h-g.zm:(b.hf||b.h);}   // 低層部：屋上は上の地面（zr）の高さ＋h。壁は下の道路まで（平らな3Dでは hf の高さ）
+    else if(terr){let rm=-1e9;for(let i=0;i<P.length;i++){const p=P[i],q=P[(i+1)%P.length],L=Math.hypot(q[0]-p[0],q[1]-p[1])||1,nx=(q[1]-p[1])/L,ny=-(q[0]-p[0])/L,m=Math.max(1,Math.ceil(L/4));
       for(let t=0;t<=m;t++){const x=p[0]+(q[0]-p[0])*t/m,y=p[1]+(q[1]-p[1])*t/m;for(const d of [2,5,8]){const ll=festB3dLL(x+nx*d,y+ny*d);rm=Math.max(rm,festTerrainZ(ll[0],ll[1]));}}}
       if(rm>g.zm+h*0.65)h=rm+h*0.35-g.zm;}   // 斜面の建物：山側の地面に埋もれないよう、少なくとも高さの35%は地面の上に出す（実際より高く見えることがある）
     const hi=festB3dHi&&festB3dHi.has(b.id),cc0=festBldColor(b),cc=hi?festMix(cc0||(b.n?FEST_DEF_NAMED:FEST_DEF_UNNAMED),'#000000',.38):cc0;   // 押した建物（群）は一時的に濃く
@@ -6856,7 +6873,7 @@ function festBldInfo(b,ll){
   const extra='<div class="fest-bi-sec">建物の色</div>'
     +scope+festSwatches(cur,'festBldSetColor',b.id);
   const html=festCard({id:b.id,title:b.n||'名称未確認',kind:(b.x?'学外の施設':'建物'),dot:festBldShown(b),
-    stats:[[b.f?b.f:'—','階数'],[b.h?b.h.toFixed(1):'—','高さ m'],[b.a?b.a.toLocaleString():'—','面積 m²']],rows,notes,extra});
+    stats:[[b.f?b.f:'—','階数'],[(b.hc||b.h)?(b.hc||b.h).toFixed(1):'—','高さ m'],[b.a?b.a.toLocaleString():'—','面積 m²']],rows,notes,extra});
   festCardShow(html);
 }
 let festTinySet=null;
@@ -7221,7 +7238,10 @@ const FEST_BLD=[
  {"id":"B63","n":"セブン-イレブン","ns":"O","h":9.5,"f":2,"u":"商業系複合（コンビニ）","a":150,"s":"P","r":"専修大学生田校舎店。営業時間は月〜土 8:00〜20:00・日祝休み（OSMの情報）。学内施設として表示","c":[35.609459,139.554316],"p":[[35.609501,139.554289],[35.609487,139.554285],[35.60949,139.554266],[35.609458,139.554258],[35.609454,139.554278],[35.609417,139.554268],[35.609389,139.55443],[35.609473,139.554452]]},
  {"id":"B64","n":"枡形天神社","ns":"U","h":13.7,"f":1,"u":"文教厚生（神社）","a":138,"s":"P","x":1,"r":"学外（枡形6丁目）。OSMの名称は「天神社」","fp":"物資搬送に使用","c":[35.614999,139.557943],"p":[[35.61506,139.557849],[35.615004,139.557825],[35.614983,139.557898],[35.614964,139.557889],[35.61494,139.557974],[35.614962,139.557983],[35.614957,139.558],[35.615001,139.558019],[35.615005,139.558002],[35.615028,139.558012],[35.61505,139.557935],[35.615038,139.55793]]},
  {"id":"B65","n":"セブン-イレブン 川崎枡形6丁目店","ns":"U","h":4.5,"f":1,"u":"商業（コンビニ）","a":228,"s":"P","x":1,"r":"学外。OSMの情報（店舗名）","fp":"来客誘導の目印","c":[35.615376,139.558859],"p":[[35.615417,139.558817],[35.615408,139.558815],[35.615413,139.558774],[35.615321,139.55876],[35.615298,139.558986],[35.615398,139.559002]]},
- {"id":"B66","n":"G倉庫","ns":"U","h":4.5,"f":1,"u":"文教厚生（倉庫）","a":91,"s":"P","x":1,"r":"専修大学生田キャンパスG倉庫（東三田2丁目8-2）。机・椅子・掃除用品・ステージ部品など数トン分を保管","fp":"本番期間に全て運び出す（搬出先は第一体育館前の駐車スペースなど）","c":[35.609944,139.552774],"p":[[35.609984,139.552833],[35.610001,139.552744],[35.609904,139.552715],[35.609887,139.552804]]}
+ {"id":"B66","n":"G倉庫","ns":"U","h":4.5,"f":1,"u":"文教厚生（倉庫）","a":91,"s":"P","x":1,"r":"専修大学生田キャンパスG倉庫（東三田2丁目8-2）。机・椅子・掃除用品・ステージ部品など数トン分を保管","fp":"本番期間に全て運び出す（搬出先は第一体育館前の駐車スペースなど）","c":[35.609944,139.552774],"p":[[35.609984,139.552833],[35.610001,139.552744],[35.609904,139.552715],[35.609887,139.552804]]},
+ {"id":"B67","n":"9号館","nl":1,"g":"9号館","ns":"推","h":0.6,"hc":17.2,"hf":2.0,"pd":1,"zr":[35.6107,139.5538],"f":null,"u":"文教厚生","a":2059,"s":"P","r":"9号館の北側の低層部（北側の広場はこの屋上。ロータリー側は高さ約17mの壁）。航空写真と標高から推定","c":[35.610566,139.553932],"p":[[35.610245,139.553975],[35.610234,139.554115],[35.610466,139.55415],[35.610494,139.554205],[35.610643,139.5542],[35.610669,139.554278],[35.610878,139.554264],[35.610781,139.553358],[35.610744,139.553335],[35.610517,139.553298],[35.610505,139.553429],[35.610603,139.553402],[35.61065,139.553572],[35.610668,139.5537],[35.610683,139.553854],[35.610686,139.553953],[35.610674,139.554154],[35.610558,139.554169],[35.610534,139.554181],[35.610509,139.554177],[35.610487,139.554159],[35.610476,139.55413],[35.610478,139.554098],[35.610483,139.554084],[35.610496,139.554067]]},
+ {"id":"B68","n":"9号館","nl":1,"g":"9号館","ns":"推","h":5.8,"f":null,"u":"文教厚生","a":839,"s":"P","r":"9号館の西側の低層部（総合体育館側）。航空写真から推定","c":[35.610341,139.553308],"p":[[35.610494,139.553165],[35.610517,139.553298],[35.610505,139.553429],[35.610442,139.553405],[35.610447,139.553385],[35.610412,139.553374],[35.610426,139.553309],[35.610394,139.5533],[35.610384,139.55336],[35.60987,139.553197],[35.609865,139.55317]]},
+ {"id":"B69","n":"10号館","nl":1,"g":"10号館","ns":"推","h":1.0,"hc":7.7,"hf":3.0,"pd":1,"zr":[35.611249,139.554464],"f":null,"u":"文教厚生","a":588,"s":"P","r":"10号館の西端の低層部（屋上は10号館の1階の高さ。駐車場側は高さ約8mの壁）。航空写真と標高から推定","c":[35.611216,139.554014],"p":[[35.611369,139.553901],[35.611383,139.554084],[35.61106,139.554125],[35.611052,139.553945]]}
 ];
 // 車両動線（下書き）：道路の線形＝OpenStreetMap（航空写真で位置を確認）、幅員＝PLATEAU川崎市2022の道路面から計測。
 // id=仮番号 n=名称 k=種別(in=構内道路/thru=構内を通る道路/edge=周辺の道路) w=幅員m o=一方通行(線の向き) t=トンネル b=路線バスが通る L=延長m r=備考 osm=OSMのway番号 p=線形
