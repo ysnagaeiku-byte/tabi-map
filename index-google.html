@@ -754,6 +754,7 @@
   .fp-p{width:18px;height:18px;border-radius:4px;background:#1971c2;border:2px solid #fff;color:#fff;font:900 11px/14px sans-serif;text-align:center;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,.3);}
   .fp-p.sm{width:14px;height:14px;border-radius:3px;border-width:1.5px;font:900 9px/11px sans-serif;}   /* 有料・9号館駐車場以外のPは少し小さく */
   .fp-mc,.fp-gb{line-height:0;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));}
+  .fest-pin.fz-tiny>.fp-gb{transform:scale(.55);}   /* ごみ収集場所の印：既定の視点では極小 */
   .fp-en{width:20px;height:20px;position:relative;}
   .fp-en::before{content:"";position:absolute;inset:3px;background:#e8590c;border:2px solid #fff;transform:rotate(45deg);box-shadow:0 1px 3px rgba(0,0,0,.3);}
   .fp-en span{position:relative;display:block;text-align:center;font:800 8.5px/20px sans-serif;color:#fff;}
@@ -5685,7 +5686,7 @@ const FEST_EMPH_DARK=[
 ];
 function festMapIdGet(){try{return localStorage.getItem('tabi_fest_mapid')||'';}catch(e){return '';}}
 // 既定の画角：構内全体を斜め上から、少し引きで（ユーザー指定のアングル。画面幅に合わせてズームを調整）。向きは FEST_ROT_HEADING
-const FEST_CAM={center:{lat:35.6101,lng:139.5546},zoom:17.0,tilt:47};
+const FEST_CAM={center:{lat:35.6101,lng:139.5546},zoom:17.0,tilt:37};   // 傾き：以前の47°より10°真上寄り
 function festCamZoom(){const w=(map&&map.getDiv&&map.getDiv().clientWidth)||910;   // 縦長のスマホは横幅で合わせると引きすぎるので、少し寄せる（幅600px以下で+0.5）
   const nb=w<=600?0.5:(w<900?0.5*(900-w)/300:0);return Math.max(15.6,Math.min(18.2,FEST_CAM.zoom+Math.log2(w/910)+nb));}
 const festSmall=()=>window.innerWidth<=600;   // スマホ：学内施設の文字などを少し小さく
@@ -5732,11 +5733,12 @@ function festSetBase(b){
 }
 // --- キャンパス外周・建物・駅
 const festPkBig=k=>!!(k.fee||k.id==='P1');   // Pを大きく出す駐車場：有料と9号館駐車場（P1）
-let festZoomIn=[], festZoomInSt=null;   // 既定のアングルより寄ったときだけ出す印（Googleの印）
+let festZoomIn=[], festZoomInSt=null;   // 既定のアングルでは極小、寄ると通常の大きさで出す印（Googleの印）
 function festZoomInUi(){
   if(!map)return;const on=(map.getZoom()||0)>=festCamZoom()+0.5;festZoomInSt=on;
   festZoomIn=festZoomIn.filter(m=>festShapes.indexOf(m)>=0);
-  festZoomIn.forEach(m=>{if(m instanceof google.maps.Marker){const w=on?map:null;if(m.getMap()!==w)m.setMap(w);}});
+  festZoomIn.forEach(m=>{if(m instanceof google.maps.Marker&&m.__big!==on){m.__big=on;const z=on?15:8;   // 既定の視点では極小、寄ると通常の大きさ
+    m.setOptions({icon:{url:FEST_GB_ICON,scaledSize:new google.maps.Size(z,z),anchor:new google.maps.Point(z/2,z/2)}});}});
 }
 function festDrawCampus(on){
   festCampusOn=!!on;
@@ -5758,7 +5760,7 @@ function festDrawCampus(on){
     festShapes.push(festMk('pk_'+k.id,k.c[0],k.c[1],k.bk?'<div class="fp-mc">'+FEST_MC_SVG+'</div>':'<div class="fp-p'+(big?'':' sm')+'">P</div>',k.n,()=>festVehInfo(k,null),
       {clickable:true,zIndex:6,icon:{url:k.bk?FEST_MC_ICON:FEST_P_ICON,scaledSize:new google.maps.Size(pw,ph),anchor:new google.maps.Point(pw/2,ph/2)}}));
   });
-  FEST_AREAS.forEach(a=>{if(a.k!=='garbage')return;   // ごみ収集場所（本祭期間）：茶色の区画＋印（印は既定のアングルより寄ったときだけ）
+  FEST_AREAS.forEach(a=>{if(a.k!=='garbage')return;   // ごみ収集場所（本祭期間）：茶色の区画＋印（印は既定のアングルでは極小）
     if(!terr){const pg=new google.maps.Polygon({paths:a.p.map(p=>({lat:p[0],lng:p[1]})),strokeColor:'#8a5a2b',strokeOpacity:.9,strokeWeight:1.5,fillColor:'#c9a26b',fillOpacity:.45,map,clickable:true,zIndex:3});
       pg.addListener('click',()=>festAreaInfo(a));festShapes.push(pg);}
     const m=festMk('gb_'+a.id,a.c[0],a.c[1],'<div class="fp-gb">'+FEST_GB_SVG+'</div>',a.n,()=>festAreaInfo(a),
@@ -6299,7 +6301,7 @@ function festB3dBox(){
   return festB3dLblBox;
 }
 function festPinSet(id,lat,lng,el,ax,ay){const o=festPins[id];if(o&&o.el!==el)o.el.remove();el.classList.add('fest-pin');if(!o||o.el!==el)el.style.display='none';   /* 位置が決まるまで隠す（左上に一瞬出ないように） */
-  festPins[id]={lat,lng,el,ax,ay,w:null,h:null,zin:/^gb_/.test(id),shown:o&&o.el===el?o.shown:undefined};   /* zin＝既定のアングルより寄ったときだけ出す */   /* 中身が変わることがあるので大きさは次の描画で測り直す */if(festB3d)festB3dBox().appendChild(el);if(festB3d)festB3d.requestRedraw();}
+  festPins[id]={lat,lng,el,ax,ay,w:null,h:null,zin:/^gb_/.test(id),shown:o&&o.el===el?o.shown:undefined};   /* zin＝既定のアングルでは極小（寄ると通常の大きさ） */   /* 中身が変わることがあるので大きさは次の描画で測り直す */if(festB3d)festB3dBox().appendChild(el);if(festB3d)festB3d.requestRedraw();}
 function festPinDel(id){const o=festPins[id];if(o){o.el.remove();delete festPins[id];}}
 function festMk(id,lat,lng,html,title,onClick,gOpt,ax,ay){   // 地形ONなら地形に沿った印、OFFならGoogleの印
   if(festPinsActive()){const el=document.createElement('div');el.innerHTML=html;el.title=title||'';
@@ -6700,7 +6702,8 @@ function festB3dLabels(M){   // 建物名を屋上の少し上に表示（重な
   pv.forEach(p=>{if(!p.el.parentNode)box.appendChild(p.el);if(p.w==null&&(p.ax==null||p.ay==null)){p.el.style.display='';p.shown=true;p.w=p.el.offsetWidth;p.h=p.el.offsetHeight;}});   // 大きさは最初に一度だけ測る
   pv.forEach(p=>{
     const xy=festB3dXY(p.lat,p.lng),s2=prj(xy[0],xy[1],festTZ(p.lat,p.lng)+.6);
-    const on=!!s2&&s2[0]>=-40&&s2[1]>=-40&&s2[0]<=W+40&&s2[1]<=H+40&&!(p.zin&&zc<zLow);
+    const on=!!s2&&s2[0]>=-40&&s2[1]>=-40&&s2[0]<=W+40&&s2[1]<=H+40;
+    if(p.zin){const t=zc<zLow;if(p.tiny!==t){p.tiny=t;p.el.classList.toggle('fz-tiny',t);}}
     if(p.shown!==on){p.shown=on;p.el.style.display=on?'':'none';}
     if(!on)return;
     const ax=p.ax!=null?p.ax:p.w/2,ay=p.ay!=null?p.ay:p.h/2,tf='translate3d('+Math.round(s2[0]-ax)+'px,'+Math.round(s2[1]-ay)+'px,0)';
@@ -6766,7 +6769,7 @@ function festB3dClick(e){
 let festBldPoly={};
 const FEST_NS={'公':'大学公式の配置図・施設一覧','O':'OpenStreetMap','推':'配置図との位置照合による推定','E':'学生課の避難経路図','U':'本祭実行委員会'};
 // --- 建物の色：一括（構内すべて）と個別（建物ごと。一括より優先）。保存は tabi_fest_bldcol（試験用の保存領域）
-const FEST_COLORS=[['#9775fa','紫'],['#4dabf7','青'],['#22b8cf','水色'],['#51cf66','緑'],['#fcc419','黄'],['#ff922b','橙'],['#ff6b6b','赤'],['#f783ac','桃'],['#adb5bd','灰'],['#a5795a','茶']];
+const FEST_COLORS=[['#9775fa','紫'],['#4dabf7','青'],['#22b8cf','水色'],['#51cf66','緑'],['#fcc419','黄'],['#ff922b','橙'],['#ff6b6b','赤'],['#f783ac','桃'],['#adb5bd','灰'],['#868e96','濃い灰'],['#a5795a','茶']];
 const FEST_DEF_NAMED='#9775fa', FEST_DEF_UNNAMED='#adb5bd';
 let festBldCol={all:'',per:{}}, festBldInfoCur=null;
 const festHex=c=>(typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c))?c.toLowerCase():'';
