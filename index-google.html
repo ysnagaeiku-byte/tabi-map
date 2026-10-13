@@ -919,7 +919,7 @@
   <button class="tm-item" id="tmTaxi"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="11.5" rx="2"/><path d="M8 5h8M9.6 5v3M14.4 5v3"/><path d="M6.6 12.4h7M6.6 15.6h4"/></svg></span><span class="tm-lab">タクシーメーター<small>追跡中の走行距離・待ち時間を東京の運賃体系で表示（パロディ）</small></span><span class="tm-sw"></span></button>
   <div id="festSec" style="display:none;">
     <div class="tm-sec">本祭支援ツール</div>
-    <div class="seg seg5" id="festBaseSeg" style="margin-bottom:7px;"><button data-b="map" class="on">標準</button><button data-b="white">白地図</button><button data-b="sat">航空</button><button data-b="3d">3D</button><button data-b="p3d">実写3D</button></div>
+    <div class="seg seg5" id="festBaseSeg" style="margin-bottom:7px;"><button data-b="map" class="on">標準</button><button data-b="white">白地図</button><button data-b="sat">航空</button><button data-b="3d" title="平らな3D（高低差なし）">3D</button><button data-b="3dt" title="高低差のある3D（大学周辺の地形を立体化）">リアル3D</button><button data-b="p3d">実写3D</button></div>
     <button class="tm-item" id="tmFestCampus"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M9.5 21v-5h5v5"/></svg></span><span class="tm-lab">キャンパス詳細<small>構内の建物・本祭で使う学外施設（実測の外形・高さ）と名称・避難場所</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestTerrain"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M2.5 19 9 9l4 6 3-4 5.5 8z"/><path d="M8 13.5l1-1.5 1.6 2.4"/></svg></span><span class="tm-lab">3Dの高低差（地形）<small>大学周辺の地面を5mメッシュ標高で立体化（OFFで平らな3D）</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestBldList"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg></span><span class="tm-lab">建物一覧・色<small>仮番号・名称・階数・高さ。建物の色を一括で変更</small></span><span class="tm-ex">開く</span></button>
@@ -5178,7 +5178,7 @@ document.getElementById('rsClear').onclick=()=>{if(points.length>=2&&!confirm('�
   wire('tmFestOsm',()=>festOsmLoad(!festOsmOn));
   wire('tmFestFit',()=>{festFit();toggleToolMenu(false);});
   const fbs=document.getElementById('festBaseSeg');
-  if(fbs)fbs.querySelectorAll('button').forEach(b=>b.onclick=()=>festSetBase(b.dataset.b));
+  if(fbs)fbs.querySelectorAll('button').forEach(b=>b.onclick=()=>festPickBase(b.dataset.b));
   // メニュー外タップで閉じる
   document.addEventListener('click',(e)=>{if(!tm||!tm.classList.contains('open'))return;if(tm.contains(e.target)||(tb&&tb.contains(e.target)))return;toggleToolMenu(false);});
 })();
@@ -5659,7 +5659,7 @@ function festSetBase(b){
   festBase=(['map','white','sat','3d','p3d'].indexOf(b)>=0)?b:'map';
   try{localStorage.setItem('fest_base',festBase);}catch(e){}
   const seg=document.getElementById('festBaseSeg');
-  if(seg)seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.b===festBase));
+  festBaseSegUi();
   if(!map)return;
   if(festBase!=='white')festWhiteOff();
   if(festBase==='p3d'){festB3dSync();festP3dOpen();updateMapOverlayInfo();festTiltUi();return;}   // 実写3D（フォトリアル）は別の地図要素を重ねる
@@ -5716,7 +5716,7 @@ function festDrawCampus(on){
       pg.addListener('click',e=>festBldClick(b,e.latLng));
       festShapes.push(pg);festBldPoly[b.id]=pg;
     }
-    if(/駐車場/.test(b.fp||''))festShapes.push(festMk('fp_'+b.id,b.c[0]-0.00013,b.c[1],'<div class="fp-p">P</div>',b.n+'（本祭期間は駐車場としても利用）',null,
+    if(/駐車場/.test(b.fp||''))festShapes.push(festMk('fp_'+b.id,b.pc?b.pc[0]:b.c[0]-0.00013,b.pc?b.pc[1]:b.c[1],   /* pc＝Pの位置（6号館は中庭の中央） */'<div class="fp-p">P</div>',b.n+'（本祭期間は駐車場としても利用）',null,
       {clickable:false,zIndex:6,icon:{url:FEST_P_ICON,scaledSize:new google.maps.Size(cadSm?14:20,cadSm?14:20),anchor:new google.maps.Point(cadSm?7:10,cadSm?7:10)}}));
     if(named&&!b.nl&&!roof3d)festLabels.push(new google.maps.Marker({position:{lat:b.c[0],lng:b.c[1]},map:null,clickable:false,zIndex:6,
       icon:{path:google.maps.SymbolPath.CIRCLE,scale:.1,fillOpacity:0,strokeOpacity:0},
@@ -5816,7 +5816,7 @@ function festP3dTier(){   // カメラの距離(range)で表示する段階を�
 }
 // --- 白地図（国土地理院 基盤地図情報の道路縁・建物外周線・鉄道・水涯線を白地に描く）
 //     データは fest-shiro.json（約210KB）。白地図を初めて開いたときだけ読み込む。構内の建物は FEST_BLD（PLATEAU）で描く
-const FEST_DATA_V=5;
+const FEST_DATA_V=6;
 const FEST_P_ICON='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22"><rect x="1" y="1" width="20" height="20" rx="4" fill="#1971c2" stroke="#ffffff" stroke-width="2"/><path d="M8 17V5.5h4.2a3.6 3.6 0 0 1 0 7.2H8" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round"/></svg>');
 const FEST_SHIRO_ST={rd:{c:'#5c6370',w:1,z:0},sw:{c:'#b5bbc4',w:.8,z:17},bk:{c:'#5f6670',w:1,z:15},bd:{c:'#9ba2ac',w:.75,z:15},wl:{c:'#4a90d9',w:1,z:0}};
 let festShiro=null, festShiroLoading=false, festShiroData=null, festShiroLines=[], festShiroTowns=[], festWhiteOv=null;
@@ -5948,6 +5948,17 @@ const FEST_DEM_V=3, FEST_TERR_EXAG=2, FEST_TERR_V=4, FEST_RAIL_V=1;   // 範囲�
 let festTerrainOn=true, festDem=null, festDemLoading=false, festTerrBusy=false, festB3dTop={};
 // 道路・緑地・水面（fest-terr.json：道路中心線＝国土地理院、緑地・水面＝OSM）。道路は道に沿って高さをならし、道路まわりの地面もその高さへ寄せる
 let festTerrData=null, festTerrDataP=null, festTerrZd=null, festTerrRd=null, festTerrCls=null, festTerrCache=null, festTerrRS=null, festTerrRail=null;
+function festBaseSegUi(){   // 地図の切り替えの押されている所：3D は高低差の有無で「3D」「リアル3D」に分ける
+  const seg=document.getElementById('festBaseSeg');if(!seg)return;const k=(festBase==='3d'&&festTerrainOn)?'3dt':festBase;
+  seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.b===k));
+}
+function festPickBase(b){   // TOP画面の地図の切り替え。リアル3D＝3D＋高低差、3D＝高低差なし
+  if(b==='3d'||b==='3dt'){const on=(b==='3dt');
+    if(festBase==='3d'){if(festTerrainOn!==on)festTerrainToggle();else festBaseSegUi();return;}   // 3Dのまま：高低差だけ切り替える（角度はそのまま）
+    if(festTerrainOn!==on){festTerrainOn=on;try{localStorage.setItem('tabi_fest_terrain',on?'1':'0');}catch(e){}if(on&&!festDem)festDemFetch();}
+    festSetBase('3d');return;}
+  festSetBase(b);
+}
 function festTerrainLoad(){try{const v=localStorage.getItem('tabi_fest_terrain');festTerrainOn=(v===null)?true:(v==='1');}catch(e){}}
 function festTerrainActive(){return !!(festTerrainOn&&festDem&&festB3d);}
 function festPinsActive(){return !!(festTerrainOn&&festDem&&festB3dWanted());}   // これから3D（地形あり）で描くか（切替の途中でも正しく判定）
@@ -5955,8 +5966,25 @@ function festTerrainZ0(lat,lng){   // 元の標高−基準（m・強調後）�
   const D=festDem;if(!D)return 0;
   const fx=(lng-D.w)/(D.e-D.w)*(D.nx-1),fy=(lat-D.s)/(D.n-D.s)*(D.ny-1);
   if(!(fx>=0&&fy>=0&&fx<=D.nx-1&&fy<=D.ny-1))return 0;
-  const i=Math.min(D.nx-2,Math.floor(fx)),j=Math.min(D.ny-2,Math.floor(fy)),u=fx-i,v=fy-j,H=D.h,nx=D.nx;
-  return ((H[j*nx+i]*(1-u)*(1-v)+H[j*nx+i+1]*u*(1-v)+H[(j+1)*nx+i]*(1-u)*v+H[(j+1)*nx+i+1]*u*v)*D.scale-D.base)*FEST_TERR_EXAG;
+  const i=Math.min(D.nx-2,Math.floor(fx)),j=Math.min(D.ny-2,Math.floor(fy)),u=fx-i,v=fy-j,Z=D.z,nx=D.nx;
+  return Z[j*nx+i]*(1-u)*(1-v)+Z[j*nx+i+1]*u*(1-v)+Z[(j+1)*nx+i]*(1-u)*v+Z[(j+1)*nx+i+1]*u*v;
+}
+// 各点の描く高さ（強調後）。基準の高さは大学の周り（外周から120m）では一定（D.base）、そこから600mまでに周りの平均の標高（約75mの範囲でならした値）へ移す。
+// Googleの文字・アイコン（バス停・道路番号など）は高さ0の平面に描かれるため、大学から離れた低い土地でも地面が0付近に来るようにする（宙に浮いて見えない）
+function festDemZ(D){
+  const nx=D.nx,ny=D.ny,n=nx*ny,h=new Float32Array(n);for(let k=0;k<n;k++)h[k]=D.h[k]*D.scale;
+  let a=h.slice();const b=new Float32Array(n),R=12;
+  for(let pass=0;pass<3;pass++){   // 箱形のぼかし×3（ほぼガウス）
+    for(let j=0;j<ny;j++){let s=0;for(let i=-R;i<=R;i++)s+=a[j*nx+Math.min(nx-1,Math.max(0,i))];for(let i=0;i<nx;i++){b[j*nx+i]=s/(2*R+1);s+=a[j*nx+Math.min(nx-1,i+R+1)]-a[j*nx+Math.max(0,i-R)];}}
+    for(let i=0;i<nx;i++){let s=0;for(let j=-R;j<=R;j++)s+=b[Math.min(ny-1,Math.max(0,j))*nx+i];for(let j=0;j<ny;j++){a[j*nx+i]=s/(2*R+1);s+=b[Math.min(ny-1,j+R+1)*nx+i]-b[Math.max(0,j-R)*nx+i];}}
+  }
+  const kx=Math.cos((D.s+D.n)/2*Math.PI/180)*111320,ky=110940,C=FEST_CAMPUS.map(p=>[(p[1]-D.w)*kx,(p[0]-D.s)*ky]),z=new Float32Array(n);
+  for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
+    const x=(D.e-D.w)*i/(nx-1)*kx,y=(D.n-D.s)*j/(ny-1)*ky;let d=0;
+    if(!festPip(x,y,C)){d=1e9;for(let q=0;q<C.length;q++){const A=C[q],B=C[(q+1)%C.length],dx=B[0]-A[0],dy=B[1]-A[1],L=dx*dx+dy*dy;let t=L?((x-A[0])*dx+(y-A[1])*dy)/L:0;t=Math.max(0,Math.min(1,t));const e=Math.hypot(x-A[0]-t*dx,y-A[1]-t*dy);if(e<d)d=e;}}
+    let w=1-Math.max(0,Math.min(1,(d-120)/480));w=w*w*(3-2*w);
+    const k=j*nx+i;z[k]=(h[k]-(w*D.base+(1-w)*a[k]))*FEST_TERR_EXAG;}
+  return z;
 }
 function festTerrainZ(lat,lng){   // 描画する地面の高さ（道路まわりをならした後。未計算なら元の標高）
   const D=festDem,Z=festTerrZd;if(!D)return 0;if(!Z)return festTerrainZ0(lat,lng);
@@ -6062,14 +6090,18 @@ function festTerrPrep(){
   const thru=FEST_VEH.filter(v=>v.k==='thru').map(v=>v.p.map(q=>festB3dXY(q[0],q[1]))),camp=FEST_CAMPUS.map(q=>festB3dXY(q[0],q[1]));
   const dSeg=(px,py,P)=>{let b=1e9;for(let k=0;k<P.length-1;k++){const ax=P[k][0],ay=P[k][1],dx=P[k+1][0]-ax,dy=P[k+1][1]-ay,L=dx*dx+dy*dy;let t=L?((px-ax)*dx+(py-ay)*dy)/L:0;t=Math.max(0,Math.min(1,t));const d=Math.hypot(px-ax-t*dx,py-ay-t*dy);if(d<b)b=d;}return b;};
   let bx0=1e9,bx1=-1e9,by0=1e9,by1=-1e9;thru.forEach(P=>P.forEach(q=>{bx0=Math.min(bx0,q[0]);bx1=Math.max(bx1,q[0]);by0=Math.min(by0,q[1]);by1=Math.max(by1,q[1]);}));
-  const nearT=(x,y)=>x>bx0-6&&x<bx1+6&&y>by0-6&&y<by1+6&&thru.some(P=>dSeg(x,y,P)<6);
+  const nearT=(x,y,tx,ty)=>{if(!(x>bx0-6&&x<bx1+6&&y>by0-6&&y<by1+6))return false;   // 6m以内で、向きが30°以内にそろう区間がある（交わる側道は除く）
+    for(const P of thru)for(let k=0;k<P.length-1;k++){const ax=P[k][0],ay=P[k][1],dx=P[k+1][0]-ax,dy=P[k+1][1]-ay,L=dx*dx+dy*dy;if(!L)continue;
+      let t=((x-ax)*dx+(y-ay)*dy)/L;t=Math.max(0,Math.min(1,t));if(Math.hypot(x-ax-t*dx,y-ay-t*dy)>=6)continue;
+      if(Math.abs(tx*dx+ty*dy)/Math.sqrt(L)>=0.86)return true;}
+    return false;};
   const rdS=[];
   rd.forEach(r=>{const n=r.x.length,stp=Math.max(1,Math.floor(n/12));let c=0,no=0;
     for(let k=0;k<n;k+=stp){c++;if(!festPip(r.x[k],r.y[k],camp))no++;}
     const bc=(r.fl&4)?'p':(((r.fl&2)||r.w>=7)?'m':'r'),bdw=(bc!=='p'&&no/c>0.6)?r.w*1.2+0.4:r.w;
     const T=w=>Object.assign(w,{cls:'t',dw:Math.max(r.w,6)+3}),B=w=>Object.assign(w,{cls:bc,dw:bdw});
     if(bc==='p'){rdS.push(B(r));return;}
-    const nf=new Uint8Array(n);for(let k=0;k<n;k++)nf[k]=nearT(r.x[k],r.y[k])?1:0;
+    const nf=new Uint8Array(n);for(let k=0;k<n;k++){const a=Math.max(0,k-1),b=Math.min(n-1,k+1),tx=r.x[b]-r.x[a],ty=r.y[b]-r.y[a],tl=Math.hypot(tx,ty)||1;nf[k]=nearT(r.x[k],r.y[k],tx/tl,ty/tl)?1:0;}
     for(let k=0;k<n;){let e=k;while(e<n&&nf[e]===nf[k])e++;if(nf[k]&&e-k<4)for(let q=k;q<e;q++)nf[q]=0;k=e;}   // 交差点で少しかすめるだけの所は太くしない
     let k0=0;
     for(let k=1;k<=n;k++){if(k<n&&nf[k]===nf[k0])continue;   // 沿い始める・外れる所で分ける（1点重ねてすき間を作らない）
@@ -6090,7 +6122,7 @@ function festTerrPrep(){
       best.forEach(({j})=>{nb[i].push(j);nb[j].push(i);});});});
     for(let it=0;it<24;it++){const Z2=SZ.slice();for(let i=0;i<N;i++){if(FX[i])continue;const a=nb[i];if(!a.length)continue;let t=0;for(const j of a)t+=SZ[j];Z2[i]=SZ[i]*.5+.5*t/a.length;}SZ=Z2;}
     rd.forEach((r,ri)=>{for(let k=0;k<r.x.length;k++)r.z[k]=SZ[off[ri]+k];});}
-  const Z0=new Float32Array(nx*ny);for(let k=0;k<Z0.length;k++)Z0[k]=(D.h[k]*D.scale-D.base)*FEST_TERR_EXAG;
+  const Z0=D.z.slice();   // 描く高さ（festDemZ）
   const Zd=Z0.slice(),CS=8,grid=new Map(),key=(cx,cy)=>(cx+4096)*8192+(cy+4096);
   rd.forEach(r=>{if(r.fl&1)return;for(let k=0;k<r.x.length;k++){const kk=key(Math.floor(r.x[k]/CS),Math.floor(r.y[k]/CS));let a=grid.get(kk);if(!a){a=[];grid.set(kk,a);}a.push(r.x[k],r.y[k],r.z[k],r.dw/2);}});
   for(let j=0;j<ny;j++)for(let i=0;i<nx;i++){
@@ -6135,15 +6167,15 @@ async function festDemFetch(){
   if(festDem||festDemLoading)return;festDemLoading=true;
   try{const r=await fetch('fest-dem.json?v='+FEST_DEM_V);if(!r.ok)throw new Error('HTTP '+r.status);const j=await r.json();
     const bin=atob(j.d),a=new Int16Array(j.nx*j.ny);for(let k=0;k<a.length;k++)a[k]=((bin.charCodeAt(2*k)|(bin.charCodeAt(2*k+1)<<8))<<16)>>16;
-    festDem={s:j.s,w:j.w,n:j.n,e:j.e,nx:j.nx,ny:j.ny,base:j.base,scale:j.scale,h:a};
+    festDem={s:j.s,w:j.w,n:j.n,e:j.e,nx:j.nx,ny:j.ny,base:j.base,scale:j.scale,h:a};festDem.z=festDemZ(festDem);
   }catch(e){console.warn('dem',e);festDemLoading=false;return;}
   festDemLoading=false;festTerrainChanged();
 }
 function festTerrainToggle(){
   festTerrainOn=!festTerrainOn;try{localStorage.setItem('tabi_fest_terrain',festTerrainOn?'1':'0');}catch(e){}
   if(festTerrainOn&&!festDem)festDemFetch();
-  festTerrainChanged();
-  showStatus(festTerrainOn?('3Dの高低差：ON（大学周辺の地面を標高どおりに立体化'+(festBase==='3d'?'':'。3D表示のときに反映')+'）'):'3Dの高低差：OFF（従来の平らな3D）',false);hideStatusLater();
+  festTerrainChanged();festBaseSegUi();
+  showStatus(festTerrainOn?('リアル3D：高低差あり（大学周辺の地面を標高どおりに立体化'+(festBase==='3d'?'':'。3D表示のときに反映')+'）'):'3D：高低差なし（平らな3D）',false);hideStatusLater();
 }
 function festTerrainChanged(){   // 地形の有無で、外周・動線・印の描き方（Google地図の図形 ⇔ WebGL・地形に沿った印）を切り替える
   if(festTerrBusy)return;festTerrBusy=true;
@@ -6356,7 +6388,7 @@ function festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR,TB){
   const X=new Float64Array(nx),Y=new Float64Array(ny);
   for(let i=0;i<nx;i++)X[i]=festB3dXY(D.s,D.w+(D.e-D.w)*i/(nx-1))[0];
   for(let j=0;j<ny;j++)Y[j]=festB3dXY(D.s+(D.n-D.s)*j/(ny-1),D.w)[1];
-  const EX=FEST_TERR_EXAG,E=(i,j)=>H[j*nx+i]*sc,Z=Zd?((i,j)=>Zd[j*nx+i]):((i,j)=>(H[j*nx+i]*sc-base)*EX);
+  const EX=FEST_TERR_EXAG,E=(i,j)=>H[j*nx+i]*sc,Z=Zd?((i,j)=>Zd[j*nx+i]):((i,j)=>D.z[j*nx+i]);
   // Googleマップに近い配色：陸地は淡いグレー（高い所ほどわずかに濃く）、公園・樹林は控えめな緑、水面は青。陰影は弱め
   const pal=dark?{lo:'#1b2129',hi:'#242b35',park:'#1e382e',wood:'#1a3128',water:'#152e47',soil:'#13171d',c5:'#242b34',c25:'#2c343e',
                    rf:'#465061',rc:'#2a313b',mf:'#566174',mc:'#2a313b',pf:'#3a4350',pc:'#2a313b',tf:'#6a768b',tc:'#2a313b',plz:'#2b323d'}
@@ -6374,7 +6406,7 @@ function festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR,TB){
   const v=(i,j)=>add(TT,X[i],Y[j],Z(i,j),col[j*nx+i]);
   for(let j=0;j<ny-1;j++)for(let i=0;i<nx-1;i++){v(i,j);v(i+1,j);v(i+1,j+1);v(i,j);v(i+1,j+1);v(i,j+1);}
   // 崖の側面（地形の範囲の縁を下まで下ろして、模型のように見せる）
-  const zb=(mn-base)*EX-4,soil=C(pal.soil);
+  let zmn=1e9;for(let k=0;k<D.z.length;k++)if(D.z[k]<zmn)zmn=D.z[k];const zb=zmn-4,soil=C(pal.soil);   // 側面の下端＝描く高さの最も低い所より4m下
   const edge=(pts)=>{for(let k=0;k<pts.length-1;k++){const[a1,b1]=pts[k],[a2,b2]=pts[k+1];
     add(TT,X[a1],Y[b1],Z(a1,b1),soil);add(TT,X[a2],Y[b2],Z(a2,b2),soil);add(TT,X[a2],Y[b2],zb,soil);
     add(TT,X[a1],Y[b1],Z(a1,b1),soil);add(TT,X[a2],Y[b2],zb,soil);add(TT,X[a1],Y[b1],zb,soil);}};
@@ -6987,14 +7019,14 @@ const FEST_BLD=[
  {"id":"B04","n":"3号館","ns":"公","h":33.4,"f":null,"u":"不明","a":940,"s":"P","lz":1,"r":"教室・研究室・院生研究室・学友会室・ラウンジ ほか","ev":"A","c":[35.609096,139.555791],"p":[[35.609313,139.555934],[35.609329,139.555881],[35.609337,139.555884],[35.609363,139.555798],[35.609337,139.555786],[35.609338,139.55578],[35.608969,139.555613],[35.60895,139.555675],[35.608961,139.55568],[35.608945,139.555733],[35.608932,139.555727],[35.608906,139.555813],[35.608923,139.555821],[35.60892,139.555832],[35.609293,139.556001]]},
  {"id":"B05","n":"4号館","ns":"公","h":19.4,"f":5,"u":"文教厚生","a":2213,"s":"P","r":"教室・研究室・教務課・経理課・学生生活課・保健室・キャリア形成支援課 ほか","ev":"A","c":[35.609787,139.555819],"p":[[35.609427,139.555818],[35.609396,139.555921],[35.60952,139.555976],[35.609558,139.555848],[35.609659,139.555893],[35.609657,139.5559],[35.609854,139.555987],[35.609998,139.555498],[35.6098,139.55541],[35.609707,139.555725],[35.609378,139.555579],[35.609382,139.555566],[35.609278,139.55552],[35.609274,139.555534],[35.609201,139.555502],[35.609156,139.555655],[35.609438,139.55578]]},
  {"id":"B06","n":"5号館","ns":"公","h":12.9,"f":3,"u":"文教厚生","a":1913,"s":"P","r":"教室・ゼミ室・研究室・各種実験室","ev":"B","c":[35.609504,139.554769],"p":[[35.60973,139.554585],[35.609636,139.554546],[35.609652,139.554491],[35.609577,139.554459],[35.609572,139.554476],[35.609494,139.554443],[35.609483,139.554483],[35.60942,139.554456],[35.609277,139.554967],[35.609331,139.55499],[35.60932,139.55503],[35.609434,139.555078],[35.609454,139.55504],[35.609587,139.555096]]},
- {"id":"B07","n":"6号館","ns":"O","h":14.7,"f":4,"u":"文教厚生","a":1497,"s":"P","r":"現在は活発には使われていないが、大学院の機能がある","fp":"駐車場としても利用","ev":"B","c":[35.610552,139.554812],"p":[[35.610608,139.555356],[35.610614,139.555358],[35.610647,139.555227],[35.610619,139.555217],[35.610654,139.555081],[35.610683,139.555083],[35.610738,139.554868],[35.610724,139.554862],[35.610737,139.554811],[35.610481,139.554714],[35.610468,139.554762],[35.610383,139.55473],[35.610241,139.555286],[35.610307,139.555311],[35.610319,139.555264],[35.610344,139.555273],[35.610395,139.555072],[35.610368,139.555062],[35.610429,139.554823],[35.610447,139.554829],[35.610444,139.554843],[35.61069,139.554936],[35.610673,139.555002],[35.610608,139.554977],[35.610515,139.555345],[35.610419,139.555308],[35.610426,139.555282],[35.6104,139.555272],[35.610396,139.55529],[35.610377,139.555283],[35.610338,139.555348],[35.610361,139.555357],[35.610345,139.555419],[35.610547,139.555496],[35.610585,139.555347]]},
+ {"id":"B07","n":"6号館","pc":[35.610489,139.555018],"ns":"O","h":14.7,"f":4,"u":"文教厚生","a":1497,"s":"P","r":"現在は活発には使われていないが、大学院の機能がある","fp":"駐車場としても利用","ev":"B","c":[35.610552,139.554812],"p":[[35.610608,139.555356],[35.610614,139.555358],[35.610647,139.555227],[35.610619,139.555217],[35.610654,139.555081],[35.610683,139.555083],[35.610738,139.554868],[35.610724,139.554862],[35.610737,139.554811],[35.610481,139.554714],[35.610468,139.554762],[35.610383,139.55473],[35.610241,139.555286],[35.610307,139.555311],[35.610319,139.555264],[35.610344,139.555273],[35.610395,139.555072],[35.610368,139.555062],[35.610429,139.554823],[35.610447,139.554829],[35.610444,139.554843],[35.61069,139.554936],[35.610673,139.555002],[35.610608,139.554977],[35.610515,139.555345],[35.610419,139.555308],[35.610426,139.555282],[35.6104,139.555272],[35.610396,139.55529],[35.610377,139.555283],[35.610338,139.555348],[35.610361,139.555357],[35.610345,139.555419],[35.610547,139.555496],[35.610585,139.555347]]},
  {"id":"B08","n":"7号館","ns":"公","h":20.6,"f":3,"u":"文教厚生","a":959,"s":"P","r":"教室・ゼミ室","ev":"B","c":[35.610648,139.554578],"p":[[35.610458,139.554521],[35.610433,139.554619],[35.610498,139.554643],[35.610489,139.554661],[35.610697,139.554741],[35.610704,139.554724],[35.610769,139.55475],[35.61083,139.55452],[35.610819,139.554516],[35.610823,139.554499],[35.610505,139.554374],[35.610501,139.55439],[35.610493,139.554386]]},
  {"id":"B09","n":"8号館","ns":"公","h":20.4,"f":4,"u":"文教厚生","a":1388,"s":"P","r":"教室・研究室・会議室・購買会","ev":"B","c":[35.61015,139.554206],"p":[[35.610388,139.554424],[35.610424,139.554438],[35.610478,139.55422],[35.609817,139.553974],[35.609763,139.554191],[35.60987,139.55423],[35.609881,139.554185],[35.610072,139.554256],[35.610063,139.554292],[35.610194,139.55434],[35.610202,139.554306],[35.610359,139.554365],[35.610348,139.554409]]},
  {"id":"B10","n":"10号館","ns":"公","h":31.8,"f":5,"u":"文教厚生","a":5022,"s":"P","r":"130年記念館。教室・ゼミ室・アカデミーモール・情報コアゾーン・学生ラウンジ・レストラン","fp":"実行委員の本拠地（本祭期間）","ev":"B","c":[35.611402,139.555173],"p":[[35.611853,139.555066],[35.611866,139.555064],[35.611854,139.554932],[35.611842,139.554933],[35.611842,139.554926],[35.611456,139.55498],[35.611454,139.554954],[35.611458,139.554954],[35.611393,139.554243],[35.611279,139.554259],[35.611276,139.554222],[35.611241,139.554227],[35.611234,139.554158],[35.611203,139.554163],[35.611206,139.554199],[35.611188,139.554202],[35.611186,139.554185],[35.61112,139.554194],[35.611199,139.555048],[35.610984,139.555078],[35.610985,139.555086],[35.610938,139.555092],[35.610947,139.555182],[35.610994,139.555176],[35.610995,139.555183],[35.611211,139.555153],[35.611244,139.555505],[35.611312,139.555496],[35.61131,139.555475],[35.611329,139.555472],[35.611333,139.555512],[35.611364,139.555507],[35.61136,139.555464],[35.611395,139.555459],[35.61139,139.555402],[35.611823,139.555342],[35.611801,139.555112],[35.611796,139.555113],[35.611793,139.555074]]},
  {"id":"B11","n":"守衛場","ns":"公","h":8.2,"f":4,"u":"文教厚生","a":99,"s":"P","c":[35.609003,139.555145],"p":[[35.608993,139.555232],[35.609022,139.555218],[35.609052,139.555113],[35.608981,139.555083],[35.608945,139.555212]]},
  {"id":"B12","n":"グリーントップ","ns":"公","h":20.4,"f":3,"u":"文教厚生","a":506,"s":"P","lz":1,"r":"学生相談室・教職員食堂","ev":"A","c":[35.60916,139.556091],"p":[[35.609385,139.556127],[35.609371,139.556121],[35.609376,139.556104],[35.609329,139.556082],[35.609333,139.556069],[35.609241,139.556028],[35.609238,139.556038],[35.609132,139.555991],[35.609122,139.556026],[35.609031,139.555985],[35.609025,139.556008],[35.609013,139.556002],[35.609,139.556045],[35.609054,139.55611],[35.609098,139.556146],[35.609147,139.556173],[35.609198,139.556191],[35.609277,139.556198],[35.609356,139.556183],[35.60937,139.556177]]},
- {"id":"B13","n":"図書館生田分館","ns":"公","h":4.4,"f":3,"u":"文教厚生","a":520,"s":"P","nl":1,"ev":"A","c":[35.608458,139.554218],"p":[[35.608529,139.5547],[35.608616,139.554669],[35.608488,139.554149],[35.608332,139.554205],[35.608338,139.554229],[35.608301,139.554243],[35.608313,139.554294],[35.608349,139.554281],[35.608354,139.554304],[35.608439,139.554273],[35.608487,139.554471],[35.60852,139.554459],[35.608541,139.554545],[35.608495,139.554562]]},
- {"id":"B14","n":"図書館生田分館","ns":"公","h":21.8,"f":4,"u":"文教厚生","a":1011,"s":"P","r":"図書館（生田分館）・研究所・入学課・エクステンションセンター事務課","ev":"A","c":[35.608406,139.55453],"p":[[35.608313,139.554294],[35.608259,139.554314],[35.608332,139.554618],[35.608291,139.554633],[35.608325,139.554774],[35.608428,139.554737],[35.608451,139.554834],[35.608552,139.554797],[35.608495,139.554562],[35.608541,139.554545],[35.60852,139.554459],[35.608487,139.554471],[35.608439,139.554273],[35.608354,139.554304],[35.608349,139.554281]]},
+ {"id":"B13","n":"図書館分館","ns":"公","h":4.4,"f":3,"u":"文教厚生","a":520,"s":"P","nl":1,"ev":"A","c":[35.608458,139.554218],"p":[[35.608529,139.5547],[35.608616,139.554669],[35.608488,139.554149],[35.608332,139.554205],[35.608338,139.554229],[35.608301,139.554243],[35.608313,139.554294],[35.608349,139.554281],[35.608354,139.554304],[35.608439,139.554273],[35.608487,139.554471],[35.60852,139.554459],[35.608541,139.554545],[35.608495,139.554562]]},
+ {"id":"B14","n":"図書館分館","ns":"公","h":21.8,"f":4,"u":"文教厚生","a":1011,"s":"P","r":"図書館（分館）・研究所・入学課・エクステンションセンター事務課","ev":"A","c":[35.608406,139.55453],"p":[[35.608313,139.554294],[35.608259,139.554314],[35.608332,139.554618],[35.608291,139.554633],[35.608325,139.554774],[35.608428,139.554737],[35.608451,139.554834],[35.608552,139.554797],[35.608495,139.554562],[35.608541,139.554545],[35.60852,139.554459],[35.608487,139.554471],[35.608439,139.554273],[35.608354,139.554304],[35.608349,139.554281]]},
  {"id":"B15","n":"生田会館","ns":"公","h":13.7,"f":3,"u":"文教厚生","a":1102,"s":"P","r":"食堂・喫茶・学生自治会・体育会本部 ほか。実行委員の本拠地（本祭期間の本拠地は10号館）","ev":"B","c":[35.610468,139.55583],"p":[[35.610586,139.555759],[35.610267,139.555629],[35.610209,139.555844],[35.61067,139.556031],[35.610728,139.555816]]},
  {"id":"B16","n":"第1体育館","ns":"公","h":11.8,"f":1,"u":"文教厚生","a":2273,"s":"P","ev":"B","c":[35.609911,139.554954],"p":[[35.610037,139.555293],[35.610184,139.554791],[35.609785,139.554615],[35.609638,139.555118]]},
  {"id":"B17","n":"自治会館❶","ns":"公","h":9.8,"f":3,"u":"文教厚生","a":491,"s":"P","ev":"B","c":[35.610768,139.555499],"p":[[35.61092,139.555093],[35.61089,139.555081],[35.610897,139.555052],[35.610854,139.555036],[35.610847,139.555065],[35.610835,139.55506],[35.610706,139.555556],[35.610741,139.555569],[35.610738,139.555582],[35.610757,139.555589],[35.610762,139.55558],[35.610793,139.555592]]},
@@ -7078,7 +7110,7 @@ const FEST_VEH=[
  {"id":"V25","n":"構内を通る道路の延長（10号館側・向ヶ丘遊園6号踏切まで）","k":"thru","ext":1,"L":396,"r":"構内を通る道路の延長として強調。北の端から小田急線の向ヶ丘遊園6号踏切まで（OpenStreetMap）","p":[[35.612325,139.555382],[35.612384,139.555364],[35.612728,139.555336],[35.612902,139.555322],[35.613045,139.555312],[35.613472,139.555285],[35.613689,139.555271],[35.613795,139.555267],[35.613948,139.555255],[35.614066,139.555273],[35.614073,139.555274],[35.614346,139.555345],[35.614369,139.555349],[35.614399,139.555354],[35.614503,139.555387],[35.614533,139.5554],[35.61469,139.555495],[35.614878,139.555631],[35.615094,139.555829],[35.615212,139.555991],[35.615396,139.556257],[35.615463,139.556363],[35.615502,139.5564],[35.615531,139.556417],[35.615558,139.556432]]}
 ];
 // 車両の出入り地点（候補）：車両道路とキャンパス外周の交点・構内道路の接続点。学園祭期間の通行可否は未設定
-const FEST_VENT=[{"id":"E1","n":"西グラウンド側の出入口","c":[35.60987,139.551017],"v":["V02"]},{"id":"E2","n":"総合体育館南西の出入口","c":[35.610089,139.552152],"v":["V04"]},{"id":"E3","n":"西口（120年記念館前・路線バスが入る）","c":[35.610992,139.551548],"v":["V06"]},{"id":"E4","n":"構内を通る道路の北口（第3学生自治会館付近）","c":[35.611365,139.556027],"v":["V09"]},{"id":"E5","n":"正門（守衛場前）","c":[35.6091,139.555017],"v":["V09","V14"],"r":"OSMに門（車両は目的地への出入りのみ＝access=destination）の登録あり"},{"id":"E6","n":"構内を通る道路の南口（図書館生田分館付近）","c":[35.608707,139.554854],"v":["V09"]},{"id":"E7","n":"構内道路の東口（第1体育館前）","c":[35.610073,139.55541],"v":["V01","V09"]}];
+const FEST_VENT=[{"id":"E1","n":"西グラウンド側の出入口","c":[35.60987,139.551017],"v":["V02"]},{"id":"E2","n":"総合体育館南西の出入口","c":[35.610089,139.552152],"v":["V04"]},{"id":"E3","n":"西口（120年記念館前・路線バスが入る）","c":[35.610992,139.551548],"v":["V06"]},{"id":"E4","n":"構内を通る道路の北口（第3学生自治会館付近）","c":[35.611365,139.556027],"v":["V09"]},{"id":"E5","n":"正門（守衛場前）","c":[35.6091,139.555017],"v":["V09","V14"],"r":"OSMに門（車両は目的地への出入りのみ＝access=destination）の登録あり"},{"id":"E6","n":"構内を通る道路の南口（図書館分館付近）","c":[35.608707,139.554854],"v":["V09"]},{"id":"E7","n":"構内道路の東口（第1体育館前）","c":[35.610073,139.55541],"v":["V01","V09"]}];
 // 駐車場（OSM）。fee:1＝有料（黄色で塗る）。6号館の駐車場利用は FEST_BLD の fp で表示
 const FEST_PARK=[{"id":"P1","n":"10・9号館前の駐車場（9号館駐車場）","r":"OSM：access=destination（関係者用とみられる）。本祭期間は車椅子利用者・ベビーマーク掲示車両が利用可。10号館芝生へつながる坂道入口の車止めを開放（消防車の誘導経路と重なる）","a":3094,"c":[35.611282,139.553644],"p":[[35.611129,139.553398],[35.611124,139.553559],[35.611165,139.553588],[35.611187,139.553624],[35.611192,139.553676],[35.611188,139.553741],[35.61117,139.553766],[35.61118,139.553923],[35.611767,139.553844],[35.611721,139.553323]]},{"id":"P2","n":"第一体育館前の駐車スペース","r":"車十数台分（狭いので注意）。G倉庫からの搬出先として頻繁に使用。本祭期間は車止めを開放し車両通行可（第一体育館駐車場・第一体育館裏〜5号館の間も同様）","a":241,"c":[35.610137,139.555053],"p":[[35.610042,139.555295],[35.610189,139.554793],[35.610232,139.554812],[35.610085,139.555314]]},{"id":"P3","n":"ゴルフ場駐車場","fee":1,"r":"学生課の避難経路図の表記。東側の舗装部分（遊園側の向きでは左）とあわせて一つの駐車場として運用（航空写真で範囲を確認）","a":5663,"c":[35.608816,139.553462],"p":[[35.609143,139.55258],[35.608874,139.55394],[35.60883,139.554163],[35.608754,139.554537],[35.608666,139.554524],[35.608578,139.554163],[35.608578,139.55391],[35.608563,139.553849],[35.608817,139.55259],[35.608905,139.552582]]},{"id":"P4","n":"生田緑地西口駐車場","fee":1,"r":"有料・一般（川崎市）","a":1378,"c":[35.609195,139.556534],"p":[[35.609183,139.55627],[35.609318,139.556277],[35.609322,139.556909],[35.609251,139.557052],[35.609114,139.556921],[35.609112,139.556459],[35.609173,139.556458],[35.609172,139.556362],[35.609144,139.556334],[35.609163,139.556302]]},{"id":"P6","n":"教員用駐車スペース（守衛場の隣）","r":"守衛場の西隣（遊園側の向きでは右）の正方形の駐車スペース。普段は教員用、本祭期間は駐車場として利用（航空写真で範囲を確認）","a":558,"c":[35.609112,139.554905],"p":[[35.609259,139.554773],[35.609221,139.555033],[35.609065,139.554991],[35.608997,139.554966],[35.60902,139.554761]]}];
 // 路線バス：向10 専明線（向ヶ丘遊園駅→専修大学9号館＝構内まで入る／専修大学前）ほか周辺の系統（OSMの路線データ）。m=向10 9号館行きの経路
