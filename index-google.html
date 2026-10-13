@@ -37,9 +37,9 @@
     --open:#51cf66; --closed:#ff6b6b;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-  html,body{margin:0;padding:0;height:100%;}
+  html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;}   /* 地図アプリなのでページ自体はスクロールさせない（全画面⇔縮小で画面がずれて見切れるのを防ぐ） */
   body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;color:var(--fg);background:var(--bg);transition:background-color .3s,color .3s;}
-  #map{position:absolute;inset:0;height:100dvh;width:100vw;z-index:0;background:var(--bg);}
+  #map{position:absolute;inset:0;height:100dvh;width:100%;z-index:0;background:var(--bg);}   /* 100vw はスクロールバーの分はみ出すので使わない */
   /* === 浮遊ヘッダ（Google Maps風） === */
   #topbar{position:fixed;top:0;left:0;right:0;z-index:1250;padding-top:env(safe-area-inset-top);pointer-events:none;}
   /* 現在時刻（NICT風デジタル時計）。pointer-events:none で地図操作を妨げない・常時最前面 */
@@ -872,6 +872,43 @@
     .nv-ic,.nv-ic svg{width:36px;height:36px;}
     .nv-btn{font-size:11px;padding:0 8px;}
   }
+  /* ===== 設定・カスタム・ルート費用：ボタンや枠を小さく（Google版・本祭支援ツール共通。末尾に置いて上書き） ===== */
+  #overlay .modal{max-width:400px;padding:12px 14px;border-radius:14px;}
+  #overlay .modal-h{margin-bottom:8px;} #overlay .modal-h b{font-size:14.5px;}
+  #overlay .set-sec{margin-bottom:11px;}
+  #overlay .set-label{font-size:10.5px;margin-bottom:4px;}
+  #overlay .set-sec input{padding:6px 9px;border-radius:8px;}
+  #overlay .set-help{font-size:10.5px;margin-top:4px;line-height:1.45;}
+  #overlay .set-save{min-height:32px;margin-top:6px;border-radius:8px;font-size:12.5px;}
+  #overlay .set-save.ghost{min-height:28px;font-size:12px;}
+  #overlay .set-msg{font-size:11px;margin-top:4px;min-height:0;}
+  #overlay .adv-toggle{padding:6px 10px;border-radius:8px;font-size:12.5px;}
+  #overlay .ver-switch{gap:4px;} #overlay .ver-switch a{padding:6px 4px;border-radius:7px;font-size:11.5px;}
+  #customPanel{padding:8px 10px;gap:6px;border-radius:13px;}
+  #customPanel .chk{font-size:12px;padding:4px 9px;gap:5px;}
+  #customPanel .chk input{width:14px;height:14px;} #customPanel .chk .dot{width:8px;height:8px;}
+  #customPanel .rs-search{gap:6px;} #customPanel .rs-search input{padding:6px 9px;border-radius:8px;} #customPanel .rs-search button{padding:0 12px;border-radius:8px;font-size:12.5px;}
+  #customPanel .pin-row .pin-go,#customPanel .pin-grp .pin-grp-draw{padding:5px 9px;border-radius:7px;font-size:12px;}
+  #customPanel .pin-x,#customPanel .pin-grp-x{width:26px;height:26px;border-radius:7px;font-size:12px;}
+  #customPanel .pin-save-btn{min-height:30px;border-radius:8px;font-size:12px;}
+  #customPanel #cFestCol .fest-sw{width:22px;height:22px;}
+  #routeSheet{padding:6px 12px calc(8px + env(safe-area-inset-bottom));}
+  #routeSheet .rs-head{margin-bottom:6px;} #routeSheet .rs-head b{font-size:14px;}
+  #routeSheet .rs-search{gap:6px;margin-bottom:6px;} #routeSheet .rs-search input{padding:6px 9px;border-radius:8px;} #routeSheet .rs-search button{padding:0 12px;border-radius:8px;font-size:12.5px;}
+  #routeSheet .pt-list{gap:4px;margin-bottom:6px;} #routeSheet .pt-row{padding:5px 8px;gap:7px;border-radius:8px;}
+  #routeSheet .pt-badge{min-width:30px;height:20px;font-size:11px;border-radius:6px;} #routeSheet .pt-label{font-size:12.5px;}
+  #routeSheet .pt-del,#routeSheet .pt-mv{width:24px;height:24px;}
+  #routeSheet .rs-btns{gap:6px;margin:0 0 4px;} #routeSheet .rs-btns button{min-height:30px;border-radius:8px;font-size:12px;}
+  #routeSheet .rs-hint{font-size:10.5px;margin:2px 0 6px;}
+  #routeSheet .rs-section{padding-top:8px;margin-top:4px;} #routeSheet .rs-label{font-size:10.5px;margin-bottom:5px;}
+  #routeSheet .seg{gap:3px;padding:3px;border-radius:9px;margin-bottom:7px;} #routeSheet .seg button{min-height:28px;border-radius:7px;font-size:12px;}
+  #routeSheet .dep-row{margin:6px 0 3px;gap:6px;} #routeSheet .dep-row input{padding:5px 8px;border-radius:8px;} #routeSheet .dep-now{padding:5px 10px;border-radius:7px;font-size:11.5px;}
+  #routeSheet .rs-inputs{gap:8px;} #routeSheet .rs-inputs label{font-size:10.5px;} #routeSheet .rs-inputs input{margin-top:3px;padding:6px 9px;border-radius:8px;font-size:14px;}
+  #routeSheet .rs-result{padding-top:8px;margin-top:6px;} #routeSheet .rs-grid{gap:5px;} #routeSheet .rs-grid+.rs-grid{margin-top:5px;}
+  #routeSheet .rs-card{padding:4px 7px;border-radius:8px;} #routeSheet .rs-card .val{font-size:14.5px;}
+  #routeSheet .rs-note{font-size:10.5px;margin-top:6px;}
+  #routeSheet #saveRouteBtn,#routeSheet #schedBtn,#routeSheet .nav-start-btn{min-height:34px !important;border-radius:8px !important;font-size:12.5px !important;margin-bottom:6px !important;}
+  #routeSheet #saveRouteBtn{margin-top:8px !important;}
 </style>
 </head>
 <body>
@@ -1025,27 +1062,27 @@
   <div id="favRow" style="display:none;gap:6px;flex-wrap:wrap;margin-bottom:8px;"></div>
   <div id="ptList" class="pt-list"></div>
   <div class="rs-btns"><button id="useLoc">現在地を追加</button><button id="reverse">⇅ 反転</button><button id="optBtn" title="複数経由地を最も効率の良い順に並べ替え">最適順</button></div>
-  <div class="rs-hint">検索 / 地図ダブルタップ / 現在地 / ピンの「ここへ」で地点を追加。経由地もOK。</div>
+  <div class="rs-hint">検索・ダブルタップ・現在地で地点を追加</div>
   <div id="rsDetails" style="display:none;">
   <div id="altSel" style="display:none;margin-bottom:10px;"></div>
   <div class="rs-section" style="border-top:none;padding-top:0;margin-top:0;">
-    <div class="seg" id="prefSeg"><button data-p="fast" class="on"><span class="pref-dot" style="background:#f76707"></span>高速優先</button><button data-p="avoid"><span class="pref-dot" style="background:#2f9e44"></span>下道（高速・有料を回避）</button></div>
+    <div class="seg" id="prefSeg"><button data-p="fast" class="on"><span class="pref-dot" style="background:#f76707"></span>高速優先</button><button data-p="avoid"><span class="pref-dot" style="background:#2f9e44"></span>下道</button></div>
     <div class="rs-hint" id="orsHint" style="margin-top:8px;"></div>
   </div>
   <div class="seg" id="timeModeSeg" style="margin:2px 0 8px;"><button data-tm="depart" class="on">出発時刻で計算</button><button data-tm="arrive">到着時刻で計算</button></div>
   <div class="dep-row"><span class="dep-lab" id="depLab">出発日時</span><input id="depTime" type="datetime-local"><button type="button" id="depNowBtn" class="dep-now" title="現在時刻にする">現在</button></div>
   <div class="rs-hint" id="timeModeHint" style="margin:6px 0 0;display:none;"></div>
   <div class="rs-result" id="rsResult">
-    <div class="rs-grid"><div class="rs-card"><div class="k">実走行距離</div><div class="val" id="rDist">–</div></div><div class="rs-card"><div class="k">所要時間(目安)</div><div class="val" id="rTime">–</div></div></div>
-    <div class="rs-grid"><div class="rs-card"><div class="k" id="rGasLabel">ガソリン代</div><div class="val" id="rGas">–</div></div><div class="rs-card"><div class="k">高速(概算)</div><div class="val" id="rToll">–</div></div></div>
+    <div class="rs-grid"><div class="rs-card"><div class="k">実走行距離</div><div class="val" id="rDist">–</div></div><div class="rs-card"><div class="k">所要時間</div><div class="val" id="rTime">–</div></div></div>
+    <div class="rs-grid"><div class="rs-card"><div class="k" id="rGasLabel">ガソリン代</div><div class="val" id="rGas">–</div></div><div class="rs-card"><div class="k">高速料金</div><div class="val" id="rToll">–</div></div></div>
     <div class="rs-grid"><div class="rs-card cost"><div class="k">車両費用計</div><div class="val" id="rTotal">–</div></div><div class="rs-card cost"><div class="k">総予算<small id="rGrandSub" style="display:block;font-weight:700;font-size:9.5px;color:var(--muted);"></small></div><div class="val" id="rGrand">–</div></div></div>
-    <div class="rs-grid" id="splitRow" style="display:none;"><div class="rs-card cost" style="background:var(--accent-weak);"><div class="k">1人あたり（割り勘）</div><div class="val" id="rPerPerson" style="color:var(--accent);">–</div></div></div>
+    <div class="rs-grid" id="splitRow" style="display:none;"><div class="rs-card cost" style="background:var(--accent-weak);"><div class="k">1人あたり</div><div class="val" id="rPerPerson" style="color:var(--accent);">–</div></div></div>
     <div class="rs-note" id="rNote"></div>
     <div id="routeLegend"><span><i style="background:#1e8e3e"></i>高速(順調)</span><span><i style="background:#1a73e8"></i>一般道</span><span><i style="background:#f9a825"></i>やや混雑</span><span><i style="background:#d93025"></i>渋滞</span></div>
   </div>
-  <button id="saveRouteBtn" style="width:100%;min-height:42px;border:none;border-radius:11px;background:#0ca678;color:#fff;font-weight:700;font-size:13px;cursor:pointer;margin:10px 0 8px;">このルートを保存（車両として登録・割り勘へ）</button>
-  <button id="schedBtn" style="width:100%;min-height:42px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--fg);font-weight:700;font-size:13px;cursor:pointer;margin:0 0 8px;">工程表を作成（印刷・PDF保存）</button>
-  <button id="navStartBtn" class="nav-start-btn">ナビ開始（走行支援・音声案内）</button>
+  <button id="saveRouteBtn" style="width:100%;min-height:42px;border:none;border-radius:11px;background:#0ca678;color:#fff;font-weight:700;font-size:13px;cursor:pointer;margin:10px 0 8px;">このルートを保存</button>
+  <button id="schedBtn" style="width:100%;min-height:42px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--fg);font-weight:700;font-size:13px;cursor:pointer;margin:0 0 8px;">工程表を作成</button>
+  <button id="navStartBtn" class="nav-start-btn">ナビ開始</button>
   <button id="gmapsBtn" class="gmaps-btn">Googleマップで案内を開始（ルートを引き継ぎ）</button>
   <div id="segExport" style="display:none;align-items:center;gap:6px;margin:-4px 0 12px;flex-wrap:wrap;">
     <span style="font-size:12px;color:var(--muted);font-weight:700;">区間だけ出力:</span>
@@ -1090,13 +1127,13 @@
   <div class="modal-h"><b>設定</b><button id="setClose">✕</button></div>
   <div class="set-sec"><div class="set-label">バージョン切替</div><div class="ver-switch"><a href="index-google.html" id="verGoogle" class="on">Google版</a><a href="index-senshu.html" id="verTest">本祭支援ツール</a><a href="track.html" id="verTrack">研究版</a></div></div>
   <div class="set-sec" id="advSec"><div class="set-label">高度な検索</div><button class="adv-toggle" id="advSearchBtn">高度な検索を有効化</button><div class="set-help">オンにすると、ピンをタップした時に<b>営業時間・電話・ウェブサイト・写真</b>などの詳細情報を自動取得します（Google Placesの課金項目 Atmosphere/Contact Data が増えます）。<b>オフ（既定）</b>では基本情報のみ表示し、必要な時だけポップアップの<b>「＋詳細を取得」</b>ボタンで取得します。</div></div>
-  <div class="set-sec"><div class="set-label">Google Maps APIキー（この版に必須）</div><input id="gmapInput" placeholder="Google Maps APIキー" autocomplete="off" /><div class="set-help">この版は地図表示・渋滞ETAにGoogleを使用（課金あり）。「Maps JavaScript API」＋「Directions API」＋<b>「Routes API」</b>（区間ごとの実渋滞表示に必須）を有効化し<b>HTTPリファラー制限</b>を設定。キーは端末内のみ保存。</div><button class="set-save" id="gmapSave">保存して再読込</button><div class="set-msg" id="gmapMsg"></div></div>
-  <div class="set-sec" id="festSetSec" style="display:none;"><div class="set-label">本祭支援ツール：3D（ベクター地図）</div><input id="festMapIdInput" placeholder="Map ID（Google Cloud の地図管理で作成）" autocomplete="off" /><button class="set-save" id="festMapIdSave">保存して再読込</button><div class="set-msg" id="festMapIdMsg"></div><div class="set-help">Google Cloud の<b>地図管理</b>で「JavaScript・<b>ベクター</b>」のMap IDを作成し（<b>傾斜</b>と<b>回転</b>を有効化）ここに貼ると、3Dで建物が立体表示されます。Map IDは秘密情報ではありません。<b>ベクター地図では配色がCloud側のスタイルに従う</b>ため、当方の建物・道路強調スタイルは <a href="fest-map-style.json" target="_blank" rel="noopener">ライト用</a>／<a href="fest-map-style-dark.json" target="_blank" rel="noopener">ダーク用</a> のJSON（Cloud用の新形式）を、スタイル作成画面の「JSON」タブの中身と丸ごと置き換えて保存し、Map IDに紐付けると再現できます（テーマ切替で自動的に使い分け）。</div></div>
-  <div class="set-sec"><div class="set-label">到達圏マップ（Mapbox アクセストークン）</div><input id="mbxInput" placeholder="Mapbox public token (pk.xxx)" autocomplete="off" /><div class="set-help">「到達圏」タブで、任意地点から ○分で行ける範囲（アイソクロン）を描画します。<b>URL（リファラー）制限</b>の設定を推奨。トークンは端末内のみ保存。</div><button class="set-save ghost" id="mbxSave">保存</button><div class="set-msg" id="mbxMsg"></div></div>
+  <div class="set-sec"><div class="set-label">Google Maps APIキー</div><input id="gmapInput" placeholder="Google Maps APIキー" autocomplete="off" /><div class="set-help">この版は地図表示・渋滞ETAにGoogleを使用（課金あり）。「Maps JavaScript API」＋「Directions API」＋<b>「Routes API」</b>（区間ごとの実渋滞表示に必須）を有効化し<b>HTTPリファラー制限</b>を設定。キーは端末内のみ保存。</div><button class="set-save" id="gmapSave">保存して再読込</button><div class="set-msg" id="gmapMsg"></div></div>
+  <div class="set-sec" id="festSetSec" style="display:none;"><div class="set-label">本祭支援ツール：3D</div><input id="festMapIdInput" placeholder="Map ID（Google Cloud の地図管理で作成）" autocomplete="off" /><button class="set-save" id="festMapIdSave">保存して再読込</button><div class="set-msg" id="festMapIdMsg"></div><div class="set-help">Google Cloud の<b>地図管理</b>で「JavaScript・<b>ベクター</b>」のMap IDを作成し（<b>傾斜</b>と<b>回転</b>を有効化）ここに貼ると、3Dで建物が立体表示されます。Map IDは秘密情報ではありません。<b>ベクター地図では配色がCloud側のスタイルに従う</b>ため、当方の建物・道路強調スタイルは <a href="fest-map-style.json" target="_blank" rel="noopener">ライト用</a>／<a href="fest-map-style-dark.json" target="_blank" rel="noopener">ダーク用</a> のJSON（Cloud用の新形式）を、スタイル作成画面の「JSON」タブの中身と丸ごと置き換えて保存し、Map IDに紐付けると再現できます（テーマ切替で自動的に使い分け）。</div></div>
+  <div class="set-sec"><div class="set-label">到達圏マップ</div><input id="mbxInput" placeholder="Mapbox public token (pk.xxx)" autocomplete="off" /><div class="set-help">「到達圏」タブで、任意地点から ○分で行ける範囲（アイソクロン）を描画します。<b>URL（リファラー）制限</b>の設定を推奨。トークンは端末内のみ保存。</div><button class="set-save ghost" id="mbxSave">保存</button><div class="set-msg" id="mbxMsg"></div></div>
   <div class="set-sec"><div class="set-label">楽天トラベル連携</div><input id="rakInput" placeholder="楽天 applicationId" autocomplete="off" /><button class="set-save ghost" id="rakSave">保存</button><div class="set-msg" id="rakMsg"></div></div>
-  <div class="set-sec"><div class="set-label">高速・有料の回避（OpenRouteService）</div><input id="orsInput" placeholder="ORS APIキー" autocomplete="off" /><button class="set-save ghost" id="orsSave">保存</button><div class="set-msg" id="orsMsg"></div></div>
+  <div class="set-sec"><div class="set-label">高速・有料の回避</div><input id="orsInput" placeholder="ORS APIキー" autocomplete="off" /><button class="set-save ghost" id="orsSave">保存</button><div class="set-msg" id="orsMsg"></div></div>
   <div class="set-sec"><div class="set-label">保存したレイヤー</div><button class="set-save ghost" id="lsOpenBtn">保存したレイヤーを参照 / 読み込む</button><div class="set-help">現在のレイヤー（ルート・ピン・距離円）を<b>一括で名前を付けて保存</b>し、あとから呼び出せます（最大300件）。保存は<b>レイヤーパネル右上の「保存」</b>から行います。</div></div>
-  <div class="set-sec" style="margin-bottom:0;"><div class="set-label">端末間で共有（共有コード）</div>
+  <div class="set-sec" style="margin-bottom:0;"><div class="set-label">端末間で共有</div>
     <button class="set-save share-pub" id="sharePublish">この端末の内容を共有（コード発行）</button>
     <div id="shareCodeBox" class="share-code-box"></div>
     <div class="share-row"><input id="shareCodeInput" class="share-code-in" placeholder="共有コード（例 K7M2QP）" autocomplete="off" maxlength="8" /><button class="set-save ghost share-imp" id="shareImport">読込</button></div>
@@ -1426,9 +1463,9 @@ function toggleLineVisible(key){const L=lineLayers[key];if(!L)return;L.visible=!
 function lineLayerClear(key){const L=lineLayers[key];if(!L)return;if(L.overpass&&L.lines)L.lines.forEach(p=>p.setMap(null));delete lineLayers[key];if(!L.overpass)applyMapStyles();}
 function refreshLineLayers(){applyMapStyles();Object.keys(lineLayers).forEach(k=>{const L=lineLayers[k];if(L&&L.overpass){L.lines.forEach(p=>p.setMap(null));delete lineLayers[k];toggleLineLayer(k);}});} // 航路のみ範囲取り直し
 function buildLineToggles(){
-  const wrap=document.createElement('div');wrap.style.cssText='width:100%;display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-top:1px solid var(--line);padding-top:10px;margin-top:2px;';
-  wrap.innerHTML='<div style="width:100%;font-size:11px;font-weight:800;color:var(--muted);margin-bottom:-2px;">'+(FEST?'路線・道路の強調（高速/鉄道）':'路線・道路の強調（高速/鉄道＝全国・瞬時、航路＝この範囲）')+'</div>';
-  (FEST?['highway','rail']:['highway','rail','ferry']).forEach(key=>{const d=LINE_DEFS[key],L=lineLayers[key],on=!!L,loading=!!(L&&L.loading);const b=document.createElement('button');b.className='chk';b.type='button';b.style.cssText='cursor:pointer;'+(on?'background:var(--accent-weak);border-color:var(--accent);':'');b.innerHTML=`<span class="dot" style="background:${d.swatch};${d.ring?'box-shadow:inset 0 0 0 1px #fff;':''}"></span>${d.label}${loading?' <small style="color:var(--muted);font-weight:700;">取得中…</small>':''}`;b.onclick=()=>{toggleLineLayer(key);};wrap.appendChild(b);});
+  const wrap=document.createElement('div');wrap.style.cssText='width:100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center;border-top:1px solid var(--line);padding-top:8px;margin-top:2px;';
+  wrap.innerHTML='<div style="width:100%;font-size:10.5px;font-weight:800;color:var(--muted);margin-bottom:-2px;">路線・道路の強調</div>';
+  (FEST?['highway','rail']:['highway','rail','ferry']).forEach(key=>{const d=LINE_DEFS[key],L=lineLayers[key],on=!!L,loading=!!(L&&L.loading);const b=document.createElement('button');b.className='chk';b.type='button';b.style.cssText='cursor:pointer;'+(on?'background:var(--accent-weak);border-color:var(--accent);':'');b.innerHTML=`<span class="dot" style="background:${d.swatch};${d.ring?'box-shadow:inset 0 0 0 1px #fff;':''}"></span>${statusTrim(d.label)}${loading?' <small style="color:var(--muted);font-weight:700;">取得中…</small>':''}`;b.onclick=()=>{toggleLineLayer(key);};wrap.appendChild(b);});
   customPanel.appendChild(wrap);
 }
 let tempPin=null; // 検索時の「仮ピン」（地図に残さない／ポップアップを閉じると消える）
@@ -1555,7 +1592,6 @@ function festInit(){
   else festFit();
   if(rs&&rs.tab&&rs.tab!==activeTab)try{selectTab(rs.tab);}catch(e){}
   if(rs&&rs.trk&&liveWatchId==null)try{startLiveLoc();}catch(e){}   // 昼/夜の切替の再読込で追跡（位置の共有）が途切れないように
-  if(!rs){showStatus('本祭支援ツール：'+(innerWidth<=600?'右上の☰→「機能」':'右上のレンチ（機能）')+'→「本祭支援ツール」で地図の種類・建物の色・構内の動線を切替',false);hideStatusLater();}
 }
 let festTiltDrag=false;
 function festTiltUi(){   // 角度のバー：3D（ベクター地図）と実写3Dのときだけ表示し、今の傾きに合わせる
@@ -1609,7 +1645,7 @@ function festCadToggle(force){
   const want=(force!=null)?!!force:!(window.CAD&&CAD.isOn());
   try{localStorage.setItem('tabi_fest_cad_on',want?'1':'0');}catch(e){}
   if(!want){if(window.CAD)CAD.stop();buildTabs();if(festCampusOn)festDrawCampus(true);showStatus('指令α：OFF（本祭支援ツールの通常表示）',false);hideStatusLater();return;}
-  festCadLoad(()=>{CAD.start();buildTabs();if(festCampusOn)festDrawCampus(true);showStatus('指令α：ON　左＝人員／右＝出動指令・進行・ログ。地図の丸＝配置箇所（数字＝人数）、三角＝指令',false);hideStatusLater();});
+  festCadLoad(()=>{CAD.start();buildTabs();if(festCampusOn)festDrawCampus(true);showStatus('指令α：ON',false);hideStatusLater();});
 }
 function setPlain(){
   activeTab=null;buildTabs();
@@ -1630,7 +1666,7 @@ function selectTab(key){
   if(routeMode)routeSheet.classList.remove('collapsed'); // 「ルート・費用」を押したら常に展開（前回の収納状態を引きずらない）
   document.getElementById('controls').style.display=(routeMode||isoMode||ocMode||key==='onsengo')?'none':'flex';
   if(!onsenLayerOn)clearArr(onsengoMarkers); // 温泉郷レイヤー/到達圏はタブを切り替えても保持
-  if(key==='onsengo'){onsenLayerOn=true;renderOnsenGo();map.fitBounds(llBounds(ONSEN_GO),40);showStatus('温泉郷 '+ONSEN_GO.length+'件・ピンの大きさ/色＝規模（青:小→赤:最大級／入湯税ベース）。タップで詳細',false);hideStatusLater();}
+  if(key==='onsengo'){onsenLayerOn=true;renderOnsenGo();map.fitBounds(llBounds(ONSEN_GO),40);showStatus('温泉郷 '+ONSEN_GO.length+'件',false);hideStatusLater();}
   else if(key==='custom'){buildCustomPanel();runSearch();}
   else if(isoMode){buildIsoPanel();showStatus('地図をタップして到達圏の基準地点を設定',false);hideStatusLater();}
   else if(routeMode){renderPoints();updatePrefHint();showStatus('地図を「ダブルタップ」で地点を追加できます（誤操作防止）',false);hideStatusLater();}
@@ -1751,13 +1787,13 @@ function clearAllObjects(){
 function buildCustomPanel(){
   customPanel.innerHTML='';
   const sr=document.createElement('div');sr.style.cssText='width:100%;margin-bottom:2px;';
-  sr.innerHTML=`<div class="rs-search" style="margin-bottom:6px;"><input id="cSearch" placeholder="施設名・地名・住所を検索してMAPにピン" autocomplete="off"><button id="cSearchBtn">検索</button></div><div id="cResults" class="geo-results"></div>`;customPanel.appendChild(sr);
+  sr.innerHTML=`<div class="rs-search" style="margin-bottom:6px;"><input id="cSearch" placeholder="施設名・地名・住所で検索" autocomplete="off"><button id="cSearchBtn">検索</button></div><div id="cResults" class="geo-results"></div>`;customPanel.appendChild(sr);
   CUSTOM_OPTIONS.forEach(key=>{const c=CATS[key];const lab=document.createElement('label');lab.className='chk';lab.innerHTML=`<input type="checkbox" ${customSelected.has(key)?'checked':''}><span class="dot" style="background:${cssvar(c.cv)}"></span>${c.label}`;lab.querySelector('input').onchange=(e)=>{e.target.checked?customSelected.add(key):customSelected.delete(key);runSearch();};customPanel.appendChild(lab);});
   buildLineToggles();
   // すべて選択/解除（ワンタップで全カテゴリ切替）
   const allBtn=document.createElement('button');const allOn=customSelected.size>=CUSTOM_OPTIONS.length;
   allBtn.textContent=allOn?'すべて解除':'すべて選択';
-  allBtn.style.cssText='min-height:34px;border:1px solid var(--accent);background:var(--accent-weak);color:var(--accent);border-radius:999px;font-weight:800;font-size:12px;cursor:pointer;padding:0 14px;';
+  allBtn.style.cssText='min-height:28px;border:1px solid var(--accent);background:var(--accent-weak);color:var(--accent);border-radius:999px;font-weight:800;font-size:11.5px;cursor:pointer;padding:0 12px;';
   allBtn.onclick=()=>{if(customSelected.size>=CUSTOM_OPTIONS.length)customSelected.clear();else CUSTOM_OPTIONS.forEach(k=>customSelected.add(k));buildCustomPanel();if(customSelected.size)runSearch();};
   customPanel.appendChild(allBtn);
   buildPinPanel();
@@ -1772,17 +1808,17 @@ function buildCustomPanel(){
 }
 // カスタムタブのピン管理：現在のピン一覧（個別削除）＋一括保存＋保存済みグループの描画/削除
 function buildPinPanel(){
-  const wrap=document.createElement('div');wrap.style.cssText='width:100%;border-top:1px solid var(--line);padding-top:10px;margin-top:4px;';
+  const wrap=document.createElement('div');wrap.style.cssText='width:100%;border-top:1px solid var(--line);padding-top:8px;margin-top:2px;';
   const groups=getPinGroups();
-  let h='<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;">ピン（友達の最寄り駅など）</div>';
+  let h='<div style="font-size:10.5px;font-weight:800;color:var(--muted);margin-bottom:5px;">ピン</div>';
   if(savedPins.length){
     h+='<div class="pin-list">'+savedPins.map((p,i)=>`<div class="pin-row"><span class="pin-dot"></span><button class="pin-go" data-i="${i}">${escapeHtml(p.name)}${p.sub?`<small>${escapeHtml(p.sub)}</small>`:''}</button><button class="pin-x" data-id="${p.id}" title="このピンを削除">✕</button></div>`).join('')+'</div>';
     h+=`<button class="pin-save-btn" id="pinSaveBtn">現在の${savedPins.length}件のピンを保存</button>`;
   }else{
-    h+='<div style="font-size:11.5px;color:var(--muted);line-height:1.5;">検索して「ピンを残す」を押すとここに一覧されます。まとめて保存し、いつでも再描画できます。</div>';
+    h+='<div style="font-size:11px;color:var(--muted);line-height:1.45;">検索して「ピンを残す」で追加</div>';
   }
   if(groups.length){
-    h+='<div style="font-size:11px;font-weight:800;color:var(--muted);margin:10px 0 5px;">保存済みのピン集合</div>';
+    h+='<div style="font-size:10.5px;font-weight:800;color:var(--muted);margin:8px 0 4px;">保存済みのピン集合</div>';
     h+='<div class="pin-grp-list">'+groups.map((g,i)=>`<div class="pin-grp"><button class="pin-grp-draw" data-i="${i}">${escapeHtml(g.name)} <small>${g.pins.length}件</small></button><button class="pin-grp-x" data-i="${i}" title="この保存を削除">✕</button></div>`).join('')+'</div>';
   }
   wrap.innerHTML=h;customPanel.appendChild(wrap);
@@ -1794,7 +1830,8 @@ function buildPinPanel(){
 }
 const statusEl=document.getElementById('status');
 let statusTimer=null; // バナー/通知はすべて約3秒で自動的に消す（表示のたびにタイマーを更新）
-function showStatus(h,l){statusEl.innerHTML=(l?'<div class="spinner"></div>':'')+h;statusEl.classList.add('show');if(statusTimer)clearTimeout(statusTimer);statusTimer=setTimeout(()=>statusEl.classList.remove('show'),3000);}
+function statusTrim(h){let t=String(h),p;do{p=t;t=t.replace(/（[^（）]*）/g,'');}while(t!==p);return t.replace(/[ 　]{2,}/g,' ').replace(/。$/,'').trim();}   // 通知は短く：（）の中の補足は出さない
+function showStatus(h,l){statusEl.innerHTML=(l?'<div class="spinner"></div>':'')+statusTrim(h);statusEl.classList.add('show');if(statusTimer)clearTimeout(statusTimer);statusTimer=setTimeout(()=>statusEl.classList.remove('show'),3000);}
 function hideStatusLater(){if(statusTimer)clearTimeout(statusTimer);statusTimer=setTimeout(()=>statusEl.classList.remove('show'),3000);}
 
 // ===== マーカー生成（Google） =====
@@ -2385,7 +2422,7 @@ function clearRouteLine(){if(routeLine){routeLine.setMap(null);routeLine=null;}i
 function stepClass(s){const n=s.name||'',r=s.ref||'';if(/首都高/.test(n)||/\bC[12]\b/.test(r))return 'shutoko';if(/(高速道路|自動車道|有料道路|スカイライン)/.test(n)||/\bE\d/.test(r)||/\bC\d/.test(r))return 'nexco';return null;}
 async function routeOSRM(pts){const path=pts.map(p=>`${p.lng},${p.lat}`).join(';');const d=await (await fetch(`https://router.project-osrm.org/route/v1/driving/${path}?overview=full&geometries=geojson&steps=true`)).json();if(d.code!=='Ok')throw new Error(d.message||'OSRM');const r=d.routes[0];let nexco=0,shu=0;const legs=[];(r.legs||[]).forEach(lg=>{let ln=0,ls=0;(lg.steps||[]).forEach(s=>{const c=stepClass(s);if(c==='nexco')ln+=s.distance;else if(c==='shutoko')ls+=s.distance;});nexco+=ln;shu+=ls;legs.push({km:lg.distance/1000,sec:lg.duration,nexcoKm:ln/1000,shutokoKm:ls/1000});});return{km:r.distance/1000,sec:r.duration,line:r.geometry.coordinates.map(c=>({lat:c[1],lng:c[0]})),nexcoKm:nexco/1000,shutokoKm:shu/1000,legs};}
 async function routeORS(pts,avoid,key){const body={coordinates:pts.map(p=>[p.lng,p.lat]),extra_info:['waycategory']};if(avoid.length)body.options={avoid_features:avoid};const res=await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson',{method:'POST',headers:{'Authorization':key,'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await res.json();if(!d.features||!d.features.length)throw new Error((d.error&&(d.error.message||d.error))||('ORS HTTP '+res.status));const f=d.features[0];let hwKm=0;const ex=f.properties.extras&&f.properties.extras.waycategory;if(ex&&ex.summary){let m=0;ex.summary.forEach(s=>{if((s.value&3)!==0)m+=s.distance;});hwKm=m/1000;}const legs=(f.properties.segments||[]).map(sg=>({km:sg.distance/1000,sec:sg.duration,nexcoKm:0,shutokoKm:0}));return{km:f.properties.summary.distance/1000,sec:f.properties.summary.duration,line:f.geometry.coordinates.map(c=>({lat:c[1],lng:c[0]})),nexcoKm:hwKm,shutokoKm:0,legs};}
-function updatePrefHint(){const el=document.getElementById('orsHint');el.textContent=routePref==='avoid'?'下道優先：高速・有料道路を回避（所要は延びます）':'高速優先：高速・有料も使う最速ルート（渋滞反映）';}
+function updatePrefHint(){const el=document.getElementById('orsHint');el.textContent='';el.style.display='none';}   // ボタンの表記で分かるので説明は出さない
 function stepClassG(html){const t=String(html||'').replace(/<[^>]+>/g,'');if(/首都高/.test(t))return 'shutoko';if(/(高速道路|自動車道|有料道路|スカイライン)/.test(t))return 'nexco';return null;}
 function gDeparture(){let d=getEffDep();const now=new Date();return d.getTime()<now.getTime()?now:d;}
 // 区間ごとの色（ナビ風）：渋滞=赤 / やや混雑=橙 / 高速=緑 / 一般道=青
@@ -4248,7 +4285,7 @@ async function pollTsunami(){
 function setTsunami(on){
   tsunamiOn=on;localStorage.setItem('tabi_tsunami_on',on?'1':'0');
   if(tsunamiTimer){clearInterval(tsunamiTimer);tsunamiTimer=null;}
-  if(on){renderToolMenu();pollTsunami();tsunamiTimer=setInterval(pollTsunami,300000);p2pEnsure();showStatus('津波情報をリアルタイム受信中。発表時に沿岸を色分け表示します',false);hideStatusLater();}
+  if(on){renderToolMenu();pollTsunami();tsunamiTimer=setInterval(pollTsunami,300000);p2pEnsure();showStatus('津波情報：受信中',false);hideStatusLater();}
   else{tsunamiLastId='';clearTsunamiShapes();renderToolMenu();p2pMaybeClose();showStatus('津波情報の受信を停止',false);hideStatusLater();}
 }
 
@@ -4281,7 +4318,7 @@ async function showQuake(top){
   prefs.forEach(p=>{const mi=p.MaxInt;if(!mi||(INT_RANK[mi]||0)<5)return;const code=parseInt(p.Code,10);prefColor[code]=QUAKE_COL[mi]||'#f9a825';if((INT_RANK[mi]||0)>maxRank){maxRank=INT_RANK[mi];maxInt=mi;}hitNames.push((p.Name||'').replace(/(県|府|都|道)$/,''));});
   if(!Object.keys(prefColor).length)return;
   drawQuakeFill(prefColor);
-  curQuakeBanner={color:QUAKE_COL[maxInt]||'#b71c1c',html:'地震情報　最大震度<b>'+(INT_LAB[maxInt]||maxInt)+'</b>'+(top.anm?'（震源：'+top.anm+'）':'')+'　'+hitNames.slice(0,8).join('・')+(hitNames.length>8?' ほか':'')+'　<span style="font-weight:600;opacity:.9;">30分間ぬり分け表示</span>'};
+  curQuakeBanner={color:QUAKE_COL[maxInt]||'#b71c1c',html:'地震情報　最大震度<b>'+(INT_LAB[maxInt]||maxInt)+'</b>'+(top.anm?'　震源 '+top.anm:'')+'　'+hitNames.slice(0,8).join('・')+(hitNames.length>8?' ほか':'')};
   refreshDisasterBanner();
   // データ取得後30分で自動消去
   if(quakeClearTimer)clearTimeout(quakeClearTimer);
@@ -4305,7 +4342,7 @@ async function pollQuake(){
 function setQuake(on){
   quakeOn=on;localStorage.setItem('tabi_quake_on',on?'1':'0');
   if(quakeTimer){clearInterval(quakeTimer);quakeTimer=null;}
-  if(on){renderToolMenu();pollQuake();quakeTimer=setInterval(pollQuake,300000);p2pEnsure();showStatus('地震情報をリアルタイム受信中。震度5弱以上で観測県をぬり分けます',false);hideStatusLater();}
+  if(on){renderToolMenu();pollQuake();quakeTimer=setInterval(pollQuake,300000);p2pEnsure();showStatus('地震情報：受信中',false);hideStatusLater();}
   else{quakeLastId='';clearQuake();renderToolMenu();p2pMaybeClose();showStatus('地震情報の受信を停止',false);hideStatusLater();}
 }
 // ===== P2P地震情報 WebSocket：地震(551)/津波(552)の発表を即時プッシュ受信し、JMA由来の描画を即トリガ =====
@@ -5231,7 +5268,7 @@ let evacSamples=[],evacSafe=null,evacSafeMarker=null,evacSafeRoute=null; // 標�
 const EVAC_R={WALKING:800,DRIVING:4500}; // 各移動手段の「約10分圏」の目安半径(直線・m)
 (function(){const clk=document.getElementById('liveClock');if(!clk)return;clk.addEventListener('click',()=>{if(evacBusy)return;if(!evacArmed)armEvac();else{disarmEvac();runEvac();}});
   const ec=document.getElementById('evacClose');if(ec)ec.onclick=closeEvac;})();
-function armEvac(){evacArmed=true;document.getElementById('liveClock').classList.add('evac-armed');showStatus('もう一度タップで緊急避難を実行（約10分圏内の最高地点＋海抜40m以上へ）。数秒操作が無ければ解除します',false);if(evacTimer)clearTimeout(evacTimer);evacTimer=setTimeout(disarmEvac,5000);}
+function armEvac(){evacArmed=true;document.getElementById('liveClock').classList.add('evac-armed');showStatus('もう一度タップで緊急避難',false);if(evacTimer)clearTimeout(evacTimer);evacTimer=setTimeout(disarmEvac,5000);}
 function disarmEvac(){evacArmed=false;if(evacTimer){clearTimeout(evacTimer);evacTimer=null;}const c=document.getElementById('liveClock');if(c)c.classList.remove('evac-armed');}
 function gsiElev(lat,lng){return fetch('https://cyberjapandata2.gsi.go.jp/general/dem/scripts/getelevation.php?lon='+lng+'&lat='+lat+'&outtype=JSON',{cache:'no-store'}).then(r=>r.json()).then(j=>{const e=parseFloat(j.elevation);return isFinite(e)?e:null;}).catch(()=>null);}
 async function evacSampleAll(lat,lng){ // 現在地周辺のリング状に標高をサンプリング（10分圏の最高地点＋40m以上の探索に共用）
@@ -5316,7 +5353,7 @@ function evacAddToRoute(){ // 避難先をルート欄に強制セット（ル�
   if(activeTab!=='route')selectTab('route');
   routeSheet.classList.remove('collapsed');
   renderPoints();computeRoute();
-  showStatus('ルートを避難先に置き換えました（現在地→高台）。経路を計算中…',false);hideStatusLater();
+  showStatus('避難先へのルートを計算中…',false);hideStatusLater();
 }
 document.getElementById('layerBtn').onclick=()=>{const p=document.getElementById('layerPanel');document.getElementById('settlePanel').classList.remove('open');const o=p.classList.toggle('open');if(o)renderLayerPanel();};
 document.getElementById('settleBtn').onclick=()=>{const p=document.getElementById('settlePanel');document.getElementById('layerPanel').classList.remove('open');const o=p.classList.toggle('open');if(o)renderSettlePanel();};
@@ -5652,7 +5689,11 @@ const FEST_CAM={center:{lat:35.6101,lng:139.5546},zoom:17.0,tilt:47};
 function festCamZoom(){const w=(map&&map.getDiv&&map.getDiv().clientWidth)||910;   // 縦長のスマホは横幅で合わせると引きすぎるので、少し寄せる（幅600px以下で+0.5）
   const nb=w<=600?0.5:(w<900?0.5*(900-w)/300:0);return Math.max(15.6,Math.min(18.2,FEST_CAM.zoom+Math.log2(w/910)+nb));}
 const festSmall=()=>window.innerWidth<=600;   // スマホ：学内施設の文字などを少し小さく
+let festFitCam=null;   // 既定の視点に合わせた直後のカメラ（画面の大きさが変わったとき、そのままなら合わせ直す）
+function festAtFit(){if(!festFitCam||!map||!map.getCenter)return false;const c=map.getCenter();if(!c)return false;
+  return Math.abs(c.lat()-festFitCam.lat)<2e-5&&Math.abs(c.lng()-festFitCam.lng)<2e-5&&Math.abs((map.getZoom()||0)-festFitCam.z)<0.02;}
 function festFit(){
+  setTimeout(()=>{try{const c=map&&map.getCenter&&map.getCenter();if(c)festFitCam={lat:c.lat(),lng:c.lng(),z:map.getZoom()||0};}catch(e){}},0);
   if(fest3d){try{fest3d.flyCameraTo({endCamera:Object.assign({},FEST_P3D_CAM,{heading:festP3dHeading()}),durationMillis:1200});}catch(e){}return;}
   if(!map)return;
   if(festMapId){
@@ -5824,7 +5865,6 @@ async function festP3dOpen(){
     let rq=0;fest3d.addEventListener('gmp-rangechange',()=>{if(rq)return;rq=requestAnimationFrame(()=>{rq=0;festP3dTier();});});
     try{festShRender();}catch(e){}   // 位置の共有：仲間の印を実写3Dにも
     statusEl.classList.remove('show');
-    showStatus('実写3D：ドラッグで移動／右ドラッグ・2本指で回転と傾き。「対象エリアへ戻る」で初期位置へ',false);hideStatusLater();
   }catch(e){
     console.warn('p3d',e);festP3dClose();
     showStatus('実写3Dを読み込めませんでした（未対応の地域、またはAPIの設定をご確認ください）',false);hideStatusLater();
@@ -5840,7 +5880,7 @@ function festP3dTier(){   // カメラの距離(range)で表示する段階を�
 }
 // --- 白地図（国土地理院 基盤地図情報の道路縁・建物外周線・鉄道・水涯線を白地に描く）
 //     データは fest-shiro.json（約210KB）。白地図を初めて開いたときだけ読み込む。構内の建物は FEST_BLD（PLATEAU）で描く
-const FEST_DATA_V=6;
+const FEST_DATA_V=7;
 const FEST_P_ICON='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22"><rect x="1" y="1" width="20" height="20" rx="4" fill="#1971c2" stroke="#ffffff" stroke-width="2"/><path d="M8 17V5.5h4.2a3.6 3.6 0 0 1 0 7.2H8" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round"/></svg>');
 const FEST_MC_SVG='<svg xmlns="http://www.w3.org/2000/svg" width="17" height="15" viewBox="0 0 22 19.4"><path d="M11 1.6 20.6 18H1.4Z" fill="#1971c2" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.9 16.2V8.6h2.5a2.25 2.25 0 0 1 0 4.5H8.9" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linejoin="round"/></svg>';   // バイク置き場：三角の枠にP
 const FEST_MC_ICON='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(FEST_MC_SVG);
@@ -5972,7 +6012,7 @@ const FEST_B3D_O={lat:35.6100,lng:139.5540}, FEST_ER=6371010;
 const FEST_STN3D=[{"n":"向ヶ丘遊園駅","c":[35.617508,139.56479],"parts":[[11.6,[[35.617452,139.564616],[35.617465,139.564607],[35.617374,139.564401],[35.617375,139.564401],[35.617344,139.56433],[35.617315,139.564349],[35.617331,139.564384],[35.617295,139.564408],[35.617309,139.564441],[35.617358,139.564411],[35.617358,139.564412],[35.617362,139.564409]]],[10.9,[[35.616989,139.564684],[35.617043,139.564651],[35.616971,139.564483],[35.616999,139.564466],[35.616928,139.5643],[35.616897,139.56432],[35.616878,139.564275],[35.616865,139.564284],[35.616917,139.564406],[35.616869,139.564439],[35.616936,139.564589],[35.616948,139.564582]]],[3.9,[[35.6176,139.565073],[35.617644,139.565043],[35.617607,139.56496],[35.617562,139.564989]]],[4.4,[[35.616835,139.564452],[35.61691,139.564402],[35.616835,139.564232],[35.616761,139.564282]]],[10.6,[[35.617044,139.564809],[35.617109,139.564769],[35.617064,139.564658],[35.61705,139.564668],[35.617047,139.564662],[35.616997,139.564693]]],[9.3,[[35.61752,139.564933],[35.617633,139.564859],[35.617566,139.564706],[35.617553,139.564714],[35.61753,139.564661],[35.617498,139.564682],[35.61747,139.564618],[35.617451,139.564631],[35.617435,139.564595],[35.617398,139.564619],[35.617465,139.564773],[35.617453,139.56478]]],[6.9,[[35.617619,139.56494],[35.617597,139.564887],[35.617511,139.564943],[35.617546,139.565025],[35.617567,139.565011],[35.617554,139.564982]]]]},{"n":"登戸駅","c":[35.621113,139.569546],"parts":[[11.4,[[35.620692,139.570398],[35.62069,139.570401],[35.620651,139.570505],[35.620607,139.570598],[35.620531,139.570748],[35.620568,139.570774],[35.620591,139.570736],[35.620667,139.570597],[35.620744,139.57045],[35.620752,139.570435]]],[6.1,[[35.620491,139.570436],[35.620464,139.570504],[35.620518,139.570539],[35.620516,139.570543],[35.620475,139.570629],[35.620413,139.570741],[35.620358,139.570842],[35.620306,139.570936],[35.620293,139.570956],[35.620321,139.570983],[35.620333,139.570965],[35.620366,139.570907],[35.62043,139.570792],[35.620486,139.570691],[35.620544,139.570574],[35.620598,139.570455],[35.620639,139.570365],[35.620617,139.570352],[35.620564,139.570481]]],[18.3,[[35.620693,139.569751],[35.620619,139.569532],[35.620674,139.569423],[35.620743,139.569478],[35.62092,139.569607],[35.621144,139.569744],[35.621152,139.569749],[35.621325,139.56984],[35.62175,139.570042],[35.621798,139.56993],[35.621689,139.569862],[35.621685,139.569871],[35.621604,139.569819],[35.621597,139.56983],[35.621517,139.569779],[35.62151,139.569789],[35.621436,139.569739],[35.621432,139.569748],[35.621384,139.56972],[35.621381,139.569729],[35.621143,139.569588],[35.621133,139.569581],[35.621143,139.569554],[35.621145,139.569549],[35.621461,139.569731],[35.621705,139.569864],[35.621805,139.569917],[35.621849,139.569812],[35.621419,139.569543],[35.621143,139.56938],[35.621114,139.569363],[35.620927,139.569254],[35.620544,139.569029],[35.620241,139.56885],[35.620119,139.568776],[35.620091,139.568842],[35.620521,139.569142],[35.620507,139.569172],[35.620409,139.569109],[35.620376,139.569162],[35.6205,139.569263],[35.620494,139.569278],[35.620422,139.569441],[35.620458,139.569464],[35.620443,139.569497],[35.620495,139.569644],[35.620584,139.569905],[35.6206,139.569913],[35.620582,139.569952],[35.620601,139.569966],[35.620527,139.570143],[35.620587,139.570178],[35.620747,139.569793],[35.62069,139.569758]]],[17.4,[[35.620898,139.570365],[35.620912,139.570373],[35.621048,139.569968],[35.621039,139.569962],[35.621016,139.569948],[35.621008,139.569943],[35.621001,139.569959],[35.620977,139.569944],[35.621043,139.569784],[35.621011,139.569764],[35.621023,139.569736],[35.620765,139.569577],[35.620753,139.569607],[35.620693,139.569751],[35.62069,139.569758],[35.620747,139.569793],[35.620587,139.570178],[35.620539,139.570296],[35.620547,139.570301],[35.620491,139.570436],[35.620564,139.570481],[35.620617,139.570352],[35.620639,139.570365],[35.620692,139.570398],[35.620752,139.570435],[35.620803,139.570467],[35.620856,139.570339],[35.620868,139.570347]]]]},{"n":"生田駅","c":[35.615039,139.542241],"parts":[[16.3,[[35.615124,139.542365],[35.615119,139.542318],[35.615257,139.542292],[35.615251,139.542218],[35.615128,139.542248],[35.615109,139.542043],[35.615071,139.542048],[35.615033,139.542053],[35.614976,139.542061],[35.614953,139.542065],[35.61491,139.542071],[35.614901,139.542009],[35.614893,139.541947],[35.614887,139.541895],[35.614869,139.541897],[35.61489,139.542123],[35.614878,139.542125],[35.614885,139.542197],[35.614912,139.542193],[35.614919,139.54227],[35.614793,139.542286],[35.614802,139.542376],[35.614922,139.542359],[35.614973,139.542352],[35.614976,139.542386],[35.615002,139.542383],[35.615064,139.542374]]],[14.2,[[35.614924,139.542362],[35.614799,139.542386],[35.614804,139.542422],[35.614943,139.542395]]],[13.5,[[35.614943,139.542395],[35.614983,139.542462],[35.615021,139.54284],[35.615051,139.542835],[35.615002,139.542383],[35.614976,139.542386],[35.614973,139.542352],[35.614922,139.542359],[35.614924,139.542362]]]]}];
 // --- 3Dの高低差（地形）：国土地理院 5mメッシュ標高を約6m間隔にした fest-dem.json で大学周辺の地面を立体化（ON/OFFで平らな3Dに戻せる）
 //     基準＝構内の建物の地面の中央値（約76m）。地面・等高線・道路縁・動線・駐車場をWebGLで地形に沿って描き、建物は地面の高さから立ち上げる
-const FEST_DEM_V=3, FEST_TERR_EXAG=2, FEST_TERR_V=4, FEST_RAIL_V=1;   // 範囲は北東の枡形6丁目（セブン-イレブン・枡形天神社）まで。高低差を2倍に強調して描く（建物・印・当たり判定も同じ倍率の地面に乗る）
+const FEST_DEM_V=4, FEST_TERR_EXAG=2, FEST_TERR_V=5, FEST_RAIL_V=1;   // 範囲は北東の枡形6丁目（セブン-イレブン・枡形天神社）まで。高低差を2倍に強調して描く（建物・印・当たり判定も同じ倍率の地面に乗る）
 let festTerrainOn=true, festDem=null, festDemLoading=false, festTerrBusy=false, festB3dTop={};
 // 道路・緑地・水面（fest-terr.json：道路中心線＝国土地理院、緑地・水面＝OSM）。道路は道に沿って高さをならし、道路まわりの地面もその高さへ寄せる
 let festTerrData=null, festTerrDataP=null, festTerrZd=null, festTerrRd=null, festTerrCls=null, festTerrCache=null, festTerrRS=null, festTerrRail=null;
@@ -6240,7 +6280,6 @@ function festTerrainToggle(){
   festTerrainOn=!festTerrainOn;try{localStorage.setItem('tabi_fest_terrain',festTerrainOn?'1':'0');}catch(e){}
   if(festTerrainOn&&!festDem)festDemFetch();
   festTerrainChanged();festBaseSegUi();
-  showStatus(festTerrainOn?('リアル3D：高低差あり（大学周辺の地面を標高どおりに立体化'+(festBase==='3d'?'':'。3D表示のときに反映')+'）'):'3D：高低差なし（平らな3D）',false);hideStatusLater();
 }
 function festTerrainChanged(){   // 地形の有無で、外周・動線・印の描き方（Google地図の図形 ⇔ WebGL・地形に沿った印）を切り替える
   if(festTerrBusy)return;festTerrBusy=true;
@@ -6303,9 +6342,7 @@ function festB3dSync(){
 }
 function festB3dHint(){
   let seen=false;try{seen=localStorage.getItem('fest_b3d_hint')==='1';localStorage.setItem('fest_b3d_hint','1');}catch(e){}
-  if(seen)return;
-  showStatus('3D：大学周辺の建物を PLATEAU の実測の外形・高さで立体表示しています。Google側の建物が重なって見える場合は、Map IDのスタイル設定で建物を「Footprints」にしてください',false);
-  if(statusTimer)clearTimeout(statusTimer);statusTimer=setTimeout(()=>statusEl.classList.remove('show'),9000);
+  // 地図の切り替えのたびの説明は出さない（通知は最小限）
 }
 let festRail=null;
 async function festRailLoad(){   // 小田急線（登戸〜生田）の線路・ホーム
@@ -6768,13 +6805,13 @@ function festSwatches(cur,fn,arg){   // 色見本ボタン（fn=呼び出す関�
     +'<button type="button" class="fest-sw-x'+(cur?'':' on')+'" onclick="'+call('')+'">既定</button></div>';
 }
 function festCustomColSec(){   // カスタムタブ：属性つきの3D施設（学内施設・G倉庫・セブン-イレブン・枡形天神社）の色を一括で変える
-  const wrap=document.createElement('div');wrap.id='cFestCol';wrap.style.cssText='width:100%;border-top:1px solid var(--line);padding-top:10px;margin-top:4px;';
+  const wrap=document.createElement('div');wrap.id='cFestCol';wrap.style.cssText='width:100%;border-top:1px solid var(--line);padding-top:8px;margin-top:2px;';
   customPanel.appendChild(wrap);festCustomColUi();
 }
 function festCustomColUi(){
   const w=document.getElementById('cFestCol');if(!w)return;const n=Object.keys(festBldCol.per).length;
-  w.innerHTML='<div style="font-size:11px;font-weight:800;color:var(--muted);margin-bottom:6px;">3D施設の色（一括）</div>'+festSwatches(festBldCol.all,'festBldSetAll','')
-    +'<div class="fest-sw-note">学内施設・G倉庫・セブン-イレブン・枡形天神社の色をまとめて変えます（建物ごとの色は、地図で建物を押して変更）。</div>'
+  w.innerHTML='<div style="font-size:10.5px;font-weight:800;color:var(--muted);margin-bottom:5px;">3D施設の色を一括変更</div>'+festSwatches(festBldCol.all,'festBldSetAll','')
+    +'<div class="fest-sw-note">学内施設・G倉庫・セブン-イレブン・枡形天神社</div>'
     +(n?'<button type="button" class="fest-sw-x" style="margin-top:6px;" onclick="festBldClearPer()">建物ごとの色を解除（'+n+'棟）</button>':'');
 }
 function festBldColUi(){
@@ -6801,26 +6838,22 @@ function festCardShow(html){
 function festCardHide(){const d=document.getElementById('festCard');if(d)d.classList.remove('show');festBldInfoCur=null;}
 function festEvacInfo(ev){
   const L=FEST_BLD.filter(b=>b.ev===ev.k&&!b.nl&&b.n).map(b=>escapeHtml(b.n));
-  festCardShow(festCard({id:ev.k,title:'避難場所 '+ev.n,kind:'避難場所（学生課の避難経路図）',dot:'#e03131',
-    rows:[['対象の建物',L.join('・')||'—']],notes:[['evac','有事の誘導','学生課の避難経路図のとおり、各建物から指定の避難場所へ誘導する']]}));
+  festCardShow(festCard({id:ev.k,title:'避難場所 '+ev.n,kind:'避難場所',dot:'#e03131',rows:[['対象の建物',L.join('・')||'—']]}));
 }
 function festBldInfo(b,ll){
   festBldInfoCur={b,ll:ll||{lat:b.c[0],lng:b.c[1]}};
-  const rows=[];
-  if(b.r)rows.push(['備考',escapeHtml(b.r)]);
-  if(b.nl)rows.push(['備考','同じ建物の別部分（高さの違う部分）']);
+  const rows=[];   // 備考・建物群は出さない（情報を絞る）
   const notes=[];
-  if(b.fp)notes.push(['fest','本祭期間',escapeHtml(b.fp)]);
-  if(b.ev){const e=FEST_EVAC.find(x=>x.k===b.ev);if(e)notes.push(['evac','避難場所',escapeHtml(e.k+' '+e.n)+'（有事は学生課の避難経路図のとおり誘導）']);}
+  if(b.fp)notes.push(['fest','本祭期間',escapeHtml(statusTrim(b.fp))]);   // （）の補足は出さない
+  if(b.ev){const e=FEST_EVAC.find(x=>x.k===b.ev);if(e)notes.push(['evac','避難場所',escapeHtml(e.k+' '+e.n)]);}
   const grp=festBldGroup(b);
-  if(grp.length>1)rows.unshift(['建物群',escapeHtml(festBldGroupKey(b))+'：'+grp.map(x=>x.id).join('・')+'（'+grp.length+'棟）']);
   if(b.q)notes.push(['warn','要確認',escapeHtml(typeof b.q==='string'?b.q:'名称の候補：'+[b.n].concat(b.alt||[]).join('／'))]);
   const cur=festBldCol.per[b.id]||'';
-  const scope=grp.length>1?'<div class="fest-scope"><button type="button" class="'+(festColScope==='g'?'on':'')+'" onclick="festSetScope(\'g\')">'+escapeHtml(festBldGroupKey(b))+' 全体（'+grp.length+'棟）</button><button type="button" class="'+(festColScope==='g'?'':'on')+'" onclick="festSetScope(\'one\')">この部分だけ</button></div>':'';
-  const extra='<div class="fest-bi-sec">建物の色<small>'+(cur?'個別の色':(festBldCol.all?'一括の色で表示中':'既定の色で表示中'))+'</small></div>'
+  const scope=grp.length>1?'<div class="fest-scope"><button type="button" class="'+(festColScope==='g'?'on':'')+'" onclick="festSetScope(\'g\')">'+escapeHtml(festBldGroupKey(b))+' 全体</button><button type="button" class="'+(festColScope==='g'?'':'on')+'" onclick="festSetScope(\'one\')">この部分だけ</button></div>':'';
+  const extra='<div class="fest-bi-sec">建物の色</div>'
     +scope+festSwatches(cur,'festBldSetColor',b.id);
   const html=festCard({id:b.id,title:b.n||'名称未確認',kind:(b.x?'学外の施設':'建物'),dot:festBldShown(b),
-    stats:[[b.f?b.f:'—','階（地上）'],[b.h?b.h.toFixed(1):'—','高さ m'],[b.a?b.a.toLocaleString():'—','面積 m²']],rows,notes,extra});
+    stats:[[b.f?b.f:'—','階数'],[b.h?b.h.toFixed(1):'—','高さ m'],[b.a?b.a.toLocaleString():'—','面積 m²']],rows,notes,extra});
   festCardShow(html);
 }
 let festTinySet=null;
@@ -7689,6 +7722,24 @@ function taxiToggleEnabled(){
   on('txmClose',()=>{taxiUserHid=true;taxiPause();taxiHide();
     showStatus('タクシーメーターを閉じました（運賃は保持。追跡を入れ直す／レンチ→タクシーメーターで続きから）',false);hideStatusLater();});
   window.addEventListener('resize',()=>requestAnimationFrame(taxiOffset));
+})();
+// 画面の大きさが変わったとき（全画面⇔縮小）：ページのずれを戻し、既定の視点のままなら新しい大きさで合わせ直す
+(function(){
+  let tm=null,wasFit=false;
+  window.addEventListener('resize',()=>{
+    if(tm===null)wasFit=!!(FEST&&typeof festAtFit==='function'&&festAtFit());   // 変わり始めの時点で既定の視点だったか
+    clearTimeout(tm);tm=setTimeout(()=>{tm=null;
+      if(window.scrollX||window.scrollY)window.scrollTo(0,0);
+      document.documentElement.scrollTop=document.body.scrollTop=0;document.documentElement.scrollLeft=document.body.scrollLeft=0;
+      if(FEST&&wasFit&&typeof festFit==='function')try{festFit();}catch(e){}
+      try{if(typeof festB3d!=='undefined'&&festB3d){festB3dDirty=true;festB3d.requestRedraw();}}catch(e){}
+    },250);
+  });
+  // PCのトラックパッドのピンチ（ctrl+ホイール／Safariのジェスチャー）が地図以外の所で起きるとページ全体が拡大され、見切れたままになる→地図以外では無効
+  if(!IS_TOUCH){
+    document.addEventListener('wheel',e=>{if(e.ctrlKey&&!(e.target.closest&&e.target.closest('#map,.gm-style')))e.preventDefault();},{passive:false});
+    ['gesturestart','gesturechange'].forEach(t=>document.addEventListener(t,e=>{if(!(e.target.closest&&e.target.closest('#map,.gm-style')))e.preventDefault();},{passive:false}));
+  }
 })();
 </script>
 </body>
