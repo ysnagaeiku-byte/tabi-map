@@ -1004,8 +1004,13 @@
   #festLock b{font-size:18px;} #festLock p{margin:0;font-size:13.5px;line-height:1.7;color:#ced4da;}
   #festLock .fl-back{margin-top:6px;padding:9px 18px;border-radius:10px;border:1px solid #495057;background:#f1f3f5;color:#01001b;font-size:14px;font-weight:700;cursor:pointer;}
   /* 本部版の印（左下・Google のロゴの上）と、本部版の端末で配布版を確かめているタブの案内 */
-  #festHq{display:none;position:fixed;left:8px;bottom:calc(30px + env(safe-area-inset-bottom));z-index:1250;padding:2px 7px;border-radius:5px;background:rgba(0,0,0,.62);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.06em;pointer-events:none;}
+  #festHq,html.fest-hq #liveClock::before{padding:2px 7px;border-radius:5px;background:rgba(0,0,0,.62);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.06em;line-height:1.5;pointer-events:none;}
+  #festHq{display:none;position:fixed;left:8px;bottom:calc(30px + env(safe-area-inset-bottom));z-index:1250;}
   html.fest-hq #festHq{display:block;}
+  @media(max-width:600px){   /* スマホは時計が左下（Google のロゴの上）にあるので、時計のすぐ上に付ける */
+    html.fest-hq #festHq{display:none;}
+    html.fest-hq #liveClock::before{content:'本部統括用';position:absolute;left:0;bottom:calc(100% + 4px);white-space:nowrap;}
+  }
   #festPv{display:none;position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--fb,0px) + env(safe-area-inset-top) + 6px);z-index:1255;align-items:center;gap:8px;padding:5px 6px 5px 11px;border-radius:999px;background:#ffd43b;color:#212529;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.25);}
   #festPv button{border:0;border-radius:999px;padding:4px 10px;background:#212529;color:#fff;font-size:11.5px;font-weight:700;cursor:pointer;}
   html.fest.fest-preview #festPv{display:flex;}
