@@ -61,9 +61,38 @@
 | 通常版 | `index-google.html`（`?m=senshu` なし）では読み込み・通信なし |
 | スマホ幅 375px | 横はみ出しなし |
 
-## 4. 未実施（このレポートの時点で行っていないこと）
+## 4. 本番（Cloudflare）での確認（2026-10-14）
 
-- Cloudflare への配置（本人のログインが必要）。本番 URL での `/health`・認証拒否・3台応答の確認。
+配置の内容：
+- D1：`festival-vehicle-tracking`（APAC）に migration を適用
+- 配置先：`https://festival-vehicle-tracking.festival-vehicle-tracking.workers.dev`。workers.dev のサブドメインは初回 deploy で自動登録された `festival-vehicle-tracking`
+- Secret：`DEVICE_AUTH_JSON`・`VIEW_TOKEN_SHA256` を登録
+
+`node scripts/check-prod.mjs`（読み取りのみ）の結果。**すべて合格**：
+
+| 確認 | 結果 |
+| --- | --- |
+| `/health` | 200 `{"ok":true}` |
+| 閲覧キーなし・違う閲覧キー | 401 |
+| 許可外の Origin | 403 |
+| 地図の Origin（`https://ysnagaeiku-byte.github.io`）のプリフライト | 204・CORS 一致 |
+| 違う送信キー | 403 |
+| 送信キーの形が違う | 404 |
+| 閲覧キーで3台 | 200・`no-store, private`・CORS は地図の Origin |
+| サーバーと Mac の時計の差 | 約0秒 |
+
+書き込みの経路は、3号車に試験の位置を1回送って確かめ、すぐに消しました。
+- 位置：200 で保存（速度 18.52 km/h・電池 66%・充電中）
+- 古い再送：200 で位置は戻らない
+- 確認後の状態：3台とも未測位
+
+GitHub Pages の公開結果も確かめました。
+- 公開されたもの：地図の資産（`fest-vehicle-tracking.js`・`sw.js` ほか）
+- 公開されていないもの（404）：`tracking-worker/`・`docs/`・`.github/`
+
+## 5. 未実施（このレポートの時点で行っていないこと）
+
+- 本番の地図ページでの閲覧キー入力と表示（閲覧キーは本人が入力する）。
 - 実機のスマホからの送信。次の項目はまだ測っていません。
   - 画面ロック30分・別アプリ使用中の送信
   - 停車→短距離の再発進
@@ -74,7 +103,7 @@
 - 無料枠の実測（半日試験の Workers 要求数・CPU エラー・D1 rows read / written）。
 - 実際の Google 地図上での見た目。実写3D（フォトリアル）での表示も未確認です（印の描画は既存の位置共有と同じ処理を使っています）。
 
-## 5. 無料枠の推計
+## 6. 無料枠の推計
 
 | 条件 | Workers 要求/日 | D1 書込/日 | 判定 |
 | --- | --- | --- | --- |
@@ -83,7 +112,7 @@
 
 送信設定の既定（設定シートの QR）は、精度「高」・間隔10秒・距離0・静止状態の検出 OFF です。これは公式ソースから見た出発点で、実機の送信数と遅延で調整します。
 
-## 6. 仕様の確認先（公式ソース）
+## 7. 仕様の確認先（公式ソース）
 
 - 送信形式（POST フォーム・`timestamp` は秒・`speed` は knots・`batt`・`charge`）：traccar-client-sdk `HttpUploader.kt`
 - 再送（先頭が 2xx になるまで後続を送らない・5秒〜5分で再試行）：`TrackerEngine.kt`
