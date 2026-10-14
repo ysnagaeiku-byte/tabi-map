@@ -19,8 +19,11 @@ Traccar Client ──POST（送信キー付きURL）──▶ Worker ──▶ D
 | `GET /api/v1/vehicles` | `Authorization: Bearer <閲覧キー>` で3台の最新位置（`schemaVersion: 1`）を返す |
 | `OPTIONS /api/v1/vehicles` | 許可した Origin のプリフライトだけ 204（DB は読まない） |
 | `GET /health` | `{"ok":true}` のみ |
+| `GET /api/v1/schedule` | 閲覧キーで本部の時刻表（各号館の開錠・施錠時刻、9号館・10号館のエレベーターの可否）を返す |
+| `PUT /api/v1/schedule` | 閲覧キーで時刻表を保存（`{schedule, baseUpdatedAtMs}`。ほかの端末が先に保存していれば 409） |
 
 - 車両ID は `vehicle-1`〜`vehicle-3` 固定（表示名 1号車〜3号車）。
+- 時刻表は警備に関わる内部資料に由来するため、公開の地図・リポジトリには書かず、受信API（D1 の `fest_settings`）に置いて閲覧キーで守ります。初期値は本番へ直接登録し、リポジトリには入れていません。
 - 受信の扱い：
   - 新しい測位：位置を更新します。
   - 古い再送・重複：位置は戻さず 200 を返します。
@@ -73,7 +76,7 @@ npx wrangler d1 create festival-vehicle-tracking --location=apac
 2. migration と配置を行います。
 
    ```sh
-   npx wrangler d1 migrations apply festival-vehicle-tracking --remote
+   npx wrangler d1 migrations apply festival-vehicle-tracking --remote   # 0001（最新位置）・0002（時刻表）
    npm run deploy            # 事前確認（scripts/check-deploy.mjs）→ wrangler deploy
    ```
 

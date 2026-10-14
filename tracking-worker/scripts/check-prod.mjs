@@ -28,6 +28,10 @@ const v = await req("/api/v1/vehicles", { headers: { Origin: ORIGIN, Authorizati
 const body = v.status === 200 ? await v.json() : null;
 check("閲覧キーで3台を返す", !!body && body.schemaVersion === 1 && body.vehicles.map((x) => x.vehicleId).join() === "vehicle-1,vehicle-2,vehicle-3", `status ${v.status}`);
 check("応答は no-store・CORS は地図の Origin", v.headers.get("cache-control") === "no-store, private" && v.headers.get("access-control-allow-origin") === ORIGIN);
+const sc = await req("/api/v1/schedule", { headers: { Origin: ORIGIN, Authorization: "Bearer " + s.viewToken } });
+const scb = sc.status === 200 ? await sc.json() : null;
+check("時刻表：閲覧キーで読める", !!scb && scb.schemaVersion === 1, scb && scb.schedule ? scb.schedule.days.length + "日分" : "未登録");
+check("時刻表：閲覧キーなし → 401", (await req("/api/v1/schedule")).status === 401);
 if (body) {
   const skew = Math.round((body.serverNowMs - Date.now()) / 1000);
   for (const x of body.vehicles)

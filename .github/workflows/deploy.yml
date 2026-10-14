@@ -27,7 +27,7 @@ jobs:
           mkdir -p dist-pages
           for f in index.html index-google.html index-senshu.html track.html manifest.json sw.js \
                    apple-touch-icon.png icon-192.png icon-512.png .nojekyll \
-                   cad-alpha.js fest-vehicle-tracking.js \
+                   fest-vehicle-tracking.js fest-schedule.js \
                    fest-3d.json fest-dem.json fest-rail.json fest-shiro.json fest-terr.json \
                    fest-map-style.json fest-map-style-dark.json; do
             cp "$f" dist-pages/

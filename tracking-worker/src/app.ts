@@ -8,6 +8,7 @@
 // 秘密値は Worker Secret（DEVICE_AUTH_JSON・VIEW_TOKEN_SHA256）にハッシュだけを置く。実トークン・URL・座標はログに出さない。
 
 import { normalizeReport, readDeviceId, type Report } from "./normalize";
+import { MAX_SCHEDULE_BYTES, normalizeSchedule, ScheduleError } from "./schedule";
 
 export interface Env {
   DB: D1Database;
@@ -124,11 +125,11 @@ function allowedOrigins(env: Env): Set<string> {
   );
 }
 
-function corsHeaders(origin: string): Record<string, string> {
+function corsHeaders(origin: string, methods = "GET, OPTIONS", headers = "Authorization"): Record<string, string> {
   return {
     "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Methods": "GET, OPTIONS",
-    "Access-Control-Allow-Headers": "Authorization",
+    "Access-Control-Allow-Methods": methods,
+    "Access-Control-Allow-Headers": headers,
     "Access-Control-Max-Age": "600",
     Vary: "Origin",
   };
@@ -315,29 +316,43 @@ export function vehiclesBody(rows: Row[], nowMs: number) {
   };
 }
 
-async function handleVehicles(req: Request, env: Env, nowMs: number): Promise<Response> {
+/** 閲覧キーで守る API の入口：Origin・プリフライト・メソッド・認証。通れば CORS ヘッダーを返す */
+async function viewGate(
+  req: Request,
+  env: Env,
+  route: string,
+  methods: string[],
+  allowHeaders = "Authorization",
+): Promise<Response | { cors: Record<string, string> }> {
   const origin = req.headers.get("Origin");
+  const allowList = [...methods, "OPTIONS"].join(", ");
   let cors: Record<string, string> = {};
   if (origin !== null) {
     if (!allowedOrigins(env).has(origin)) return json(403, { error: "origin_not_allowed" });
-    cors = corsHeaders(origin);
+    cors = corsHeaders(origin, allowList, allowHeaders);
   }
   if (req.method === "OPTIONS") {
     if (origin === null) return json(403, { error: "origin_not_allowed" });
     return new Response(null, { status: 204, headers: { "Cache-Control": "no-store, private", ...cors } });
   }
-  if (req.method !== "GET") return json(405, { error: "method_not_allowed" }, { Allow: "GET, OPTIONS", ...cors });
-
+  if (!methods.includes(req.method)) return json(405, { error: "method_not_allowed" }, { Allow: allowList, ...cors });
   const expected = viewHash(env);
   if (!expected) {
-    logResult("vehicles", "not_configured");
+    logResult(route, "not_configured");
     return json(503, { error: "not_configured" }, cors);
   }
   const m = /^Bearer ([A-Za-z0-9_-]+)$/.exec(req.headers.get("Authorization") ?? "");
   if (!m || !TOKEN_RE.test(m[1]) || !(await tokenMatches(m[1], expected))) {
-    logResult("vehicles", "unauthorized");
+    logResult(route, "unauthorized");
     return json(401, { error: "unauthorized" }, { "WWW-Authenticate": "Bearer", ...cors });
   }
+  return { cors };
+}
+
+async function handleVehicles(req: Request, env: Env, nowMs: number): Promise<Response> {
+  const g = await viewGate(req, env, "vehicles", ["GET"]);
+  if (g instanceof Response) return g;
+  const { cors } = g;
 
   let rows: Row[];
   try {
@@ -352,11 +367,71 @@ async function handleVehicles(req: Request, env: Env, nowMs: number): Promise<Re
   return json(200, vehiclesBody(rows, nowMs), cors);
 }
 
+// ---------- 本部の時刻表（開錠・施錠時刻・EV） ----------
+
+async function handleSchedule(req: Request, env: Env, nowMs: number): Promise<Response> {
+  const g = await viewGate(req, env, "schedule", ["GET", "PUT"], "Authorization, Content-Type");
+  if (g instanceof Response) return g;
+  const { cors } = g;
+  type SRow = { value: string; updated_at_ms: number };
+  const read = async () => env.DB.prepare("SELECT value, updated_at_ms FROM fest_settings WHERE key = 'schedule'").first<SRow>();
+  if (req.method === "GET") {
+    let row: SRow | null;
+    try {
+      row = await read();
+    } catch {
+      logResult("schedule", "storage_error");
+      return json(503, { error: "storage_unavailable" }, cors);
+    }
+    return json(200, { schemaVersion: 1, serverNowMs: nowMs, updatedAtMs: row?.updated_at_ms ?? null, schedule: row ? JSON.parse(row.value) : null }, cors);
+  }
+  // PUT：{ schedule, baseUpdatedAtMs }。baseUpdatedAtMs が今の値と違えば 409（ほかの端末が先に保存した）
+  const ct = (req.headers.get("Content-Type") ?? "").split(";")[0].trim().toLowerCase();
+  if (ct !== "application/json") return json(415, { error: "unsupported_media_type" }, cors);
+  let body: { schedule?: unknown; baseUpdatedAtMs?: unknown };
+  try {
+    body = JSON.parse(await readBodyLimited(req, MAX_SCHEDULE_BYTES));
+  } catch (e) {
+    if (e instanceof TooLarge) return json(413, { error: "payload_too_large" }, cors);
+    return json(400, { error: "bad_json" }, cors);
+  }
+  let sch;
+  try {
+    sch = normalizeSchedule(body?.schedule);
+  } catch (e) {
+    if (e instanceof ScheduleError) return json(400, { error: "bad_schedule", detail: e.message }, cors);
+    throw e;
+  }
+  const base = body.baseUpdatedAtMs;
+  if (base !== undefined && base !== null && !(typeof base === "number" && Number.isFinite(base))) return json(400, { error: "bad_base" }, cors);
+  const value = JSON.stringify(sch);
+  try {
+    let res;
+    if (base === undefined || base === null) {
+      // 初回（まだ無い）だけ作る。既にあれば衝突として扱う
+      res = await env.DB.prepare("INSERT OR IGNORE INTO fest_settings (key, value, updated_at_ms) VALUES ('schedule', ?1, ?2)").bind(value, nowMs).run();
+    } else {
+      res = await env.DB.prepare("UPDATE fest_settings SET value = ?1, updated_at_ms = ?2 WHERE key = 'schedule' AND updated_at_ms = ?3").bind(value, nowMs, base).run();
+    }
+    if (!res.meta.changes) {
+      const row = await read();
+      logResult("schedule", "conflict");
+      return json(409, { error: "conflict", updatedAtMs: row?.updated_at_ms ?? null }, cors);
+    }
+  } catch {
+    logResult("schedule", "storage_error");
+    return json(503, { error: "storage_unavailable" }, cors);
+  }
+  logResult("schedule", "saved");
+  return json(200, { ok: true, updatedAtMs: nowMs, schedule: sch }, cors);
+}
+
 // ---------- 振り分け ----------
 
 export async function handle(req: Request, env: Env, nowMs: number): Promise<Response> {
   const { pathname } = new URL(req.url);
   if (pathname === "/api/v1/vehicles") return handleVehicles(req, env, nowMs);
+  if (pathname === "/api/v1/schedule") return handleSchedule(req, env, nowMs);
   const m = INGEST_RE.exec(pathname);
   if (m) return handleIngest(req, env, m[1], m[2], nowMs);
   if (pathname === "/health") {

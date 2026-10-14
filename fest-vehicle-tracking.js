@@ -256,6 +256,16 @@
     ui();
   }
   festHttp.start = start; festHttp.stop = stop;
+  // 閲覧キーだけを入れる（車両の表示は始めない）。本部の時刻表（fest-schedule.js）からも使う
+  festHttp.setToken = function (tok) {
+    tok = String(tok || '').trim();
+    if (!TOKEN_RE.test(tok)) return false;
+    festHttp.config.viewerToken = tok; festHttp.authBlocked = false;
+    try { sessionStorage.setItem(TOK_KEY, tok); } catch (e) {}
+    try { window.dispatchEvent(new Event('fest-token')); } catch (e) {}
+    if (festHttp.enabled) { cancel(); fetchNow(); }
+    ui(); return true;
+  };
 
   function onStartClick() {
     const tok = $('festTrkTok').value.trim();
@@ -263,6 +273,7 @@
     if (tok) festHttp.config.viewerToken = tok;
     $('festTrkTok').value = '';
     start();
+    try { window.dispatchEvent(new Event('fest-token')); } catch (e) {}   // 時刻表も同じキーで読み直す
   }
 
   festHttp.init = function () {
