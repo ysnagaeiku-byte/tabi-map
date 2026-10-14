@@ -1,0 +1,26 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "festival-vehicle-tracking",
+  "main": "src/index.ts",
+  // 同梱の workerd（wrangler 4.151.0）が対応する最新日付
+  "compatibility_date": "2026-10-12",
+  "workers_dev": true,
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "festival-vehicle-tracking",
+      // ローカル専用の仮値。`wrangler d1 create` で出た実UUIDへ置き換えるまで deploy は止まる（scripts/check-deploy.mjs）
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    // 閲覧APIを読めるページのOrigin（scheme + host のみ・パスなし・カンマ区切り）。ローカル開発用は .dev.vars で上書きする
+    "ALLOWED_ORIGINS": "https://ysnagaeiku-byte.github.io"
+  },
+  "observability": {
+    "enabled": true,
+    // 送信用の秘密キーはURLに含まれるため、URLを自動記録する invocation log は使わない
+    "logs": { "invocation_logs": false }
+  }
+}

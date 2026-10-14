@@ -1,0 +1,23 @@
+{
+  "name": "festival-vehicle-tracking",
+  "private": true,
+  "type": "module",
+  "description": "本祭支援ツール：Traccar Client から3台の位置を受け取り、最新位置だけを返す受信API（Cloudflare Workers + D1）",
+  "scripts": {
+    "dev": "wrangler dev --port 8787",
+    "db:local": "wrangler d1 migrations apply festival-vehicle-tracking --local",
+    "secrets:local": "node scripts/make-secrets.mjs local",
+    "secrets:prod": "node scripts/make-secrets.mjs prod",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "check:deploy": "node scripts/check-deploy.mjs",
+    "deploy": "node scripts/check-deploy.mjs && wrangler deploy"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "1.4.2",
+    "@cloudflare/workers-types": "5.20261014.1",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11",
+    "wrangler": "4.151.0"
+  }
+}

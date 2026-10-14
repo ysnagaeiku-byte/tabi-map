@@ -1,6 +1,6 @@
 // たびマップ Service Worker — アプリシェルをキャッシュしオフライン起動を可能に。
 // 地図タイル/Places/Routes 等のクロスオリジンは常にネットワーク（キャッシュしない）。
-const CACHE = 'tabimap-v2';
+const CACHE = 'tabimap-v3';
 const SHELL = ['./index-google.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
@@ -12,8 +12,10 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const req = e.request;
   if (req.method !== 'GET') return;
+  if (req.headers.has('Authorization')) return;      // 認証付きの要求（車両の位置の閲覧API等）は保存しない
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;        // 地図/API等はそのままネットワーク
+  if (/\/(api|ingest)\//.test(url.pathname)) return;  // 位置のAPIは同じオリジンでも保存しない
   if (req.mode === 'navigate') {                      // ページ遷移：ネット優先・失敗時はキャッシュのシェル
     e.respondWith(
       fetch(req).then(r => { if (url.pathname.endsWith('index-google.html')) { const cp = r.clone(); caches.open(CACHE).then(c => c.put('./index-google.html', cp)); } return r; })

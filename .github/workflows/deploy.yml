@@ -20,6 +20,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # 公開するのは地図の資産だけ（許可リスト）。受信API（tracking-worker/）・文書・設定は Pages に載せない
+      - name: Build the public folder (allowlist)
+        run: |
+          set -euo pipefail
+          mkdir -p dist-pages
+          for f in index.html index-google.html index-senshu.html track.html manifest.json sw.js \
+                   apple-touch-icon.png icon-192.png icon-512.png .nojekyll \
+                   cad-alpha.js fest-vehicle-tracking.js \
+                   fest-3d.json fest-dem.json fest-rail.json fest-shiro.json fest-terr.json \
+                   fest-map-style.json fest-map-style-dark.json; do
+            cp "$f" dist-pages/
+          done
+          ls -a dist-pages
+
       - name: Inject API keys from secrets (repo に実キーは残さない)
         env:
           GMAP_KEY: ${{ secrets.GMAP_KEY }}
@@ -27,7 +41,7 @@ jobs:
         run: |
           python3 - <<'PY'
           import os
-          p = 'index-google.html'
+          p = 'dist-pages/index-google.html'
           s = open(p, encoding='utf-8').read()
           s = s.replace('__GMAP_KEY__',  os.environ.get('GMAP_KEY', ''))
           s = s.replace('__MAPBOX_KEY__', os.environ.get('MAPBOX_KEY', ''))
@@ -40,7 +54,7 @@ jobs:
       - name: Upload Pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: .
+          path: dist-pages
 
   deploy:
     needs: build

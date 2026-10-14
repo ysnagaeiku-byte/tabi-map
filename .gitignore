@@ -1,2 +1,12 @@
 .claude/
 .DS_Store
+# 車両の位置（受信API）：依存・ローカル状態・秘密値・生成物は公開しない
+# （node_modules と .wrangler は iCloud 外へのリンクの場合があるため末尾の / を付けない）
+node_modules
+.wrangler
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+.env*
+.secrets/
+dist-pages/

@@ -1,0 +1,9 @@
+# ローカル開発（wrangler dev）用の値の形。実際の値は `npm run secrets:local` が .dev.vars に作る（コミットしない）。
+# 本番は wrangler secret put（`npm run secrets:prod -- --base https://…workers.dev`）で登録し、ここには書かない。
+#
+# DEVICE_AUTH_JSON：車両ごとに、Traccar Client に設定する端末IDと、送信トークンの SHA-256（16進64桁）
+DEVICE_AUTH_JSON='{"vehicle-1":{"deviceId":"test-device-1","tokenSha256":"0000000000000000000000000000000000000000000000000000000000000000"},"vehicle-2":{"deviceId":"test-device-2","tokenSha256":"0000000000000000000000000000000000000000000000000000000000000000"},"vehicle-3":{"deviceId":"test-device-3","tokenSha256":"0000000000000000000000000000000000000000000000000000000000000000"}}'
+# VIEW_TOKEN_SHA256：本部の閲覧トークンの SHA-256
+VIEW_TOKEN_SHA256='0000000000000000000000000000000000000000000000000000000000000000'
+# ALLOWED_ORIGINS：閲覧APIを読める地図ページの Origin（ローカル開発用。本番は wrangler.jsonc の vars）
+ALLOWED_ORIGINS='http://127.0.0.1:8790,http://localhost:8790'
