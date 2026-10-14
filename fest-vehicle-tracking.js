@@ -1,9 +1,9 @@
 // たびマップ 本祭支援ツール：車両の位置（Traccar Client → 受信API → この地図）
 // index-google.html?m=senshu のときだけ読み込む（通常版・研究版では読み込まず、通信もしない）。
-// 3台の最新位置を受信APIから10秒ごとに取り、既存の「位置の共有」の印（festSh.peers・festShRender）で
-// 標準・白地図・高低差3D・実写3Dのどれにも描く。旧方式（合言葉のMQTT・OwnTracks）とは状態を分け、
-// こちらを使っている間は旧方式の自動接続と設定画面を止める。
+// 3台の最新位置を受信APIから10秒ごとに取り、地図の印（festSh.peers・festShRender）で
+// 標準・白地図・高低差3D・実写3Dのどれにも描く。画面はメニューの「位置情報共有設定」。
 // 公開してよいのは受信APIのURLだけ。閲覧キーは実行時に入力し、このタブ（sessionStorage）だけに保存する。
+// ローカル開発では localStorage の fest_track_cfg に {"apiBase":"http://127.0.0.1:8787"} を入れると、そちらへつなぐ。
 (function () {
   'use strict';
   if (window.festHttp) return;
@@ -39,12 +39,17 @@
     try { c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); } catch (e) {}
     let tok = '';
     try { tok = sessionStorage.getItem(TOK_KEY) || ''; } catch (e) {}
-    festHttp.config.apiBase = normBase(c && c.apiBase) || API_DEFAULT;
+    const local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);   // 受信APIの差し替えはローカル開発のページだけ
+    festHttp.config.apiBase = (local && normBase(c && c.apiBase)) || API_DEFAULT;
     festHttp.config.viewerToken = TOKEN_RE.test(tok) ? tok : '';
     festHttp.enabled = !!(c && c.on);
   }
   function cfgSave() {
-    try { localStorage.setItem(CFG_KEY, JSON.stringify({ apiBase: festHttp.config.apiBase, on: festHttp.enabled })); } catch (e) {}
+    try {
+      const c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null') || {};
+      c.on = festHttp.enabled;
+      localStorage.setItem(CFG_KEY, JSON.stringify(c));
+    } catch (e) {}
     try {
       if (festHttp.config.viewerToken) sessionStorage.setItem(TOK_KEY, festHttp.config.viewerToken);
       else sessionStorage.removeItem(TOK_KEY);
@@ -168,8 +173,8 @@
   }
   function recvText() {
     const h = festHttp, c = h.config;
-    if (!h.enabled) return '停止中・「接続の設定」から開始';
-    if (!c.apiBase) return '受信APIのURLを入力してください';
+    if (!h.enabled) return '停止中・閲覧キーを入れて「表示を開始」';
+    if (!c.apiBase) return '受信APIが設定されていません';
     if (!c.viewerToken) return '閲覧キーを入力してください';
     if (h.authBlocked) return h.lastError === 'origin' ? 'この地図のアドレスは受信APIで許可されていません' : '閲覧キーが違います。入力し直してください';
     const last = h.lastSuccessAt ? '最終取得 ' + ago(Date.now() - h.lastSuccessAt) : '未取得';
@@ -192,7 +197,6 @@
   function ui() {
     try { festShUi(); } catch (e) {}
     const msg = $('festTrkMsg'), list = $('festTrkList');
-    const leg = $('festShLegacy'); if (leg) leg.style.display = festHttp.enabled ? 'none' : '';
     const st = $('festTrkStop'); if (st) st.disabled = !festHttp.enabled;
     const cf = $('festTrkCfg'); if (cf && festHttp.enabled && (festHttp.authBlocked || !festHttp.config.viewerToken || !festHttp.config.apiBase)) cf.open = true;   // 入力が要るときは設定を開く
     if (msg) { msg.textContent = recvText(); msg.classList.toggle('err', !!(festHttp.enabled && (festHttp.lastError || festHttp.authBlocked))); }
@@ -238,7 +242,6 @@
     festHttp.enabled = true; festHttp.authBlocked = false; festHttp.fails = 0; festHttp.lastError = '';
     cfgSave();
     const cf = $('festTrkCfg'); if (cf && festHttp.config.viewerToken) cf.open = false;
-    try { festShDisconnect(); } catch (e) {}   // 旧方式（合言葉のMQTT）は止める。保存した設定（tabi_share）は消さない
     clearInterval(festHttp.uiTick);
     festHttp.uiTick = setInterval(() => { if (document.visibilityState !== 'hidden') { VEH.forEach(peer); try { festShRender(); } catch (e) {} ui(); } }, 5000);   // 古さの表示を進める
     fetchNow(); ui();
@@ -250,17 +253,13 @@
     cfgSave();
     clearInterval(festHttp.uiTick); festHttp.uiTick = null;
     dropAll();
-    try { if (festSh.cfg && !festSh.key) festShConnect(); } catch (e) {}   // 旧方式の設定があれば元どおり接続
     ui();
   }
   festHttp.start = start; festHttp.stop = stop;
 
   function onStartClick() {
-    const base = normBase($('festTrkApi').value), tok = $('festTrkTok').value.trim();
-    if (!base) { $('festTrkMsg').textContent = '受信APIのURLは https:// から始まる形で入力してください'; return; }
+    const tok = $('festTrkTok').value.trim();
     if (!TOKEN_RE.test(tok) && !(tok === '' && festHttp.config.viewerToken)) { $('festTrkMsg').textContent = '閲覧キーの形が違います（43文字）'; return; }
-    if (base !== festHttp.config.apiBase) festHttp.vehicles = {};
-    festHttp.config.apiBase = base;
     if (tok) festHttp.config.viewerToken = tok;
     $('festTrkTok').value = '';
     start();
@@ -270,7 +269,6 @@
     if (festHttp.initialized || typeof FEST === 'undefined' || !FEST) return;
     festHttp.initialized = true;
     cfgLoad();
-    const api = $('festTrkApi'); if (api) api.value = festHttp.config.apiBase;
     const sb = $('festTrkStart'); if (sb) sb.onclick = onStartClick;
     const xb = $('festTrkStop'); if (xb) xb.onclick = stop;
     const tk = $('festTrkTok'); if (tk) tk.addEventListener('keydown', e => { if (e.key === 'Enter') onStartClick(); });

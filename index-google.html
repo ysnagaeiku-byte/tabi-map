@@ -319,11 +319,6 @@
   .share-pub{flex:1;}
   .share-code-in{flex:1;text-transform:uppercase;letter-spacing:3px;font-weight:800;}
   .share-imp{flex:none;width:auto;padding:0 20px;}
-  .fest-sh-list{display:flex;flex-direction:column;gap:6px;margin:4px 0 12px;}
-  .fest-sh-row{display:flex;align-items:center;gap:9px;width:100%;min-height:44px;padding:8px 12px;border:1px solid var(--line);border-radius:11px;background:var(--surface);color:var(--fg);font-size:13.5px;text-align:left;cursor:pointer;}
-  .fest-sh-row i{flex:none;width:12px;height:12px;border-radius:50%;border:2px solid #fff;box-shadow:0 0 0 1px var(--line);}
-  .fest-sh-row b{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;} .fest-sh-row span{flex:none;font-size:12px;color:var(--muted);font-weight:700;}
-  .fest-sh-empty{font-size:12px;color:var(--muted);padding:6px 2px;}
   .fest-trk{border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:6px;}
   .fest-trk .set-label{text-transform:none;}
   .fest-trk-list{display:flex;flex-direction:column;gap:6px;margin:2px 0 6px;}
@@ -340,8 +335,6 @@
   .fest-peer-lbl{text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff,0 0 4px #fff;white-space:nowrap;}
   .fest-r3 .fest-peer{display:flex;flex-direction:column;align-items:center;z-index:5;}
   .fest-peer svg{display:block;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));} .fest-peer b{margin-top:1px;font-size:11px;font-weight:800;color:#1c1f24;white-space:nowrap;text-shadow:0 0 2px #fff,0 0 2px #fff,0 0 3px #fff,0 0 4px #fff;}
-  #trackFab .sh-n{position:absolute;top:-6px;right:-6px;min-width:19px;height:19px;padding:0 4px;border-radius:10px;background:#e8590c;color:#fff;font-size:10.5px;font-weight:800;line-height:15px;text-align:center;border:2px solid var(--panel);box-sizing:border-box;}
-  #trackFab .sh-n.stale{background:#868e96;}
   .share-code-box:empty{display:none;}
   .share-code-box{margin-top:10px;}
   .share-code-box .code{font-size:26px;font-weight:900;letter-spacing:5px;text-align:center;padding:12px;border:2px dashed var(--accent);border-radius:12px;color:var(--accent);background:var(--accent-weak);}
@@ -833,14 +826,6 @@
   .fest-col-box{border:1px solid var(--line);border-radius:12px;padding:9px 10px;margin-bottom:9px;background:var(--surface);}
   .fest-col-h{font-size:12px;font-weight:800;margin-bottom:6px;}
   #cFestCol .fest-sw{width:26px;height:26px;}
-  .fest-ot{border-top:1px solid var(--line);padding-top:10px;margin-top:6px;}
-  .fest-ot .set-label{text-transform:none;}
-  .fest-ot .share-row{flex-wrap:wrap;gap:6px;} .fest-ot .share-row>*{flex:1 1 120px;min-width:0;}
-  .fest-ot-qr{width:220px;max-width:70vw;margin:8px auto 4px;background:#fff;padding:6px;border-radius:8px;border:1px solid var(--line);}
-  .fest-ot-qr svg{display:block;width:100%;height:auto;}
-  .fest-ot-name{text-align:center;font-size:12px;font-weight:800;margin-bottom:4px;}
-  .fest-ot-msg{font-size:11px;color:var(--muted);margin:6px 0;line-height:1.5;}
-  .fest-ot-open{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;box-sizing:border-box;}
   .fest-col-per{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:7px;font-size:11px;color:var(--muted);}
   .fest-col-per button{border:1px solid var(--line);background:var(--panel);color:var(--fg);border-radius:8px;font-size:11px;font-weight:700;padding:4px 8px;cursor:pointer;flex:none;}
   .fest-bl-c{width:10px;height:10px;border-radius:3px;flex:none;margin-right:6px;box-shadow:0 0 0 1px rgba(0,0,0,.15);}
@@ -990,7 +975,7 @@
     <button class="tm-item" id="tmFestBldList"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg></span><span class="tm-lab">建物一覧・色<small>仮番号・名称・階数・高さ。建物の色を一括で変更</small></span><span class="tm-ex">開く</span></button>
     <button class="tm-item" id="tmFestWay"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M5 21 9 3M19 21 15 3M10.5 8h3M10 13h4M9.5 18h5"/></svg></span><span class="tm-lab">構内の動線<small>車両動線（構内・周辺の道路・出入口・駐車場・路線バス）・歩道・階段</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestVehList"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><path d="M3.5 5h1.5v2H3.5zM3.5 11h1.5v2H3.5zM3.5 17h1.5v2H3.5z"/></svg></span><span class="tm-lab">車両動線一覧（下書き）<small>道路・出入口・駐車場。タップでその場所へ</small></span></button>
-    <button class="tm-item" id="tmFestShare"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="6" cy="17" r="2.6"/><circle cx="18" cy="17" r="2.6"/><circle cx="12" cy="6" r="2.6"/><path d="M8.2 15.3 10.6 8.3M15.8 15.3 13.4 8.3M8.6 17h6.8"/></svg></span><span class="tm-lab">位置の共有（車両）<small>追跡中の位置を仲間（トラックなど）とリアルタイムで共有・地図に表示</small></span><span class="tm-ex">設定</span></button>
+    <button class="tm-item" id="tmFestShare"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="6" cy="17" r="2.6"/><circle cx="18" cy="17" r="2.6"/><circle cx="12" cy="6" r="2.6"/><path d="M8.2 15.3 10.6 8.3M15.8 15.3 13.4 8.3M8.6 17h6.8"/></svg></span><span class="tm-lab">位置情報共有設定<small>1〜3号車の位置を地図に表示</small></span><span class="tm-ex">設定</span></button>
     <button class="tm-item" id="tmFestWalk"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="13" cy="4.2" r="2"/><path d="M11 21l2-6-3-3 1.5-5L14 9l3 1.5M10 12l-3 3"/></svg></span><span class="tm-lab">駅からの徒歩ルート<small>向ヶ丘遊園駅→構内入口の距離・所要時間</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestOsm"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><rect x="3" y="10" width="7" height="10"/><rect x="14" y="5" width="7" height="15"/><path d="M3 20h18"/></svg></span><span class="tm-lab">周辺の建物<small>表示中の範囲をOpenStreetMapから取得</small></span><span class="tm-sw"></span></button>
   </div>
@@ -1200,31 +1185,15 @@
   <div id="festVehList" class="fest-bl-list"></div>
   <div class="fest-bl-note">道路の線形：OpenStreetMap（国土地理院の空中写真と照合）／幅員：国土交通省 PLATEAU（川崎市2022）の道路面から計測／路線バス：OpenStreetMapの路線データ。番号（V01・E1・P1）は確認用の仮番号です。本祭期間の通行可否・搬入ルート・駐車場の割り当ては一部のみ反映しています（未設定のものは今後）。行をタップすると、地図のアングルはそのままで該当の場所へ移動します。</div>
 </div></div>
-<div class="overlay" id="festShareOverlay"><div class="modal"><div class="modal-h"><b>位置の共有（車両）</b><button id="festShClose">✕</button></div>
+<div class="overlay" id="festShareOverlay"><div class="modal"><div class="modal-h"><b>位置情報共有設定</b><button id="festShClose">✕</button></div>
   <div class="set-sec fest-trk" id="festTrkSec"><div class="set-label">車両の位置（Traccar Client）</div>
     <div class="fest-trk-list" id="festTrkList"></div>
     <div class="set-msg" id="festTrkMsg">読み込み中…</div>
-    <details class="fest-trk-cfg" id="festTrkCfg"><summary>接続の設定</summary>
-      <div class="set-label">受信APIのURL</div><input id="festTrkApi" placeholder="https://….workers.dev" autocomplete="off" autocapitalize="off" spellcheck="false" inputmode="url" />
-      <div class="set-label">閲覧キー（このタブだけに保存）</div><input id="festTrkTok" type="password" placeholder="本部が配布した閲覧キー" autocomplete="off" autocapitalize="off" spellcheck="false" />
+    <details class="fest-trk-cfg" id="festTrkCfg"><summary>閲覧キー</summary>
+      <input id="festTrkTok" type="password" placeholder="本部が配布した閲覧キー" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="閲覧キー" />
       <div class="share-row"><button class="set-save share-pub" id="festTrkStart" type="button">表示を開始</button><button class="set-save ghost share-pub" id="festTrkStop" type="button">停止</button></div>
     </details>
-    <div class="set-help">運転する人のスマホに無料アプリ「Traccar Client」を入れ、本部が渡す設定用QRコードをアプリで読み取って送信をONにすると、画面を閉じていても位置が届きます。ここで閲覧キーを入れると1〜3号車を表示します（10秒ごとに取得）。</div></div>
-  <div id="festShLegacy">
-  <div class="set-sec"><div class="set-label">表示名（仲間の地図に出る名前）</div><input id="festShName" maxlength="12" placeholder="例：1号車" autocomplete="off" /></div>
-  <div class="set-sec"><div class="set-label">合言葉（同じ合言葉の人どうしで共有）</div><div class="share-row"><input id="festShCode" placeholder="例：k7m2-x9qp-4tav" autocomplete="off" autocapitalize="off" spellcheck="false" style="flex:1;width:auto;" /><button class="set-save ghost share-imp" id="festShGen" type="button">作る</button></div>
-    <button class="set-save" id="festShJoin" type="button">この設定で参加</button>
-    <div class="share-row"><button class="set-save ghost share-pub" id="festShLink" type="button">招待リンクを送る</button><button class="set-save ghost share-pub" id="festShLeave" type="button">共有をやめる</button></div>
-    <div class="set-msg" id="festShMsg"></div></div>
-  <div class="fest-sh-list" id="festShList"></div>
-  <div class="set-sec fest-ot"><div class="set-label">スマホを持ち歩くだけで共有（OwnTracks）</div>
-    <div class="share-row"><input id="festOtName" maxlength="12" placeholder="運転する人の表示名（例：1号車）" autocomplete="off" style="flex:1;width:auto;" /><button class="set-save ghost share-imp" id="festOtMake" type="button">設定を作る</button></div>
-    <div id="festOtOut"></div>
-    <div class="set-help">1. 運転する人のスマホに無料アプリ「OwnTracks」を入れる（<a href="https://apps.apple.com/app/owntracks/id692424691" target="_blank" rel="noopener">App Store</a>／<a href="https://play.google.com/store/apps/details?id=org.owntracks.android" target="_blank" rel="noopener">Google Play</a>）<br>2. ここで作ったQRコードをスマホのカメラで読み取る（またはリンクを開く）と、OwnTracks に設定が入る<br>3. 位置情報を「常に許可」にする（Android は電池の最適化をオフ）<br>あとはスマホを持っているだけで、画面を閉じていても走行中は約15〜30秒ごとに位置を送り、この地図に表示されます。電池を使うので車内で充電してください。</div></div>
-  <div class="set-help"><b>使い方</b>：運転する人がそれぞれ同じ合言葉で参加し、走るときに右の<b>「追跡」</b>を押します。押している間だけ自分の位置を約1秒ごと（止まっているときは10秒ごと）に送り、もう一度押すと送信が止まって仲間の地図から消えます。仲間の位置は、参加していれば追跡していなくても表示され、なめらかに動きます（30秒以上更新がないと灰色、15分で消えます）。<br>
-  <b>安全</b>：位置は合言葉から作った鍵で暗号化してから、無料の公開中継サーバー（EMQX・HiveMQ）を通して送ります。合言葉を知らない人には読めません。合言葉と招待リンクは仲間にだけ伝えてください。<br>
-  <b>注意</b>：この地図の「追跡」で送る場合は、画面を消したり別のアプリに切り替えたりすると送信が止まります。画面を閉じたまま共有するには、上の OwnTracks を使ってください。公開の中継サーバーのため、つながりにくい時があります。</div>
-  </div>
+    <div class="set-help">運転する人のスマホに無料アプリ「Traccar Client」を入れ、本部が渡す設定用QRコードをアプリで読み取って「継続追跡」をONにすると、画面を閉じていても位置が届きます。閲覧キーはこのタブだけに保存し、位置は10秒ごとに更新します。</div></div>
 </div></div>
 <div class="overlay" id="wxOverlay"><div class="modal">
   <div class="modal-h"><b id="wxTitle">天気予報</b><button id="wxClose">✕</button></div>
@@ -1622,8 +1591,7 @@ function festInit(){
   festSetBase(b);
   festDrawCampus(true);if(rs&&rs.way)festDrawWays(true,true);   // 構内の動線は既定でOFF（レイヤー・メニューから表示）
   try{if(localStorage.getItem('tabi_fest_cad_on')==='1')festCadToggle(true);}catch(e){}
-  try{festShInit();}catch(e){console.warn('share',e);}   // 位置の共有（参加中なら仲間の位置の受信を始める）
-  try{festTrkLoad();}catch(e){console.warn('trk',e);}    // 車両の位置（Traccar Client → 受信API）
+  try{festShInit();festTrkLoad();}catch(e){console.warn('trk',e);}   // 位置情報共有：1〜3号車（Traccar Client → 受信API）
   // 端末がベクター描画に対応せずラスターへ切り替わった場合も、建物名（地図側ラベル）を出し直す
   try{map.addListener('renderingtype_changed',()=>{if(festCampusOn)festDrawCampus(true);});}catch(e){}
   try{map.addListener('click',()=>{if(!festB3d)festCardHide();});}catch(e){}
@@ -1631,7 +1599,7 @@ function festInit(){
     if(map.moveCamera)map.moveCamera(cam);else{map.setCenter(cam.center);map.setZoom(cam.zoom);}}
   else festFit();
   if(rs&&rs.tab&&rs.tab!==activeTab)try{selectTab(rs.tab);}catch(e){}
-  if(rs&&rs.trk&&liveWatchId==null)try{startLiveLoc();}catch(e){}   // 昼/夜の切替の再読込で追跡（位置の共有）が途切れないように
+  if(rs&&rs.trk&&liveWatchId==null)try{startLiveLoc();}catch(e){}   // 昼/夜の切替の再読込で追跡が途切れないように
 }
 let festTiltDrag=false;
 function festTiltUi(){   // 角度のバー：3D（ベクター地図）と実写3Dのときだけ表示し、今の傾きに合わせる
@@ -1910,7 +1878,7 @@ function speedChip(show){const c=document.getElementById('speedChip');if(!c)retu
 function liveFabUi(){
   const fab=document.getElementById('trackFab');if(!fab)return;const sm=fab.querySelector('small');
   fab.classList.toggle('on',liveWatchId!=null);
-  if(sm)sm.textContent=liveWatchId==null?'追跡':(liveFollow?((typeof festShActive==='function'&&festShActive())?'共有中':'追跡中'):'追従再開');
+  if(sm)sm.textContent=liveWatchId==null?'追跡':(liveFollow?'追跡中':'追従再開');
 }
 function updateLiveLoc(lat,lng,acc){
   const r=Math.max(acc||0,15);
@@ -1930,9 +1898,9 @@ function startLiveLoc(){
   liveWatchId=navigator.geolocation.watchPosition(pos=>{
     const la=pos.coords.latitude,ln=pos.coords.longitude,acc=pos.coords.accuracy;
     updateLiveLoc(la,ln,acc);updateSpeed(pos);
-    try{taxiSync();taxiOnFix(pos);}catch(e){console.warn('taxi',e);}try{navOnFix(pos);}catch(e){console.warn('nav',e);}try{festShOnFix(pos);}catch(e){console.warn('share',e);}
+    try{taxiSync();taxiOnFix(pos);}catch(e){console.warn('taxi',e);}try{navOnFix(pos);}catch(e){console.warn('nav',e);}
     if(!liveFirstFix){liveFirstFix=true;statusEl.classList.remove('show');map.setCenter({lat:la,lng:ln});if(map.getZoom()<15)map.setZoom(16);
-      showStatus((typeof festShActive==='function'&&festShActive())?'追跡中・位置を仲間と共有しています（ボタン再タップで停止）':'リアルタイム追跡中（ドラッグで追従解除・ボタン再タップで停止）',false);hideStatusLater();
+      showStatus('リアルタイム追跡中（ドラッグで追従解除・ボタン再タップで停止）',false);hideStatusLater();
       if(activeTab&&activeTab!=='route'&&activeTab!=='iso'&&activeTab!=='onsengo')runSearch();
     }else if(liveFollow){map.panTo({lat:la,lng:ln});}
     liveFabUi();
@@ -1942,7 +1910,7 @@ function startLiveLoc(){
     // タイムアウト・圏外・トンネル等の一時的な失敗では追跡を止めない（メーター・ナビを維持）
     showStatus(code===3?'現在地の取得に時間がかかっています（追跡は継続中）':'現在地を取得できません（追跡は継続中）',false);hideStatusLater();
   },
-  {enableHighAccuracy:true,maximumAge:(FEST&&festSh.cfg)?0:2000,timeout:30000});   // 位置の共有中は毎回新しい位置（よりリアルタイムに）
+  {enableHighAccuracy:true,maximumAge:2000,timeout:30000});
   liveFabUi();showStatus('現在地を取得中…',true);
   try{taxiOnTrackStart();}catch(e){console.warn('taxi',e);}   // タクシーメーター（演出）を表示
 }
@@ -1951,122 +1919,13 @@ function stopLiveLoc(){
   liveWatchId=null;liveFollow=true;liveFabUi();speedChip(false);
   try{taxiOnTrackStop();}catch(e){console.warn('taxi',e);}  // メーターは一時停止（内容は保持）
   try{if(navOn)navStop('追跡の終了にともない走行支援ナビを終了しました');}catch(e){}
-  try{festShTrackStop();}catch(e){console.warn('share',e);}   // 位置の共有：送信をやめ、仲間の地図から消す
 }
-// ===== 本祭支援ツール：位置の共有（車両）=====
-//  追跡ボタンを押している間だけ自分の位置を仲間へ送り、同じ合言葉の仲間の位置を地図に描く（受信は参加中ずっと）
-//  中継は公開のMQTTブローカー（EMQX・HiveMQの2か所へ同時に接続して片方が止まっても続ける）。中身は合言葉から作った鍵で暗号化（AES-GCM）し、
-//  合言葉を知らない人には読めない。部屋（トピック）の名前も合言葉から作る。合言葉・表示名は端末内だけに保存
-const FEST_SH_BROKERS=['wss://broker.emqx.io:8084/mqtt','wss://broker.hivemq.com:8884/mqtt'];
-const FEST_SH_STALE=30000, FEST_SH_GONE=15*60000;   // 30秒更新なし＝灰色、15分＝消す
+// ===== 本祭支援ツール：位置情報共有（車両）=====
+//  1〜3号車のスマホ（Traccar Client）が受信APIへ送った位置を fest-vehicle-tracking.js が10秒ごとに取得し、
+//  ここの印（festSh.peers）で標準・白地図・高低差3D・実写3Dのどれにも描く
+const FEST_SH_STALE=30000, FEST_SH_GONE=15*60000;   // 既定：30秒更新なし＝灰色（車両ごとに stl で上書き）、15分＝消す
 const FEST_SH_COLS=['#e8590c','#2b8a3e','#c2255c','#1864ab','#5f3dc4','#0b7285','#a61e4d','#5c940d'];
-let festSh={cfg:null,key:null,room:null,dev:null,ss:null,mq:[],peers:{},lastPub:0,lastFix:null,on:false,tick:null,wake:null,pend:null};
-function FestMq(url,o){this.url=url;this.o=o;this.ws=null;this.buf=new Uint8Array(0);this.up=false;this.closed=false;this.wait=2000;this.rt=null;this.pt=null;}
-(function(){   // 最小限のMQTT 3.1.1（WebSocket・QoS0）
-  const te=new TextEncoder(),td=new TextDecoder();
-  const S=s=>{const b=te.encode(s);return [b.length>>8,b.length&255,...b];},B=b=>[b.length>>8,b.length&255,...b];
-  const PK=(t,body)=>{const o=[t];let n=body.length;do{let d=n%128;n=Math.floor(n/128);if(n>0)d|=128;o.push(d);}while(n>0);const a=new Uint8Array(o.length+body.length);a.set(o);a.set(body,o.length);return a;};
-  const P=FestMq.prototype;
-  P.open=function(){
-    if(this.closed)return;let ws;try{ws=new WebSocket(this.url,['mqtt']);}catch(e){this.retry();return;}
-    this.ws=ws;ws.binaryType='arraybuffer';this.buf=new Uint8Array(0);
-    ws.onopen=()=>{const w=this.o.will,cid='tabimap-'+festSh.dev+'-'+Math.random().toString(36).slice(2,8);
-      const body=[...S('MQTT'),4,0x02|(w?0x04:0),0,30,...S(cid)].concat(w?[...S(w.topic),...B(Array.from(w.payload))]:[]);
-      ws.send(PK(0x10,body));};
-    ws.onmessage=e=>this.feed(new Uint8Array(e.data));
-    ws.onerror=()=>{};
-    ws.onclose=()=>{if(this.ws!==ws)return;this.ws=null;const was=this.up;this.up=false;clearInterval(this.pt);this.pt=null;if(was&&this.o.onState)this.o.onState();this.retry();};
-  };
-  P.retry=function(){if(this.closed||this.rt)return;this.rt=setTimeout(()=>{this.rt=null;this.open();},this.wait);this.wait=Math.min(30000,this.wait*2);};
-  P.feed=function(a){
-    const b=new Uint8Array(this.buf.length+a.length);b.set(this.buf);b.set(a,this.buf.length);this.buf=b;
-    while(this.buf.length>=2){let i=1,m=1,len=0,d;do{if(i>=this.buf.length)return;d=this.buf[i++];len+=(d&127)*m;m*=128;}while(d&128);
-      if(this.buf.length<i+len)return;const ty=this.buf[0]>>4,fl=this.buf[0]&15,p=this.buf.slice(i,i+len);this.buf=this.buf.slice(i+len);
-      if(ty===2){if(p[1]!==0){try{this.ws.close();}catch(e){}return;}   // 接続を断られた
-        this.up=true;this.wait=2000;(this.o.subs||[]).forEach((f,k)=>this.ws.send(PK(0x82,[0,k+1,...S(f),0])));
-        clearInterval(this.pt);this.pt=setInterval(()=>{if(this.up&&this.ws)try{this.ws.send(new Uint8Array([0xC0,0]));}catch(e){}},20000);
-        if(this.o.onState)this.o.onState();}
-      else if(ty===3){const tl=(p[0]<<8)|p[1],q=(fl>>1)&3,off=2+tl+(q?2:0);if(this.o.onMsg)this.o.onMsg(td.decode(p.subarray(2,2+tl)),p.slice(off),!!(fl&1));}
-    }
-  };
-  P.pub=function(topic,payload,retain){if(!this.up||!this.ws)return false;try{this.ws.send(PK(0x30|(retain?1:0),[...S(topic),...payload]));return true;}catch(e){return false;}};
-  P.close=function(){this.closed=true;clearTimeout(this.rt);clearInterval(this.pt);const ws=this.ws;this.ws=null;this.up=false;
-    if(ws){try{if(ws.readyState===1)ws.send(new Uint8Array([0xE0,0]));ws.close();}catch(e){}}};
-})();
-function festShNorm(c){return String(c||'').normalize('NFKC').toLowerCase().replace(/[\s\-‐－ー_]/g,'');}
-function festShGenCode(){const A='abcdefghjkmnpqrstuvwxyz23456789',r=crypto.getRandomValues(new Uint8Array(12));let s='';r.forEach((v,i)=>{s+=A[v%A.length];if(i===3||i===7)s+='-';});return s;}
-function festShCfgLoad(){try{const c=JSON.parse(localStorage.getItem('tabi_share')||'null');if(c&&c.code&&c.name)return c;}catch(e){}return null;}
-function festShCfgSave(c){try{if(c)localStorage.setItem('tabi_share',JSON.stringify(c));else localStorage.removeItem('tabi_share');}catch(e){}}
-function festShDev(){let d='';try{d=localStorage.getItem('tabi_share_dev')||'';}catch(e){}
-  if(!/^[0-9a-f]{16}$/.test(d)){d=Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>b.toString(16).padStart(2,'0')).join('');try{localStorage.setItem('tabi_share_dev',d);}catch(e){}}return d;}
-async function festShKey(code){   // 合言葉 → 暗号鍵＋部屋の名前（PBKDF2で総当たりを遅くする）
-  const te=new TextEncoder(),base=await crypto.subtle.importKey('raw',te.encode(festShNorm(code)),'PBKDF2',false,['deriveBits']);
-  const bits=new Uint8Array(await crypto.subtle.deriveBits({name:'PBKDF2',salt:te.encode('tabimap-fest-share-v1'),iterations:150000,hash:'SHA-256'},base,576));   // 先頭384ビットは従来どおり（後ろはOwnTracks用）
-  const ot=btoa(String.fromCharCode(...bits.slice(48,72))).replace(/\+/g,'-').replace(/\//g,'_');   // OwnTracksの暗号鍵（32文字）
-  return {key:await crypto.subtle.importKey('raw',bits.slice(0,32),'AES-GCM',false,['encrypt','decrypt']),room:Array.from(bits.slice(32,48),b=>b.toString(16).padStart(2,'0')).join(''),ot};
-}
-async function festShEnc(o){const iv=crypto.getRandomValues(new Uint8Array(12)),ct=new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv},festSh.key,new TextEncoder().encode(JSON.stringify(o))));
-  const out=new Uint8Array(12+ct.length);out.set(iv);out.set(ct,12);return out;}
-async function festShDec(b){if(!festSh.key||b.length<29)return null;try{return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b.slice(0,12)},festSh.key,b.slice(12))));}catch(e){return null;}}
-function festShTopic(){return 'tabimap/f1/'+festSh.room+'/'+festSh.dev;}
-function festShActive(){return !!(FEST&&festSh.cfg&&festSh.key);}
-function festShUp(){return festSh.mq.some(m=>m.up);}
-async function festShConnect(){   // 参加：受信を始める（送信は追跡中だけ）
-  const c=festSh.cfg;festShDisconnect();if(!c)return;
-  if(!window.crypto||!crypto.subtle){festShMsg('この端末・ブラウザは暗号化に対応していないため共有できません');return;}
-  festShMsg('接続の準備中…');
-  const k=await festShKey(c.code);if(festSh.cfg!==c)return;   // 準備中に設定が変わった
-  festSh.key=k.key;festSh.room=k.room;festSh.ot=k.ot;festSh.dev=festShDev();festSh.ss=Math.random().toString(36).slice(2,10);
-  const will=await festShEnc({v:1,id:festSh.dev,ss:festSh.ss,n:c.name,s:'lost',t:Date.now()});   // 通信が切れたら仲間に「途絶」を知らせる
-  festSh.mq=FEST_SH_BROKERS.map(u=>new FestMq(u,{will:{topic:festShTopic(),payload:will},subs:['tabimap/f1/'+festSh.room+'/+','tabimap/ot/'+festSh.room+'/+'],
-    onMsg:(t,p,r)=>{festShOnMsg(t,p,r);},onState:()=>{festShUi();if(festShUp()&&festSh.on)festShSendPos();}}));
-  festSh.mq.forEach(m=>m.open());
-  clearInterval(festSh.tick);festSh.tick=setInterval(()=>{festShRender();festShUi();if(festSh.on&&festSh.lastFix&&Date.now()-festSh.lastPub>=10000)festShSendPos();},5000);   // 止まっていても10秒ごとに送る
-  festShUi();
-}
-function festShDisconnect(){festSh.mq.forEach(m=>m.close());festSh.mq=[];clearInterval(festSh.tick);festSh.tick=null;festSh.key=null;festSh.on=false;
-  Object.keys(festSh.peers).filter(id=>!festSh.peers[id].http).forEach(festShDrop);festShUi();}   // Traccar（http:…）の印は fest-vehicle-tracking.js が管理
-async function festShPub(o,retain){if(!festSh.key)return;const p=await festShEnc(o),t=festShTopic();festSh.mq.forEach(m=>m.pub(t,p,retain));}
-function festShSendPos(){const f=festSh.lastFix;if(!f||!festSh.cfg)return;festSh.lastPub=Date.now();
-  festShPub(Object.assign({v:1,id:festSh.dev,ss:festSh.ss,n:festSh.cfg.name,s:'on',t:Date.now()},f),true);}   // 保持（後から参加した人にも最後の位置が届く）
-function festShOnFix(pos){   // 追跡の位置ごと：動いていれば約1秒ごと（GPSの更新ごと）、止まっていても10秒ごと
-  if(!festShActive())return;
-  if(!festSh.on){festSh.on=true;festShWakeOn();festShUi();}
-  const c=pos.coords,f={la:+c.latitude.toFixed(6),ln:+c.longitude.toFixed(6),ac:Math.round(c.accuracy||0),
-    sp:(c.speed!=null&&isFinite(c.speed)&&c.speed>=0)?Math.round(c.speed*3.6):null,hd:(c.heading!=null&&isFinite(c.heading))?Math.round(c.heading):null};
-  const lf=festSh.lastFix,now=Date.now(),moved=!lf||distMeters({lat:lf.la,lng:lf.ln},{lat:f.la,lng:f.ln})>=1;festSh.lastFix=f;
-  if(now-festSh.lastPub<900||(!moved&&now-festSh.lastPub<10000))return;
-  festShSendPos();
-}
-async function festShTrackStop(){   // 追跡を止めた：仲間の地図から自分を消す（保持していた位置も消す）
-  if(!festSh.on)return;festSh.on=false;festSh.lastFix=null;festShWakeOff();festShUi();
-  if(!festSh.key)return;await festShPub({v:1,id:festSh.dev,ss:festSh.ss,n:festSh.cfg?festSh.cfg.name:'',s:'off',t:Date.now()},false);
-  const t=festShTopic();festSh.mq.forEach(m=>m.pub(t,new Uint8Array(0),true));
-}
-async function festShOnMsg(topic,payload,retained){
-  if(!payload.length)return;if(topic.indexOf('tabimap/ot/')===0){festOtOnMsg(topic,payload,retained);return;}   // OwnTracks（スマホを持ち歩くだけで共有）
-  const id=topic.slice(topic.lastIndexOf('/')+1);if(id===festSh.dev)return;
-  const o=await festShDec(payload);if(!o||o.id!==id||!isFinite(o.t))return;
-  const p=festSh.peers[id];
-  if(o.s==='off'){if(p&&o.t>=p.t)festShDrop(id);festShRender();festShUi();return;}
-  if(o.s==='lost'){if(p&&p.ss===o.ss&&!p.lost){p.lost=true;festShRender();festShUi();}return;}   // 同じ接続のときだけ（つなぎ直した後の古い知らせは無視）
-  if(o.s!=='on'||!isFinite(o.la)||!isFinite(o.ln))return;
-  festShPeerPos(id,o,retained);
-}
-function festShPeerPos(id,o,retained,ex){   // 仲間の位置を更新（ex＝追加の情報：OwnTracks の電池・更新なしの判定時間など）
-  const p=festSh.peers[id],now=Date.now();
-  if(p&&o.t<=p.t)return;   // 2か所の中継から同じものが届く→新しいものだけ
-  const rx=retained?now-Math.max(0,now-o.t):now;   // 保持の位置は送った時刻で古さを判断
-  if(now-rx>FEST_SH_GONE)return;
-  // なめらかに動かす：前の位置との差から速度を出し（無ければGPSの速度・方位）、表示位置は目標（最新の位置＋速度×経過時間）を追いかける
-  const kx=111320*Math.cos(o.la*Math.PI/180),ky=110940;let ve=0,vn=0;
-  if(p&&p.t&&!retained&&o.t-p.t>300&&o.t-p.t<15000){const dt=(o.t-p.t)/1000;ve=(o.ln-p.ln)*kx/dt;vn=(o.la-p.la)*ky/dt;}
-  else if(!retained&&o.sp!=null&&o.hd!=null&&o.sp>=3){const v=o.sp/3.6,h=o.hd*Math.PI/180;ve=v*Math.sin(h);vn=v*Math.cos(h);}
-  const vs=Math.hypot(ve,vn);if(vs<0.7||vs>45){ve=vn=0;}
-  const q=festSh.peers[id]=Object.assign(p||{},{n:String(o.n||'仲間').slice(0,16),la:o.la,ln:o.ln,ac:o.ac,sp:o.sp,hd:o.hd,t:o.t,ss:o.ss,rx,lost:false,ve,vn,fat:now,kx,ky},ex||{});
-  if(q.dla==null||retained||Math.hypot((q.dla-o.la)*ky,(q.dln-o.ln)*kx)>400){q.dla=o.la;q.dln=o.ln;}   // 初回・大きく飛んだときはその場へ
-  festShRender();festShUi();festShAnimKick();
-}
+let festSh={peers:{}};
 let festShRaf=0,festShAt=0,festShAsk=0;   // festShAsk＝次の描画を頼んだ時刻（いつまでも来なければ画面が裏にある）
 function festShTarget(p,now){const e=Math.max(0,(now-p.fat)/1000),dt=(p.ve||p.vn)?(e<=1.2?e:(e<3?1.2:0)):0;return[p.la+p.vn*dt/p.ky,p.ln+p.ve*dt/p.kx];}   // 最新の位置から最大1.2秒先まで進める。3秒届かなければ最後に届いた位置へ戻す
 function festShAnimKick(){if(!festShRaf&&Object.keys(festSh.peers).length){festShAsk=Date.now();festShRaf=requestAnimationFrame(festShAnim);}}
@@ -2136,94 +1995,17 @@ function festShRender(){
     }else if(p.m3){try{p.m3.remove();}catch(e){}p.m3=null;}
   });
 }
-function festShInfo(id){
-  const p=festSh.peers[id];if(!p)return;if(p.http){if(window.festHttp)festHttp.info(p.vid);return;}   // Traccar の車両const age=Date.now()-p.rx,stale=p.lost||age>(p.stl||FEST_SH_STALE);
-  festCardShow(festCard({title:p.n,kind:p.ot?'位置の共有（OwnTracks）':'位置の共有（仲間）',dot:stale?'#868e96':festShCol(id),
-    stats:[[age<5000?'いま':festShAgo(age),'更新'],[p.sp!=null?String(p.sp):'—','km/h'],p.bt!=null?[p.bt+'%','電池']:[p.ac?'±'+p.ac:'—','精度 m']],
-    notes:stale?[['warn',p.lost?'通信途絶':'更新なし',(p.lost?'仲間の通信が切れました。':'')+'最後に届いた位置を灰色で表示しています（15分で消えます）']]:[],
-    extra:routeActionsHtml(p.la,p.ln,p.n)}));
-}
-function festShMsg(t){const e=document.getElementById('festShMsg');if(e)e.textContent=t||'';}
-function festShUi(){
-  const ids=Object.keys(festSh.peers).filter(id=>!festSh.peers[id].http),now=Date.now(),live=ids.filter(id=>{const p=festSh.peers[id];return !p.lost&&now-p.rx<=(p.stl||FEST_SH_STALE);}).length;
+function festShInfo(id){const p=festSh.peers[id];if(p&&p.http&&window.festHttp)festHttp.info(p.vid);}
+function festShUi(){   // メニューの説明（表示中の台数など）
   const sm=document.querySelector('#tmFestShare .tm-lab small');
-  if(sm)sm.textContent=(window.festHttp&&festHttp.enabled)?festHttp.menuText():!festSh.cfg?'追跡中の位置を仲間（トラックなど）とリアルタイムで共有・地図に表示'
-    :(festSh.cfg.name+'として参加中・仲間'+live+'台'+(festSh.on?'・自分の位置を送信中':'（追跡ボタンで送信）'));
-  const fab=document.getElementById('trackFab');
-  if(fab){let b=fab.querySelector('.sh-n');if(festShActive()&&ids.length){if(!b){b=document.createElement('span');b.className='sh-n';fab.appendChild(b);}b.textContent=String(ids.length);b.classList.toggle('stale',!live);}else if(b)b.remove();}
-  try{liveFabUi();}catch(e){}
-  const ov=document.getElementById('festShareOverlay');if(!ov||!ov.classList.contains('open'))return;
-  if(festSh.cfg&&festSh.key&&!festSh.pend)festShMsg(festShUp()?('接続中・仲間'+live+'台'+(festSh.on?'・自分の位置を送信中':'（自分の位置は「追跡」を押すと送ります）')):'中継サーバーへ接続しています…');
-  const box=document.getElementById('festShList');if(!box)return;
-  box.innerHTML=ids.length?ids.map(id=>{const p=festSh.peers[id],age=now-p.rx,stale=p.lost||age>(p.stl||FEST_SH_STALE);
-    return '<button type="button" class="fest-sh-row" data-id="'+id+'"><i style="background:'+(stale?'#868e96':festShCol(id))+'"></i><b>'+escapeHtml(p.n)+'</b><span>'+(p.lost?'通信途絶':(age<5000?'いま':festShAgo(age)))+(p.sp!=null&&!stale?'・'+p.sp+'km/h':'')+'</span></button>';}).join('')
-    :(festSh.cfg?'<div class="fest-sh-empty">仲間の位置はまだ届いていません（仲間が「追跡」を押すと表示されます）</div>':'');
-  box.querySelectorAll('.fest-sh-row').forEach(b=>b.onclick=()=>{const p=festSh.peers[b.dataset.id];if(!p)return;ov.classList.remove('open');
-    if(festBase==='p3d'&&fest3d){try{fest3d.flyCameraTo({endCamera:{center:{lat:p.la,lng:p.ln,altitude:0},range:Math.min(fest3d.range||600,600),tilt:fest3d.tilt,heading:fest3d.heading},durationMillis:900});}catch(e){}}
-    else map.panTo({lat:p.la,lng:p.ln});festShInfo(b.dataset.id);});
+  if(sm)sm.textContent=(window.festHttp&&festHttp.enabled)?festHttp.menuText():'1〜3号車の位置を地図に表示';
 }
-async function festShWakeOn(){try{if(!festSh.wake&&'wakeLock' in navigator&&document.visibilityState==='visible'){festSh.wake=await navigator.wakeLock.request('screen');festSh.wake.addEventListener('release',()=>{festSh.wake=null;});}}catch(e){}}
-function festShWakeOff(){try{if(festSh.wake)festSh.wake.release();}catch(e){}festSh.wake=null;}
-function festShOpen(prefill){
-  const ov=document.getElementById('festShareOverlay');if(!ov)return;const c=festSh.cfg||{};
-  festSh.pend=(prefill&&(!festSh.cfg||festShNorm(prefill)!==festShNorm(c.code)))?prefill:null;   // 招待リンクの合言葉がまだ未参加
-  document.getElementById('festShName').value=c.name||'';document.getElementById('festShCode').value=prefill||c.code||'';
-  festShMsg(festSh.pend?(festSh.cfg?'招待リンクの合言葉は、いま参加中のものと違います。切り替えるなら「この設定で参加」を押してください':'招待リンクから開きました。表示名を入れて「参加」を押してください'):(festSh.cfg?'':'未参加'));
-  ov.classList.add('open');festShUi();if(window.festHttp&&festHttp.ui)festHttp.ui();if(prefill)setTimeout(()=>{try{document.getElementById('festShName').focus();}catch(e){}},50);
+function festShOpen(){
+  const ov=document.getElementById('festShareOverlay');if(!ov)return;
+  ov.classList.add('open');festShUi();if(window.festHttp&&festHttp.ui)festHttp.ui();
 }
-
-// ===== OwnTracks（スマホを持ち歩くだけで位置を共有）=====
-// 運転する人のスマホに無料アプリ OwnTracks を入れ、ここで作る設定リンク（QRコード）を開くと、画面を閉じていても位置を送り続ける。
-// 送り先は同じ公開中継サーバー（EMQX）。中身は合言葉から作った鍵で暗号化（OwnTracks の暗号化＝libsodium secretbox）。部屋は合言葉の部屋と同じ。
-const FEST_OT_HOST='broker.emqx.io', FEST_OT_PORT=8883, FEST_OT_STALE=3*60000;   // 走行中は約15〜30秒ごと。3分届かなければ灰色
-const FEST_LIB={nacl:['https://cdnjs.cloudflare.com/ajax/libs/tweetnacl/1.0.3/nacl-fast.min.js','sha384-05+sicyRJQ56XpL4U9HJ8YbtSzFDvAg7apPKOGV6A0JsAJKFM68jp5oLnUjG5mEp'],
-  qr:['https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js','sha384-mZT2gIty7ZDdOGkxfP6joZcYdMW1Jvj9dRlfpTmaJAKKXTqzygtB22k7FLe+KZC1']};
-const festLibP={};
-function festLib(k){   // 必要になったときだけ読み込む（改ざん検出つき）
-  if(!festLibP[k])festLibP[k]=new Promise((ok,ng)=>{const sc=document.createElement('script');sc.src=FEST_LIB[k][0];sc.integrity=FEST_LIB[k][1];sc.crossOrigin='anonymous';
-    sc.onload=()=>ok();sc.onerror=()=>{delete festLibP[k];ng(new Error('lib '+k));};document.head.appendChild(sc);});
-  return festLibP[k];
-}
-const festB64u=s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-function festB64uDec(s){try{s=s.replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';return decodeURIComponent(escape(atob(s)));}catch(e){return '';}}
-function festOtDevId(name){return 'n'+festB64u(name);}   // 端末ID＝表示名（地図に出る名前）を埋め込む
-function festOtName(dev){return dev.charAt(0)==='n'?(festB64uDec(dev.slice(1))||dev):dev;}
-async function festOtOnMsg(topic,payload,retained){
-  let o;try{o=JSON.parse(new TextDecoder().decode(payload));}catch(e){return;}
-  if(o&&o._type==='encrypted'){if(!festSh.ot)return;
-    try{await festLib('nacl');const b=Uint8Array.from(atob(o.data||''),c=>c.charCodeAt(0));if(b.length<41)return;
-      const k=new Uint8Array(32);k.set(new TextEncoder().encode(festSh.ot).slice(0,32));
-      const m=nacl.secretbox.open(b.slice(24),b.slice(0,24),k);if(!m)return;o=JSON.parse(new TextDecoder().decode(m));}catch(e){return;}}
-  if(!o||o._type!=='location'||!isFinite(o.lat)||!isFinite(o.lon)||!isFinite(o.tst))return;
-  const dev=topic.slice(topic.lastIndexOf('/')+1),id='ot:'+dev;
-  festShPeerPos(id,{n:festOtName(dev),la:+(+o.lat).toFixed(6),ln:+(+o.lon).toFixed(6),ac:isFinite(o.acc)?Math.round(o.acc):0,
-    sp:isFinite(o.vel)&&o.vel>=0?Math.round(o.vel):null,hd:isFinite(o.cog)&&o.cog>=0?Math.round(o.cog):null,t:Math.round(o.tst*1000),ss:'ot'},retained,
-    {ot:true,stl:FEST_OT_STALE,bt:isFinite(o.batt)&&o.batt>=0?Math.round(o.batt):null});
-}
-function festOtConfig(name){   // OwnTracks の設定（.otrc）。走行中は約15〜30秒ごと・20m動くごとに送る「移動」モード
-  const c={_type:'configuration',mode:0,host:FEST_OT_HOST,port:FEST_OT_PORT,tls:true,ws:false,auth:false,username:'tabimap',
-    clientId:'tabimap-ot-'+Array.from(crypto.getRandomValues(new Uint8Array(6)),b=>b.toString(16).padStart(2,'0')).join(''),
-    deviceId:festOtDevId(name),tid:(String(name).replace(/[^0-9A-Za-z]/g,'')||'T').slice(0,2),
-    pubTopicBase:'tabimap/ot/'+festSh.room+'/%d',sub:false,pubRetain:true,pubQos:1,keepalive:60,cleanSession:false,
-    encryptionKey:festSh.ot,monitoring:2,locatorInterval:30,locatorDisplacement:20,moveModeLocatorInterval:15,locatorPriority:3,
-    extendedData:true,cmd:false,remoteConfiguration:false};
-  return 'owntracks:///config?inline='+encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(c)))));   // +や/を%形式に（Androidは+を空白として読むため）
-}
-async function festOtMake(){
-  const out=document.getElementById('festOtOut'),name=document.getElementById('festOtName').value.trim().slice(0,12);
-  if(!festSh.cfg||!festSh.ot){out.innerHTML='<div class="fest-ot-msg">先に上の合言葉で「参加」してください</div>';return;}
-  if(!name){out.innerHTML='<div class="fest-ot-msg">運転する人の表示名を入れてください（例：1号車）</div>';return;}
-  const url=festOtConfig(name);let qr='';
-  try{await festLib('qr');const q=qrcode(0,'L');q.addData(url);q.make();qr=q.createSvgTag({cellSize:3,margin:2,scalable:true});}catch(e){qr='';}
-  out.innerHTML=(qr?'<div class="fest-ot-qr" aria-label="設定用QRコード">'+qr+'</div>':'<div class="fest-ot-msg">QRコードを作れませんでした（下のリンクを使ってください）</div>')
-    +'<div class="fest-ot-name">'+escapeHtml(name)+' の設定</div>'
-    +'<div class="share-row"><button type="button" class="set-save ghost share-pub" id="festOtCopy">リンクをコピー</button><a class="set-save ghost share-pub fest-ot-open" href="'+escapeHtml(url)+'">このスマホで開く</a></div>'
-    +'<div class="fest-ot-msg">このQRコードとリンクには合言葉から作った鍵が入っています。運転する人にだけ見せてください</div>';
-  document.getElementById('festOtCopy').onclick=async()=>{try{await navigator.clipboard.writeText(url);festShMsg('設定リンクをコピーしました（運転する人にだけ送ってください）');}catch(e){prompt('設定リンク（運転する人にだけ送ってください）',url);}};
-}
-// 車両の位置（Traccar Client → 受信API）。処理は fest-vehicle-tracking.js（本祭支援ツールのときだけ読み込む）
-const FEST_TRK_V=2;
-function festTrkOn(){try{const c=JSON.parse(localStorage.getItem('fest_track_cfg')||'null');return !!(c&&c.on);}catch(e){return false;}}
+// 車両の位置の取得・一覧は fest-vehicle-tracking.js（本祭支援ツールのときだけ読み込む）
+const FEST_TRK_V=3;
 function festTrkLoad(){
   if(!FEST||window.festHttp)return;
   const sc=document.createElement('script');sc.src='fest-vehicle-tracking.js?v='+FEST_TRK_V;
@@ -2234,32 +2016,9 @@ function festTrkLoad(){
 function festShInit(){
   if(!FEST)return;
   const ov=document.getElementById('festShareOverlay');if(!ov)return;
-  document.getElementById('festShClose').onclick=()=>{ov.classList.remove('open');festSh.pend=null;};
-  document.getElementById('festOtMake').onclick=festOtMake;
-  ov.addEventListener('click',e=>{if(e.target===ov){ov.classList.remove('open');festSh.pend=null;}});
-  document.getElementById('festShGen').onclick=()=>{document.getElementById('festShCode').value=festShGenCode();festShMsg('合言葉を作りました。「参加」を押した後、「招待リンクを送る」で仲間に伝えてください');};
-  document.getElementById('festShJoin').onclick=async()=>{
-    const name=document.getElementById('festShName').value.trim().slice(0,12),code=document.getElementById('festShCode').value.trim();
-    if(!name){festShMsg('表示名を入れてください（例：1号車）');return;}
-    if(festShNorm(code).length<8){festShMsg('合言葉は8文字以上にしてください（「作る」で自動作成できます）');return;}
-    if(festSh.on)await festShTrackStop();   // 送信中に切り替える：前の合言葉の仲間からは消える
-    festSh.pend=null;festSh.cfg={name,code};festShCfgSave(festSh.cfg);festShConnect().then(()=>{if(liveWatchId!=null&&!festSh.on)festShMsg('参加しました。追跡中のため、次の位置から送信します');});
-  };
-  document.getElementById('festShLeave').onclick=async()=>{if(!festSh.cfg){festShMsg('参加していません');return;}
-    if(!confirm('位置の共有をやめます（自分の位置の送信をやめ、仲間の位置も表示しなくなります）。よろしいですか？'))return;
-    await festShTrackStop();setTimeout(()=>festShDisconnect(),400);festSh.cfg=null;festShCfgSave(null);festShMsg('共有をやめました');festShUi();};
-  document.getElementById('festShLink').onclick=async()=>{
-    const c=festSh.cfg;if(!c){festShMsg('先に「参加」してください');return;}
-    const url=location.origin+location.pathname+'?m=senshu#share='+encodeURIComponent(c.code);
-    try{if(navigator.share){await navigator.share({title:'本祭支援ツール 位置の共有',text:'位置の共有に参加してください（表示名を入れて「参加」）',url});return;}}catch(e){if(e&&e.name==='AbortError')return;}
-    try{await navigator.clipboard.writeText(url);festShMsg('招待リンクをコピーしました（LINEなどで仲間だけに送ってください）');}catch(e){prompt('招待リンク（仲間だけに送ってください）',url);}
-  };
-  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(festSh.on)festShWakeOn();festSh.mq.forEach(m=>{if(!m.ws&&!m.closed){clearTimeout(m.rt);m.rt=null;m.wait=2000;m.open();}});}});
+  document.getElementById('festShClose').onclick=()=>ov.classList.remove('open');
+  ov.addEventListener('click',e=>{if(e.target===ov)ov.classList.remove('open');});
   try{map.addListener('heading_changed',()=>{if(Object.keys(festSh.peers).length)festShRender();});}catch(e){}
-  festSh.cfg=festShCfgLoad();if(festSh.cfg&&!festTrkOn())festShConnect();   // Traccar（HTTP）を使っている間は旧方式に接続しない（設定は消さない）
-  const m=/^#share=([^&]+)/.exec(location.hash||'');
-  if(m){let code='';try{code=decodeURIComponent(m[1]);}catch(e){}try{history.replaceState(null,'',location.pathname+location.search);}catch(e){}   // 合言葉をアドレス欄に残さない
-    if(code)festShOpen(code);}
   festShUi();
 }
 function addPoiMarker(lat,lng,cat,tags){
@@ -5340,7 +5099,7 @@ document.getElementById('trackFab').onclick=()=>{
   const now=Date.now();if(now-trackTapAt<600)return;trackTapAt=now;              // 二重タップで即停止するのを防ぐ
   if(liveWatchId==null){startLiveLoc();}                                        // 追跡開始
   else if(!liveFollow){liveFollow=true;if(liveMarker)map.setCenter(liveMarker.getPosition());liveFabUi();showStatus('追従を再開しました',false);hideStatusLater();} // 追従再開
-  else{const sh=festShActive();stopLiveLoc();showStatus(sh?'追跡と位置の共有（送信）を終了しました（仲間の位置は引き続き表示）':'リアルタイム追跡を終了しました（青ドットは残ります）',false);hideStatusLater();}                     // 停止
+  else{stopLiveLoc();showStatus('リアルタイム追跡を終了しました（青ドットは残ります）',false);hideStatusLater();}                     // 停止
   try{taxiSync();}catch(e){console.warn('taxi',e);}
 };
 (function(){   // 試験用：ベクター地図のMap ID
@@ -5839,7 +5598,7 @@ function festSetBase(b){
   if(festCampusOn)festDrawCampus(true);        // 航空写真・白地図では配色を変える（3Dの立体化もここで連動）
   else festB3dSync();
   if(festWayOn)festDrawWays(true,true);        // 3D（高低差あり）⇔ それ以外で動線・印の描き方が変わる
-  try{festShRender();}catch(e){}               // 位置の共有：仲間の印
+  try{festShRender();}catch(e){}               // 位置情報共有：車両の印
 }
 // --- キャンパス外周・建物・駅
 const festPkBig=k=>!!(k.fee||k.id==='P1');   // Pを大きく出す駐車場：有料と9号館駐車場（P1）
@@ -5984,7 +5743,7 @@ async function festP3dOpen(){
     if(festFacOn)FEST_FAC.forEach(f=>mk(f.c[0],f.c[1],(f.n||FEST_FAC_JP[f.k]||f.k),6,4,1,'#0ca678',false));
     festP3dTier();
     let rq=0;fest3d.addEventListener('gmp-rangechange',()=>{if(rq)return;rq=requestAnimationFrame(()=>{rq=0;festP3dTier();});});
-    try{festShRender();}catch(e){}   // 位置の共有：仲間の印を実写3Dにも
+    try{festShRender();}catch(e){}   // 位置情報共有：車両の印を実写3Dにも
     statusEl.classList.remove('show');
   }catch(e){
     console.warn('p3d',e);festP3dClose();
@@ -6458,7 +6217,7 @@ function festTerrainChanged(){   // 地形の有無で、外周・動線・印�
     if(festCampusOn)festDrawCampus(true);if(festWayOn)festDrawWays(true,true);
     try{renderToolMenu();}catch(e){}
     try{window.dispatchEvent(new Event('festterrain'));}catch(e){}
-    try{festShRender();}catch(e){}   // 位置の共有：仲間の印も描き方を切り替える
+    try{festShRender();}catch(e){}   // 位置情報共有：車両の印も描き方を切り替える
   }finally{festTerrBusy=false;}
 }
 // 地形に沿った印（DOM）：地図の点を3Dの高さ付きで画面に投影して置く（地形ONの間、Googleの印の代わりに使う）

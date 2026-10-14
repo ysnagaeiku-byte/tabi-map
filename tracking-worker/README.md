@@ -52,7 +52,10 @@ npm test                   # 自動テスト（Workers 実行環境＋ローカ�
 npm run typecheck
 ```
 
-地図は別の端末で `python3 -m http.server 8790 --bind 127.0.0.1`（リポジトリ直下）を起動し、`http://127.0.0.1:8790/index-google.html?m=senshu` で開きます。メニュー「位置の共有（車両）」→「接続の設定」に `http://127.0.0.1:8787` と `.secrets/local.json` の `viewToken` を入れます。
+地図は別の端末で `python3 -m http.server 8790 --bind 127.0.0.1`（リポジトリ直下）を起動し、`http://127.0.0.1:8790/index-google.html?m=senshu` で開きます。
+
+1. ブラウザの開発者ツールで `localStorage.setItem('fest_track_cfg','{"apiBase":"http://127.0.0.1:8787"}')` を実行し、再読み込みします。受信APIの差し替えは localhost / 127.0.0.1 のページだけで効きます。
+2. メニュー「位置情報共有設定」→「閲覧キー」に、`.secrets/local.json` の `viewToken` を入れます。
 
 > **iCloud の注意**：このフォルダがデスクトップ（iCloud 同期）にあり、ディスクの空きが少ないと、`node_modules` の中身が Mac から退避されてテストが止まります。その場合は `node_modules` と `.wrangler` を iCloud 外（例：`~/.local/share/tabimap/tracking-worker/`）へ移し、シンボリックリンクにしてください。`npm ci` はリンクを消すため、実行後にもう一度移します。
 
@@ -82,7 +85,7 @@ npx wrangler d1 create festival-vehicle-tracking --location=apac
    ```
 
    - Secret `DEVICE_AUTH_JSON`（車両ごとの端末ID＋送信キーのハッシュ）と `VIEW_TOKEN_SHA256` を `wrangler secret put` で登録します。
-   - `tracking-worker/.secrets/production-setup.html`（設定シート：車両ごとのQRコード・本部の閲覧キー）を作ります。
+   - `tracking-worker/.secrets/production-setup.html`（設定シート：車両ごとのQRコード・本部の閲覧キー）を作ります。本部は地図の「位置情報共有設定」に閲覧キーを入れます。
 4. 確認します。
 
    ```sh
