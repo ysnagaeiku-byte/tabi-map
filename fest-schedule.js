@@ -12,7 +12,7 @@
   const FAC_NOTE = { b4: '420教室', b10: '10101教室' };   // 開錠・施錠の基準
   const EVU = [['9', '9-EV', '9号館'], ['10', '10-EV', '10号館']];
   const WD = ['日', '月', '火', '水', '木', '金', '土'];
-  const HOLD_MS = 4500, SLIDE_MS = 600, POLL_MS = 60000;
+  const HOLD_MS = 7500, SLIDE_MS = 600, POLL_MS = 60000;   // 1ページを7.5秒表示してから流す
 
   const S = window.festSched = { data: null, updatedAtMs: null, error: '', loading: false, timer: null, draft: null, tab: 0, initialized: false };
   const $ = id => document.getElementById(id);

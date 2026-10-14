@@ -922,16 +922,16 @@
   .nav-row button,#routeSheet .nav-row .nav-start-btn{flex:1 1 0;width:auto;min-width:0;margin:0 !important;min-height:34px !important;border-radius:8px !important;font-size:12.5px !important;white-space:nowrap;}
 
   /* ===== 本祭支援ツール：最上部の帯（各号館の開錠・施錠時刻）・時計のEV欄・時刻表の編集 ===== */
-  html.fest{--fb:21px;}   /* 帯17px＋検索バー・丸ボタンとのすき間4px */
-  #festBand{display:none;position:fixed;left:0;right:0;top:0;z-index:1260;box-sizing:border-box;height:calc(17px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top);background:#000;color:#fff;cursor:pointer;}
+  html.fest{--fb:24px;}   /* 帯20px＋検索バー・丸ボタンとのすき間4px */
+  #festBand{display:none;position:fixed;left:0;right:0;top:0;z-index:1260;box-sizing:border-box;height:calc(20px + env(safe-area-inset-top));padding-top:env(safe-area-inset-top);background:#000;color:#fff;cursor:pointer;}
   html.fest #festBand{display:block;}
-  #festBand .fb-view{position:relative;height:17px;margin:0 10px;overflow:hidden;}
-  #festBand .fb-page{position:absolute;left:0;top:0;height:17px;line-height:17px;white-space:nowrap;font-size:11px;font-weight:700;letter-spacing:.2px;transform:translateX(110%);will-change:transform;}
-  #festBand .fb-day,#fbMeasure .fb-day{color:#ffd43b;margin-right:7px;}
-  #festBand .fb-it,#fbMeasure .fb-it{margin-right:16px;}
+  #festBand .fb-view{position:relative;height:20px;margin:0 10px;overflow:hidden;}
+  #festBand .fb-page{position:absolute;left:0;top:0;height:20px;line-height:20px;white-space:nowrap;font-size:13px;font-weight:700;letter-spacing:.2px;transform:translateX(110%);will-change:transform;}
+  #festBand .fb-day,#fbMeasure .fb-day{color:#ffd43b;margin-right:8px;}
+  #festBand .fb-it,#fbMeasure .fb-it{margin-right:19px;}
   #festBand .fb-it b{font-weight:800;font-variant-numeric:tabular-nums;}
   #festBand .fb-dim{color:#adb5bd;font-weight:600;}
-  #fbMeasure{position:absolute;left:0;top:0;visibility:hidden;white-space:nowrap;font-size:11px;font-weight:700;letter-spacing:.2px;}
+  #fbMeasure{position:absolute;left:0;top:0;visibility:hidden;white-space:nowrap;font-size:13px;font-weight:700;letter-spacing:.2px;}
   html.fest #topbar{padding-top:calc(env(safe-area-inset-top) + var(--fb));}
   html.fest #toolMenu{top:calc(54px + var(--fb) + env(safe-area-inset-top));}
   html.fest #status{top:calc(env(safe-area-inset-top) + 128px + var(--fb));}
@@ -2037,7 +2037,7 @@ function festShOpen(){
   ov.classList.add('open');festShUi();if(window.festHttp&&festHttp.ui)festHttp.ui();
 }
 // 車両の位置の取得・一覧は fest-vehicle-tracking.js（本祭支援ツールのときだけ読み込む）
-const FEST_TRK_V=4;
+const FEST_TRK_V=5;
 function festTrkLoad(){
   if(!FEST||window.festHttp)return;
   const sc=document.createElement('script');sc.src='fest-vehicle-tracking.js?v='+FEST_TRK_V;
