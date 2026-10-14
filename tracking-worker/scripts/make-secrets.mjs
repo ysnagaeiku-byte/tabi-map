@@ -28,6 +28,7 @@ const VEHICLES = [
   ["vehicle-3", "3号車"],
 ];
 const LOCAL_ORIGINS = "http://127.0.0.1:8790,http://localhost:8790";
+const MAP_URL = "https://ysnagaeiku-byte.github.io/tabi-map/index-google.html?m=senshu";   // 本祭支援ツール（公開の地図）
 
 const token = () => randomBytes(32).toString("base64url"); // 43文字
 const sha = (s) => createHash("sha256").update(s).digest("hex");
@@ -127,7 +128,10 @@ h2{margin:0 0 8px;font-size:18px}.qr svg{width:220px;height:220px}dl{font-size:1
 <p class="warn">このページの QRコード・URL・閲覧キーは秘密です。運転する人には自分の車両の QRコードだけを見せ、写真やチャットで広く共有しないでください。作成: ${esc(new Date().toISOString())}</p>
 <p>QRコードには送信設定（精度 ${esc(qr.accuracy)}・間隔 ${esc(qr.interval)} 秒・距離 ${esc(qr.distance)} m・停止検知 ${esc(qr.stop_detection)}・通信確認 ${esc(qr.heartbeat)} 秒）も入っています。読み取り後、アプリで送信を ON にしてください。</p>
 ${cards}
-<section><h2>本部の閲覧キー</h2><p>本祭支援ツールの「位置の共有（車両）」→「接続の設定」に入力する。</p><div class="view">${esc(state.viewToken)}</div></section>
+<section><h2>本部版のリンク（全権限）</h2><p>あなたが使う端末でこの QR を読む（またはリンクを開く）と、その端末に全権限の閲覧キーが記憶され、以後は自動で本部版になります。配布版の発行・取り消しも本部版から行います。<b>本部の端末以外では開かないでください。</b></p>
+<div class="qr" data-text="${esc(MAP_URL + "#key=" + state.viewToken)}"></div><dl><dt>リンク</dt><dd class="u">${esc(MAP_URL + "#key=" + state.viewToken)}</dd></dl>
+<p>iPhone のホーム画面に追加したアプリで使うときは、上のリンクをコピーし、アプリの「位置情報共有設定」→「閲覧キー」で貼り付けてください（ホーム画面のアプリは Safari と保存場所が別のため）。</p>
+<dl><dt>閲覧キー（手入力する場合）</dt><dd class="view">${esc(state.viewToken)}</dd></dl></section>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" integrity="sha384-mZT2gIty7ZDdOGkxfP6joZcYdMW1Jvj9dRlfpTmaJAKKXTqzygtB22k7FLe+KZC1" crossorigin="anonymous"></script>
 <script>document.querySelectorAll('.qr').forEach(function(el){try{var q=qrcode(0,'M');q.addData(el.dataset.text);q.make();el.innerHTML=q.createSvgTag({cellSize:4,margin:2,scalable:true});}catch(e){el.textContent='QRコードを作れませんでした（下のURLと端末IDを手入力してください）';}});</script>
 </body></html>

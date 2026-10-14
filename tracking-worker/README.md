@@ -20,7 +20,10 @@ Traccar Client ──POST（送信キー付きURL）──▶ Worker ──▶ D
 | `OPTIONS /api/v1/vehicles` | 許可した Origin のプリフライトだけ 204（DB は読まない） |
 | `GET /health` | `{"ok":true}` のみ |
 | `GET /api/v1/schedule` | 閲覧キーで本部の時刻表（各号館の開錠・施錠時刻、9号館・10号館のエレベーターの可否）を返す |
-| `PUT /api/v1/schedule` | 閲覧キーで時刻表を保存（`{schedule, baseUpdatedAtMs}`。ほかの端末が先に保存していれば 409） |
+| `PUT /api/v1/schedule` | 時刻表を保存（`{schedule, baseUpdatedAtMs}`。編集の権限が要る。ほかの端末が先に保存していれば 409） |
+| `GET /api/v1/me` | このキーの種類と権限（`role: full｜share`、`perms: {settings, pins, edit}`、期限） |
+| `GET・POST /api/v1/shares` | 本部版のキーだけ：配布版の一覧・発行（発行の応答でだけ実際のキーを返す） |
+| `DELETE /api/v1/shares/<id>` | 本部版のキーだけ：配布版の取り消し（30秒ほどで反映） |
 
 - 車両ID は `vehicle-1`〜`vehicle-3` 固定（表示名 1号車〜3号車）。
 - 時刻表は警備に関わる内部資料に由来するため、公開の地図・リポジトリには書かず、受信API（D1 の `fest_settings`）に置いて閲覧キーで守ります。初期値は本番へ直接登録し、リポジトリには入れていません。
@@ -76,7 +79,7 @@ npx wrangler d1 create festival-vehicle-tracking --location=apac
 2. migration と配置を行います。
 
    ```sh
-   npx wrangler d1 migrations apply festival-vehicle-tracking --remote   # 0001（最新位置）・0002（時刻表）
+   npx wrangler d1 migrations apply festival-vehicle-tracking --remote   # 0001（最新位置）・0002（時刻表）・0003（配布版のキー）
    npm run deploy            # 事前確認（scripts/check-deploy.mjs）→ wrangler deploy
    ```
 
@@ -131,7 +134,7 @@ QR に入る送信設定は `npm run secrets:prod` のオプションで変え�
 | 名前 | 種類 | 内容 |
 | --- | --- | --- |
 | `DEVICE_AUTH_JSON` | Secret | `{"vehicle-1":{"deviceId":"…","tokenSha256":"<64hex>"}, …}` |
-| `VIEW_TOKEN_SHA256` | Secret | 閲覧キーの SHA-256 |
+| `VIEW_TOKEN_SHA256` | Secret | 本部版（全権限）の閲覧キーの SHA-256。配布版のキーは D1 の `fest_shares` に SHA-256 だけを保存 |
 | `ALLOWED_ORIGINS` | vars（公開） | 閲覧APIを読める地図の Origin（本番：`https://ysnagaeiku-byte.github.io`） |
 | `DB` | D1 | `festival-vehicle-tracking` |
 

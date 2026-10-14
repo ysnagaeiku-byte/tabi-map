@@ -32,6 +32,9 @@ const sc = await req("/api/v1/schedule", { headers: { Origin: ORIGIN, Authorizat
 const scb = sc.status === 200 ? await sc.json() : null;
 check("時刻表：閲覧キーで読める", !!scb && scb.schemaVersion === 1, scb && scb.schedule ? scb.schedule.days.length + "日分" : "未登録");
 check("時刻表：閲覧キーなし → 401", (await req("/api/v1/schedule")).status === 401);
+const me = await req("/api/v1/me", { headers: { Authorization: "Bearer " + s.viewToken } });
+check("本部版のキー：/me は全権限", me.status === 200 && (await me.json()).role === "full");
+check("配布版の一覧：閲覧キーなし → 401", (await req("/api/v1/shares")).status === 401);
 if (body) {
   const skew = Math.round((body.serverNowMs - Date.now()) / 1000);
   for (const x of body.vehicles)

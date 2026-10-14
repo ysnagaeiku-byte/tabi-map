@@ -317,13 +317,63 @@ export function vehiclesBody(rows: Row[], nowMs: number) {
 }
 
 /** 閲覧キーで守る API の入口：Origin・プリフライト・メソッド・認証。通れば CORS ヘッダーを返す */
+// ---------- 閲覧キーの種類（本部版＝全権限／配布版＝本部が発行した制限つきのキー） ----------
+
+export interface Perms {
+  settings: boolean; // 設定画面の閲覧
+  pins: boolean; // ピンの保存
+  edit: boolean; // 時刻表の編集
+}
+export interface Who {
+  role: "full" | "share";
+  id?: string;
+  label?: string;
+  perms: Perms;
+  expiresAtMs?: number | null;
+}
+const FULL: Who = { role: "full", perms: { settings: true, pins: true, edit: true } };
+interface ShareRow {
+  id: string;
+  label: string;
+  perms: string;
+  expires_at_ms: number | null;
+  revoked_at_ms: number | null;
+}
+// 配布版のキーの照会を少しの間覚えておく（D1 の読み取りを減らす。取り消しは最大30秒で効く）
+const shareCache = new Map<string, { at: number; row: ShareRow | null }>();
+const SHARE_CACHE_MS = 30_000;
+export function clearShareCache() {
+  shareCache.clear();
+}
+function hex(b: Uint8Array) {
+  return Array.from(b, (x) => x.toString(16).padStart(2, "0")).join("");
+}
+async function shareLookup(env: Env, token: string, nowMs: number): Promise<ShareRow | null> {
+  const h = hex(await sha256(token));
+  const c = shareCache.get(h);
+  if (c && nowMs - c.at < SHARE_CACHE_MS) return c.row;
+  const row = await env.DB.prepare("SELECT id, label, perms, expires_at_ms, revoked_at_ms FROM fest_shares WHERE token_sha256 = ?1").bind(h).first<ShareRow>();
+  if (shareCache.size > 500) shareCache.clear();
+  shareCache.set(h, { at: nowMs, row: row ?? null });
+  return row ?? null;
+}
+function parsePerms(s: string): Perms {
+  try {
+    const o = JSON.parse(s) as Partial<Perms>;
+    return { settings: o.settings === true, pins: o.pins === true, edit: o.edit === true };
+  } catch {
+    return { settings: false, pins: false, edit: false };
+  }
+}
+
 async function viewGate(
   req: Request,
   env: Env,
   route: string,
   methods: string[],
   allowHeaders = "Authorization",
-): Promise<Response | { cors: Record<string, string> }> {
+  nowMs = Date.now(),
+): Promise<Response | { cors: Record<string, string>; who: Who }> {
   const origin = req.headers.get("Origin");
   const allowList = [...methods, "OPTIONS"].join(", ");
   let cors: Record<string, string> = {};
@@ -342,15 +392,25 @@ async function viewGate(
     return json(503, { error: "not_configured" }, cors);
   }
   const m = /^Bearer ([A-Za-z0-9_-]+)$/.exec(req.headers.get("Authorization") ?? "");
-  if (!m || !TOKEN_RE.test(m[1]) || !(await tokenMatches(m[1], expected))) {
+  const unauthorized = () => {
     logResult(route, "unauthorized");
     return json(401, { error: "unauthorized" }, { "WWW-Authenticate": "Bearer", ...cors });
+  };
+  if (!m || !TOKEN_RE.test(m[1])) return unauthorized();
+  if (await tokenMatches(m[1], expected)) return { cors, who: FULL };
+  let row: ShareRow | null;
+  try {
+    row = await shareLookup(env, m[1], nowMs);
+  } catch {
+    logResult(route, "storage_error");
+    return json(503, { error: "storage_unavailable" }, cors);
   }
-  return { cors };
+  if (!row || row.revoked_at_ms !== null || (row.expires_at_ms !== null && row.expires_at_ms <= nowMs)) return unauthorized();
+  return { cors, who: { role: "share", id: row.id, label: row.label, perms: parsePerms(row.perms), expiresAtMs: row.expires_at_ms } };
 }
 
 async function handleVehicles(req: Request, env: Env, nowMs: number): Promise<Response> {
-  const g = await viewGate(req, env, "vehicles", ["GET"]);
+  const g = await viewGate(req, env, "vehicles", ["GET"], "Authorization", nowMs);
   if (g instanceof Response) return g;
   const { cors } = g;
 
@@ -370,9 +430,9 @@ async function handleVehicles(req: Request, env: Env, nowMs: number): Promise<Re
 // ---------- 本部の時刻表（開錠・施錠時刻・EV） ----------
 
 async function handleSchedule(req: Request, env: Env, nowMs: number): Promise<Response> {
-  const g = await viewGate(req, env, "schedule", ["GET", "PUT"], "Authorization, Content-Type");
+  const g = await viewGate(req, env, "schedule", ["GET", "PUT"], "Authorization, Content-Type", nowMs);
   if (g instanceof Response) return g;
-  const { cors } = g;
+  const { cors, who } = g;
   type SRow = { value: string; updated_at_ms: number };
   const read = async () => env.DB.prepare("SELECT value, updated_at_ms FROM fest_settings WHERE key = 'schedule'").first<SRow>();
   if (req.method === "GET") {
@@ -386,6 +446,10 @@ async function handleSchedule(req: Request, env: Env, nowMs: number): Promise<Re
     return json(200, { schemaVersion: 1, serverNowMs: nowMs, updatedAtMs: row?.updated_at_ms ?? null, schedule: row ? JSON.parse(row.value) : null }, cors);
   }
   // PUT：{ schedule, baseUpdatedAtMs }。baseUpdatedAtMs が今の値と違えば 409（ほかの端末が先に保存した）
+  if (!who.perms.edit) {
+    logResult("schedule", "forbidden");
+    return json(403, { error: "forbidden" }, cors);
+  }
   const ct = (req.headers.get("Content-Type") ?? "").split(";")[0].trim().toLowerCase();
   if (ct !== "application/json") return json(415, { error: "unsupported_media_type" }, cors);
   let body: { schedule?: unknown; baseUpdatedAtMs?: unknown };
@@ -426,12 +490,107 @@ async function handleSchedule(req: Request, env: Env, nowMs: number): Promise<Re
   return json(200, { ok: true, updatedAtMs: nowMs, schedule: sch }, cors);
 }
 
+// ---------- 自分の権限（GET /api/v1/me） ----------
+
+async function handleMe(req: Request, env: Env, nowMs: number): Promise<Response> {
+  const g = await viewGate(req, env, "me", ["GET"], "Authorization", nowMs);
+  if (g instanceof Response) return g;
+  const { cors, who } = g;
+  return json(200, { schemaVersion: 1, serverNowMs: nowMs, role: who.role, label: who.label ?? null, perms: who.perms, expiresAtMs: who.expiresAtMs ?? null }, cors);
+}
+
+// ---------- 配布版のキーの発行・一覧・取り消し（本部版のキーだけ） ----------
+
+const SHARE_ID_RE = /^[A-Za-z0-9_-]{10}$/;
+const MAX_SHARES = 200;
+const b64u = (b: Uint8Array) => btoa(String.fromCharCode(...b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+
+export function normalizeShareInput(o: unknown, nowMs: number): { label: string; perms: Perms; expiresAtMs: number | null } | string {
+  if (!o || typeof o !== "object") return "bad_body";
+  const r = o as Record<string, unknown>;
+  const label = typeof r.label === "string" ? r.label.trim().replace(/[\u0000-\u001f]/g, "") : "";
+  if (!label || label.length > 40) return "bad_label";
+  const p = (r.perms ?? {}) as Record<string, unknown>;
+  if (typeof p !== "object") return "bad_perms";
+  for (const k of ["settings", "pins", "edit"]) if (p[k] !== undefined && typeof p[k] !== "boolean") return "bad_perms";
+  const perms = { settings: p.settings === true, pins: p.pins === true, edit: p.edit === true };
+  let expiresAtMs: number | null = null;
+  if (r.expiresAtMs !== undefined && r.expiresAtMs !== null) {
+    if (typeof r.expiresAtMs !== "number" || !Number.isFinite(r.expiresAtMs) || r.expiresAtMs <= nowMs || r.expiresAtMs > nowMs + 400 * 86400_000) return "bad_expiry";
+    expiresAtMs = Math.round(r.expiresAtMs);
+  }
+  return { label, perms, expiresAtMs };
+}
+
+async function handleShares(req: Request, env: Env, nowMs: number, id: string | null): Promise<Response> {
+  const g = await viewGate(req, env, "shares", id ? ["DELETE"] : ["GET", "POST"], "Authorization, Content-Type", nowMs);
+  if (g instanceof Response) return g;
+  const { cors, who } = g;
+  if (who.role !== "full") {
+    logResult("shares", "forbidden");
+    return json(403, { error: "forbidden" }, cors);
+  }
+  try {
+    if (req.method === "GET") {
+      const res = await env.DB.prepare("SELECT id, label, perms, created_at_ms, expires_at_ms, revoked_at_ms FROM fest_shares ORDER BY created_at_ms DESC").all<
+        ShareRow & { created_at_ms: number }
+      >();
+      const shares = (res.results ?? []).map((r) => ({
+        id: r.id,
+        label: r.label,
+        perms: parsePerms(r.perms),
+        createdAtMs: r.created_at_ms,
+        expiresAtMs: r.expires_at_ms,
+        revokedAtMs: r.revoked_at_ms,
+        active: r.revoked_at_ms === null && (r.expires_at_ms === null || r.expires_at_ms > nowMs),
+      }));
+      return json(200, { schemaVersion: 1, serverNowMs: nowMs, shares }, cors);
+    }
+    if (req.method === "DELETE") {
+      if (!SHARE_ID_RE.test(id!)) return json(404, { error: "not_found" }, cors);
+      const res = await env.DB.prepare("UPDATE fest_shares SET revoked_at_ms = ?2 WHERE id = ?1 AND revoked_at_ms IS NULL").bind(id, nowMs).run();
+      clearShareCache();
+      if (!res.meta.changes) return json(404, { error: "not_found" }, cors);
+      logResult("shares", "revoked");
+      return json(200, { ok: true, id, revokedAtMs: nowMs }, cors);
+    }
+    // POST：発行（実際のキーはこの応答でだけ返す）
+    const ct = (req.headers.get("Content-Type") ?? "").split(";")[0].trim().toLowerCase();
+    if (ct !== "application/json") return json(415, { error: "unsupported_media_type" }, cors);
+    let body: unknown;
+    try {
+      body = JSON.parse(await readBodyLimited(req, 4096));
+    } catch (e) {
+      if (e instanceof TooLarge) return json(413, { error: "payload_too_large" }, cors);
+      return json(400, { error: "bad_json" }, cors);
+    }
+    const n = normalizeShareInput(body, nowMs);
+    if (typeof n === "string") return json(400, { error: n }, cors);
+    const cnt = await env.DB.prepare("SELECT COUNT(*) AS c FROM fest_shares WHERE revoked_at_ms IS NULL").first<{ c: number }>();
+    if ((cnt?.c ?? 0) >= MAX_SHARES) return json(409, { error: "too_many_shares" }, cors);
+    const token = b64u(crypto.getRandomValues(new Uint8Array(32)));
+    const sid = b64u(crypto.getRandomValues(new Uint8Array(8))).slice(0, 10);
+    await env.DB.prepare("INSERT INTO fest_shares (id, token_sha256, label, perms, created_at_ms, expires_at_ms) VALUES (?1, ?2, ?3, ?4, ?5, ?6)")
+      .bind(sid, hex(await sha256(token)), n.label, JSON.stringify(n.perms), nowMs, n.expiresAtMs)
+      .run();
+    logResult("shares", "issued");
+    return json(201, { ok: true, id: sid, token, label: n.label, perms: n.perms, createdAtMs: nowMs, expiresAtMs: n.expiresAtMs }, cors);
+  } catch {
+    logResult("shares", "storage_error");
+    return json(503, { error: "storage_unavailable" }, cors);
+  }
+}
+
 // ---------- 振り分け ----------
 
 export async function handle(req: Request, env: Env, nowMs: number): Promise<Response> {
   const { pathname } = new URL(req.url);
   if (pathname === "/api/v1/vehicles") return handleVehicles(req, env, nowMs);
   if (pathname === "/api/v1/schedule") return handleSchedule(req, env, nowMs);
+  if (pathname === "/api/v1/me") return handleMe(req, env, nowMs);
+  if (pathname === "/api/v1/shares") return handleShares(req, env, nowMs, null);
+  const sm = /^\/api\/v1\/shares\/([^/]+)$/.exec(pathname);
+  if (sm) return handleShares(req, env, nowMs, sm[1]);
   const m = INGEST_RE.exec(pathname);
   if (m) return handleIngest(req, env, m[1], m[2], nowMs);
   if (pathname === "/health") {

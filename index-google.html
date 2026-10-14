@@ -16,6 +16,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="たびマップ" />
+<script>/* 本祭支援ツール（?m=senshu）はドライブ版と別のアプリとして追加できるよう、アプリ情報・アイコン・名前を差し替える */
+(function(){if(!/[?&]m=senshu(?:&|$)/.test(location.search))return;var q=function(s){return document.querySelector(s);};
+  q('link[rel="manifest"]').href='manifest-senshu.json';q('link[rel="apple-touch-icon"]').href='apple-touch-icon-senshu.png';q('link[rel="icon"]').href='icon-senshu-192.png';
+  q('meta[name="apple-mobile-web-app-title"]').content='本祭支援';q('meta[name="theme-color"]').content='#000000';})();</script>
 <!-- 配信時にGitHub ActionsがSecretからキーを注入（リポジトリ本体には実キーを置かない）。未注入時はプレースホルダのまま→端末ごとの手入力にフォールバック -->
 <script>window.__TABI_KEYS__={gmap:"__GMAP_KEY__",mapbox:"__MAPBOX_KEY__"};</script>
 <style>
@@ -931,6 +935,10 @@
   #festBand .fb-it,#fbMeasure .fb-it{margin-right:16px;}
   #festBand .fb-it b{font-weight:800;font-variant-numeric:tabular-nums;}
   #festBand .fb-dim{color:#adb5bd;font-weight:600;}
+  #festBand .fb-yel,#fbMeasure .fb-yel{color:#ffd43b;}   /* 施錠が21:00より後 */
+  #festBand .fb-red,#fbMeasure .fb-red{color:#ff6b6b;}   /* 施錠が22:30を過ぎ〜翌4:00 */
+  #festBand .fb-cyan,#fbMeasure .fb-cyan{color:#66d9e8;}   /* 開錠が4:00〜6:59 */
+  #festBand .fb-off,#fbMeasure .fb-off{display:inline-block;margin-right:8px;padding:0 5px;border-radius:4px;background:#495057;color:#f1f3f5;font-size:10px;line-height:15px;}
   #fbMeasure{position:absolute;left:0;top:0;visibility:hidden;white-space:nowrap;font-size:11px;font-weight:700;letter-spacing:.2px;}
   html.fest #topbar{padding-top:calc(env(safe-area-inset-top) + var(--fb));}
   html.fest #toolMenu{top:calc(54px + var(--fb) + env(safe-area-inset-top));}
@@ -971,6 +979,22 @@
   .fs-grid input{margin:0;padding:5px 6px;font-size:13px;width:100%;box-sizing:border-box;}
   .fs-del{margin-top:8px;}
   #fsMsg.err{color:#c92a2a;font-weight:800;}
+  .fest-trk-role{font-size:11.5px;font-weight:800;color:var(--muted);margin:2px 0 4px;}
+  #festTrkPaste{margin:0 0 6px;font-size:12px;min-height:34px;}
+  .fest-adm{border-top:1px solid var(--line);margin-top:10px;padding-top:8px;}
+  .fest-adm input#fadLabel{margin-bottom:6px;}
+  .fad-cks{display:flex;flex-direction:column;gap:4px;margin:2px 0 6px;font-size:12.5px;} .fad-cks label{display:flex;align-items:center;justify-content:flex-start;gap:7px;cursor:pointer;} .fad-cks input{flex:none;width:16px;height:16px;margin:0;padding:0;}
+  .fad-exp{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:12px;margin-bottom:6px;} .fad-exp input{margin:0;width:auto;padding:4px 6px;font-size:12.5px;} .fad-exp small{color:var(--muted);font-size:10.5px;}
+  .fad-res{border:1px solid var(--line);border-radius:10px;padding:8px;margin:8px 0;font-size:12.5px;}
+  .fad-qr{width:200px;max-width:70vw;margin:6px auto;background:#fff;padding:6px;border-radius:8px;} .fad-qr svg{display:block;width:100%;height:auto;}
+  .fad-msg{font-size:11px;color:var(--muted);margin:6px 0;line-height:1.5;} .fad-msg.err{color:#c92a2a;font-weight:800;}
+  .fad-list{display:flex;flex-direction:column;gap:5px;margin-top:4px;}
+  .fad-row{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:9px;padding:6px 9px;font-size:12.5px;} .fad-row>div{flex:1;min-width:0;}
+  .fad-row small{display:block;font-size:10.5px;color:var(--muted);} .fad-row.off{opacity:.55;}
+  .fad-row button{flex:none;border:1px solid #e03131;color:#e03131;background:transparent;border-radius:8px;padding:4px 8px;font-size:11.5px;font-weight:800;cursor:pointer;}
+  /* 配布版の制限：設定画面・ピンの保存 */
+  html.fest-noset #setBtn{display:none !important;}
+  html.fest-nopins .keep-pin,html.fest-nopins #pinSaveBtn{display:none !important;}
 </style>
 </head>
 <body>
@@ -1029,6 +1053,7 @@
     <button class="tm-item" id="tmFestBldList"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg></span><span class="tm-lab">建物一覧・色<small>仮番号・名称・階数・高さ。建物の色を一括で変更</small></span><span class="tm-ex">開く</span></button>
     <button class="tm-item" id="tmFestWay"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M5 21 9 3M19 21 15 3M10.5 8h3M10 13h4M9.5 18h5"/></svg></span><span class="tm-lab">構内の動線<small>車両動線（構内道路・主要道路・出入口・駐車場・路線バス）・歩道</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestShare"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="6" cy="17" r="2.6"/><circle cx="18" cy="17" r="2.6"/><circle cx="12" cy="6" r="2.6"/><path d="M8.2 15.3 10.6 8.3M15.8 15.3 13.4 8.3M8.6 17h6.8"/></svg></span><span class="tm-lab">位置情報共有設定<small>1〜3号車の位置を地図に表示</small></span><span class="tm-ex">設定</span></button>
+    <button class="tm-item" id="tmFestInstall" style="display:none"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 7.5v7M9 11.5l3 3 3-3M10.5 18.5h3"/></svg></span><span class="tm-lab">アプリとして追加<small>ホーム画面・デスクトップに本祭支援ツールを追加</small></span><span class="tm-ex">追加</span></button>
     <button class="tm-item" id="tmFestAwake"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/><path d="M12 7.2v3.3l2 1.2"/></svg></span><span class="tm-lab">画面を消さない<small>表示している間はPC・スマホをスリープさせない</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestWalk"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="13" cy="4.2" r="2"/><path d="M11 21l2-6-3-3 1.5-5L14 9l3 1.5M10 12l-3 3"/></svg></span><span class="tm-lab">駅からの徒歩ルート<small>向ヶ丘遊園駅→構内入口の距離・所要時間</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestOsm"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><rect x="3" y="10" width="7" height="10"/><rect x="14" y="5" width="7" height="15"/><path d="M3 20h18"/></svg></span><span class="tm-lab">周辺の建物<small>表示中の範囲をOpenStreetMapから取得</small></span><span class="tm-sw"></span></button>
@@ -1240,11 +1265,13 @@
   <div class="set-sec fest-trk" id="festTrkSec"><div class="set-label">車両の位置（Traccar Client）</div>
     <div class="fest-trk-list" id="festTrkList"></div>
     <div class="set-msg" id="festTrkMsg">読み込み中…</div>
+    <div class="fest-trk-role" id="festTrkRole" style="display:none"></div>
     <details class="fest-trk-cfg" id="festTrkCfg"><summary>閲覧キー</summary>
       <input id="festTrkTok" type="password" placeholder="本部が配布した閲覧キー" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="閲覧キー" />
+      <button class="set-save ghost" id="festTrkPaste" type="button">コピーした配布リンクを貼り付ける</button>
       <div class="share-row"><button class="set-save share-pub" id="festTrkStart" type="button">表示を開始</button><button class="set-save ghost share-pub" id="festTrkStop" type="button">停止</button></div>
     </details>
-    <div class="set-help">運転する人のスマホに無料アプリ「Traccar Client」を入れ、本部が渡す設定用QRコードをアプリで読み取って「継続追跡」をONにすると、画面を閉じていても位置が届きます。閲覧キーはこのタブだけに保存し、位置は10秒ごとに更新します。</div></div>
+    <div class="set-help">運転する人のスマホに無料アプリ「Traccar Client」を入れ、本部が渡す設定用QRコードをアプリで読み取って「継続追跡」をONにすると、画面を閉じていても位置が届きます。閲覧キー（配布されたリンク）はこの端末に記憶し、位置は10秒ごとに更新します。</div></div>
 </div></div>
 <div class="overlay" id="wxOverlay"><div class="modal">
   <div class="modal-h"><b id="wxTitle">天気予報</b><button id="wxClose">✕</button></div>
@@ -1623,6 +1650,7 @@ function cfgKey(name){
 }
 // 試験用ページ（学園祭）の初期化
 function festInit(){
+  try{festPermsBoot();}catch(e){}
   const sec=document.getElementById('festSec');if(sec)sec.style.display='block';
   {const bar=document.getElementById('festBaseBar'),seg=document.getElementById('festBaseSeg');if(bar&&seg){seg.removeAttribute('style');bar.appendChild(seg);bar.classList.add('show');}}   // 地図の切り替えは右上の丸ボタンの下へ
   const fm=document.getElementById('festSetSec');if(fm)fm.style.display='block';
@@ -1643,6 +1671,7 @@ function festInit(){
   festDrawCampus(true);if(rs&&rs.way)festDrawWays(true,true);   // 構内の動線は既定でOFF（レイヤー・メニューから表示）
   try{festShInit();festTrkLoad();}catch(e){console.warn('trk',e);}   // 位置情報共有：1〜3号車（Traccar Client → 受信API）
   try{festAwakeInit();}catch(e){console.warn('awake',e);}            // 表示している間はスリープさせない
+  try{festInstallInit();}catch(e){console.warn('install',e);}        // アプリとして追加（PWA）
   // 端末がベクター描画に対応せずラスターへ切り替わった場合も、建物名（地図側ラベル）を出し直す
   try{map.addListener('renderingtype_changed',()=>{if(festCampusOn)festDrawCampus(true);});}catch(e){}
   try{map.addListener('click',()=>{if(!festB3d)festCardHide();});}catch(e){}
@@ -2061,8 +2090,42 @@ function festAwakeInit(){
   ['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{if(festAwakeOn&&!festAwake)festAwakeReq();},{passive:true}));   // 操作が必要なブラウザ向けに、最初の操作でも取り直す
   festAwakeReq();renderToolMenu();
 }
+// ===== 本祭支援ツール：本部版・配布版の権限 =====
+// 閲覧キーの種類で決まる（本部版＝全権限／配布版＝本部が発行時に選んだ制限：設定画面・ピンの保存・時刻表の編集）。
+// 受信APIの /api/v1/me の結果を fest-vehicle-tracking.js が渡す。画面の制限は使い勝手のためのもので、時刻表の保存は受信APIでも拒否する
+let festPerms={settings:true,pins:true,edit:false,role:''};
+function festPermsApply(me){   // me：/api/v1/me の結果。'pending'＝キーはあるが未確認（確認できるまで制限側に倒す）。null＝キーなし
+  const p=me==='pending'?{settings:false,pins:false,edit:false}:((me&&me.perms)||{settings:true,pins:true,edit:false});
+  festPerms={settings:p.settings!==false,pins:p.pins!==false,edit:!!p.edit,role:(me&&me!=='pending')?me.role:''};
+  const de=document.documentElement;de.classList.toggle('fest-noset',!festPerms.settings);de.classList.toggle('fest-nopins',!festPerms.pins);
+  if(!festPerms.settings){const ov=document.getElementById('overlay');if(ov)ov.classList.remove('open');}
+  try{if(activeTab==='custom')buildCustomPanel();}catch(e){}
+}
+function festDeny(k,msg){if(!FEST||festPerms[k])return false;showStatus(msg,false);hideStatusLater();return true;}
+// 最初の表示から制限を当てる（前回確認した権限を使う。キーがあって未確認なら制限側）
+function festPermsBoot(){let me=null,key='';try{key=localStorage.getItem('fest_view_key')||sessionStorage.getItem('fest_track_view')||'';me=JSON.parse(localStorage.getItem('fest_me')||'null');}catch(e){}
+  if(/[#&]key=[A-Za-z0-9_-]{43}/.test(location.hash))key='x';festPermsApply(key?(me&&me.role?me:'pending'):null);}
+if(FEST)try{festPermsBoot();}catch(e){}   // 地図の準備を待たずに、最初の表示から制限を当てる
+// ===== 本祭支援ツール：アプリとして追加（PWA） =====
+let festInstallEv=null;
+const festStandalone=()=>(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
+const festIOS=()=>/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+function festInstallUi(){const b=document.getElementById('tmFestInstall');if(!b)return;
+  b.style.display=(!festStandalone()&&(festInstallEv||festIOS()))?'':'none';}
+async function festInstall(){
+  toggleToolMenu(false);
+  if(festInstallEv){const ev=festInstallEv;festInstallEv=null;try{ev.prompt();await ev.userChoice;}catch(e){}festInstallUi();return;}
+  if(festIOS()){festCardShow(festCard({title:'ホーム画面に追加',kind:'本祭支援ツールをアプリとして使う',
+    rows:[['1','Safari の共有ボタン（四角から矢印）を押す'],['2','「ホーム画面に追加」を選び、「追加」を押す'],['3','ホーム画面の「本祭支援」から開く']],
+    notes:[['mute','閲覧キー','ホーム画面のアプリは Safari と保存場所が別です。配布されたリンクをコピーし、アプリの「位置情報共有設定」で貼り付けてください']]}));}
+}
+function festInstallInit(){
+  window.addEventListener('beforeinstallprompt',e=>{e.preventDefault();festInstallEv=e;festInstallUi();});
+  window.addEventListener('appinstalled',()=>{festInstallEv=null;festInstallUi();showStatus('本祭支援ツールを追加しました',false);hideStatusLater();});
+  festInstallUi();
+}
 // 車両の位置の取得・一覧は fest-vehicle-tracking.js（本祭支援ツールのときだけ読み込む）
-const FEST_TRK_V=5;
+const FEST_TRK_V=6;
 function festTrkLoad(){
   if(!FEST||window.festHttp)return;
   const sc=document.createElement('script');sc.src='fest-vehicle-tracking.js?v='+FEST_TRK_V;
@@ -4867,7 +4930,7 @@ function placeTempPin(lat,lng,name,sub){
   map.panTo({lat,lng});if(map.getZoom()<14)map.setZoom(15);openTempPopup(m);
 }
 function openTempPopup(m){const i=m._info,e=encodeURIComponent(i.name||''),es=i.sub?encodeURIComponent(i.sub):'';
-  openInfo(m,`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}<div class="meta" style="color:var(--muted);font-size:11px;">仮表示・地図には残りません（必要なら「ピンを残す」）</div>${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest" onclick="window.keepPin(${i.lat},${i.lng},'${e}','${es}')">ピンを残す</button><button class="wx-btn" onclick="window.pinWeather(${i.lat},${i.lng},'${e}')">天気予報</button>${circleIsoBtns(i.lat,i.lng,i.name)}<button onclick="window.addFav2('${e}',${i.lat},${i.lng})">★ 保存</button></div></div>`);
+  openInfo(m,`<div class="popup"><h3>${escapeHtml(i.name||'地点')}</h3>${i.sub?`<div class="meta">${escapeHtml(i.sub)}</div>`:''}<div class="meta" style="color:var(--muted);font-size:11px;">仮表示・地図には残りません<span class="keep-pin">（必要なら「ピンを残す」）</span></div>${routeActionsHtml(i.lat,i.lng,i.name)}<div class="links"><button class="dest keep-pin" onclick="window.keepPin(${i.lat},${i.lng},'${e}','${es}')">ピンを残す</button><button class="wx-btn" onclick="window.pinWeather(${i.lat},${i.lng},'${e}')">天気予報</button>${circleIsoBtns(i.lat,i.lng,i.name)}<button onclick="window.addFav2('${e}',${i.lat},${i.lng})">★ 保存</button></div></div>`);
 }
 // ===== 常設ピン（保存ピン）：友達の最寄り駅などを地図に残し、レイヤータブに個別表示・カスタムタブで一括保存/描画 =====
 // 保存ピン＝休憩(茶円)と区別したピンクの円。ハロー(外周の淡い輪)＋白フチ＋濃い縁で明暗どちらの地図でも埋もれず目立つ
@@ -4943,6 +5006,7 @@ function togglePinLabel(pin){
 }
 function removePinLabel(id){if(pinLabels[id]){pinLabels[id].setMap(null);delete pinLabels[id];}}
 function addSavedPin(o){ // {name,lat,lng,sub} → 常設ピンを追加（同座標の重複は無視）
+  if(festDeny('pins','この配布版ではピンを保存できません'))return null;
   if(savedPins.some(p=>Math.abs(p.lat-o.lat)<1e-6&&Math.abs(p.lng-o.lng)<1e-6))return savedPins.find(p=>Math.abs(p.lat-o.lat)<1e-6&&Math.abs(p.lng-o.lng)<1e-6);
   const pin={id:Date.now()+Math.floor(Math.random()*1000),name:o.name||'地点',lat:o.lat,lng:o.lng,sub:o.sub||'',visible:true};
   pin.marker=makePinMarker(pin);savedPins.push(pin);persistPins();renderLayerPanel();if(activeTab==='custom')buildCustomPanel();return pin;
@@ -4959,6 +5023,7 @@ window.setPinNote=function(id,v){const p=savedPins.find(x=>x.id===id);if(p){p.no
 function getPinGroups(){try{return JSON.parse(localStorage.getItem('tabi_pin_groups')||'[]');}catch(e){return[];}}
 function savePinGroups(a){localStorage.setItem('tabi_pin_groups',JSON.stringify(a));}
 function saveCurrentPinsAsGroup(){
+  if(festDeny('pins','この配布版ではピンを保存できません'))return;
   if(!savedPins.length){showStatus('保存するピンがありません（検索→「ピンを残す」で追加）',false);hideStatusLater();return;}
   const def='ピン集合 '+(getPinGroups().length+1);
   const name=(prompt('このピン一式に名前を付けて保存します。\n（例：友達の最寄り駅）',def)||'').trim();
@@ -4971,7 +5036,7 @@ function drawPinGroup(idx){const g=getPinGroups()[idx];if(!g)return;let n=0;g.pi
   if(g.pins.length){const b=new google.maps.LatLngBounds();g.pins.forEach(p=>b.extend({lat:p.lat,lng:p.lng}));if(!b.isEmpty())map.fitBounds(b,80);}
   showStatus(`「${g.name}」のピンを描画しました`,false);hideStatusLater();}
 function deletePinGroup(idx){const g=getPinGroups();if(!g[idx])return;if(!confirm(`保存済みピン「${g[idx].name}」を削除します（地図上のピンは消えません）`))return;g.splice(idx,1);savePinGroups(g);if(activeTab==='custom')buildCustomPanel();}
-window.keepPin=function(lat,lng,enc,encSub){const name=enc?decodeURIComponent(enc):'',sub=encSub?decodeURIComponent(encSub):'';removeTempPin();const pin=addSavedPin({name,lat,lng,sub});if(pin&&pin.marker){openKeptPopup(pin.marker);}showStatus('ピンを残しました（レイヤータブに表示・カスタムタブで一括保存できます）',false);hideStatusLater();};
+window.keepPin=function(lat,lng,enc,encSub){if(festDeny('pins','この配布版ではピンを保存できません'))return;const name=enc?decodeURIComponent(enc):'',sub=encSub?decodeURIComponent(encSub):'';removeTempPin();const pin=addSavedPin({name,lat,lng,sub});if(pin&&pin.marker){openKeptPopup(pin.marker);}showStatus('ピンを残しました（レイヤータブに表示・カスタムタブで一括保存できます）',false);hideStatusLater();};
 
 // ===== 端末間共有（共有コード方式・Firebase Realtime Database REST。APIキー不要＝DBのURLのみ） =====
 // 保存ピン(tabi_pins)・ピン集合(tabi_pin_groups)・保存レイヤー(IndexedDB tabi_layers) を /shares/<code> に預け、別端末でコード読込＝マージ取込
@@ -5143,6 +5208,7 @@ document.getElementById('rsClear').onclick=()=>{if(points.length>=2&&!confirm('�
   wire('tmFestFac',()=>festDrawFac(!festFacOn));
   wire('tmFestWalk',()=>festWalkRoute(!festWalkOn));
   wire('tmFestAwake',()=>festAwakeToggle());
+  wire('tmFestInstall',()=>festInstall());
   wire('tmFestOsm',()=>festOsmLoad(!festOsmOn));
   wire('tmFestFit',()=>{festFit();toggleToolMenu(false);});
   const fbs=document.getElementById('festBaseSeg');
@@ -5415,7 +5481,7 @@ document.getElementById('segBtn').onclick=()=>{const a=+document.getElementById(
 document.getElementById('researchBtn').onclick=()=>{runSearch();refreshLineLayers();};
 document.getElementById('locBtn').onclick=()=>{if(!navigator.geolocation){showStatus('現在地に対応していません',false);hideStatusLater();return;}showStatus('現在地を取得中…',true);navigator.geolocation.getCurrentPosition(pos=>{const la=pos.coords.latitude,ln=pos.coords.longitude;map.setCenter({lat:la,lng:ln});map.setZoom(15);statusEl.classList.remove('show');showCurrentLoc(la,ln,pos.coords.accuracy);runSearch();},err=>{showStatus('現在地を取得できませんでした',false);hideStatusLater();},{enableHighAccuracy:true,timeout:8000});};
 const overlay=document.getElementById('overlay');
-document.getElementById('setBtn').onclick=()=>{document.getElementById('gmapInput').value=localStorage.getItem('tabi_gmap_key')||'';document.getElementById('rakInput').value=localStorage.getItem('tabi_rakuten_id')||'';document.getElementById('orsInput').value=localStorage.getItem('tabi_ors_id')||'';document.getElementById('mbxInput').value=localStorage.getItem('tabi_mapbox_key')||'';
+document.getElementById('setBtn').onclick=()=>{if(festDeny('settings','この配布版では設定を開けません'))return;document.getElementById('gmapInput').value=localStorage.getItem('tabi_gmap_key')||'';document.getElementById('rakInput').value=localStorage.getItem('tabi_rakuten_id')||'';document.getElementById('orsInput').value=localStorage.getItem('tabi_ors_id')||'';document.getElementById('mbxInput').value=localStorage.getItem('tabi_mapbox_key')||'';
   // 共有キー（配信時注入）が有効なら入力欄に明示し、空欄でも動作することを伝える
   const inj=window.__TABI_KEYS__||{};const ggInj=inj.gmap&&!/^__.*__$/.test(inj.gmap),mbInj=inj.mapbox&&!/^__.*__$/.test(inj.mapbox);
   document.getElementById('gmapInput').placeholder=ggInj?'共有キー設定済み（上書きする場合のみ入力）':'Google Maps APIキー';

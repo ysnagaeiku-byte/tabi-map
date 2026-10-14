@@ -1,0 +1,18 @@
+{
+  "id": "./index-google.html?m=senshu",
+  "name": "本祭支援ツール（専修大学 鳳祭）",
+  "short_name": "本祭支援",
+  "description": "鳳祭の本部向け地図。構内の建物・動線、車両の位置、開錠・施錠時刻をまとめて表示。",
+  "start_url": "./index-google.html?m=senshu",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#01001b",
+  "theme_color": "#000000",
+  "lang": "ja",
+  "icons": [
+    { "src": "icon-senshu-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-senshu-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-senshu-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

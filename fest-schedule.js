@@ -3,7 +3,8 @@
 // 値は受信API（/api/v1/schedule）に置き、閲覧キーを持つ本部の端末だけが読み書きする（地図は公開のため、時刻はコードに書かない）。
 //  - 画面最上部の黒い帯：その日の開錠・施錠時刻を数秒ごとに流す（その日の情報がなければ全日程を順に）
 //  - 時計の右側：9号館・10号館のエレベーター（9-EV・10-EV）の使用可否 ○／×／ー
-//  - 時計（または帯）を押すと編集画面
+//  - 時計（または帯）を押すと編集画面（時刻表の編集の権限があるキーだけ。配布版は発行時に選ぶ）
+//  - 最後に取得した時刻表は端末に残し、通信できないときも表示する（キーが無効になったら消す）
 (function () {
   'use strict';
   if (window.festSched) return;
@@ -13,8 +14,13 @@
   const EVU = [['9', '9-EV', '9号館'], ['10', '10-EV', '10号館']];
   const WD = ['日', '月', '火', '水', '木', '金', '土'];
   const HOLD_MS = 7500, SLIDE_MS = 600, POLL_MS = 60000;   // 1ページを7.5秒表示してから流す
+  const CACHE_KEY = 'fest_sched_cache';
 
-  const S = window.festSched = { data: null, updatedAtMs: null, error: '', loading: false, timer: null, draft: null, tab: 0, initialized: false };
+  const S = window.festSched = { data: null, updatedAtMs: null, error: '', loading: false, timer: null, draft: null, tab: 0, initialized: false, cached: false };
+  function cacheSave() { try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data: S.data, updatedAtMs: S.updatedAtMs })); } catch (e) {} }
+  function cacheLoad() { try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); if (c && c.data) { S.data = c.data; S.updatedAtMs = c.updatedAtMs || null; S.cached = true; } } catch (e) {} }
+  function cacheClear() { try { localStorage.removeItem(CACHE_KEY); } catch (e) {} S.data = null; S.updatedAtMs = null; S.cached = false; }
+  const canEdit = () => (typeof festPerms === 'undefined') || !!festPerms.edit;
   const $ = id => document.getElementById(id);
   const esc = s => (typeof escapeHtml === 'function' ? escapeHtml(String(s)) : String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]));
 
@@ -45,9 +51,10 @@
     S.loading = true;
     try {
       const r = await api('GET');
-      if (r.status === 200 && r.body && r.body.schemaVersion === 1) { S.data = r.body.schedule; S.updatedAtMs = r.body.updatedAtMs; S.error = ''; }
-      else S.error = r.status === 401 ? 'auth' : 'http';
-    } catch (e) { S.error = 'network'; }
+      if (r.status === 200 && r.body && r.body.schemaVersion === 1) { S.data = r.body.schedule; S.updatedAtMs = r.body.updatedAtMs; S.error = ''; S.cached = false; cacheSave(); }
+      else if (r.status === 401) { S.error = 'auth'; cacheClear(); }   // 取り消し・期限切れ：端末に残した時刻表も消す
+      else S.error = 'http';
+    } catch (e) { S.error = 'network'; }   // 通信できない：前回取得した時刻表のまま
     S.loading = false;
     render();
     S.timer = setTimeout(load, POLL_MS);
@@ -77,11 +84,16 @@
     const today = jst().ymd, td = days.find(d => d.d === today);
     return td ? [td] : days;   // その日の情報があればその日だけ、なければ全日程を順に
   }
-  function itemText(it) { const o = it.o || '', c = it.c || ''; return o && c ? o + '-' + c : (o ? o + '〜' : '〜' + c); }
+  // 時刻の色：施錠が21:00より後（21:00は含まない）＝黄、22:30を過ぎて翌4:00まで＝赤。開錠が4:00〜6:59＝水色
+  function closeCls(t) { const m = toMin(t); if (m == null) return ''; if (m > 22 * 60 + 30 || m <= 4 * 60) return 'fb-red'; if (m > 21 * 60) return 'fb-yel'; return ''; }
+  function openCls(t) { const m = toMin(t); return m != null && m >= 4 * 60 && m < 7 * 60 ? 'fb-cyan' : ''; }
+  const tspan = (t, cls) => cls ? '<span class="' + cls + '">' + esc(t) + '</span>' : esc(t);
+  function itemHtml(it) { const o = it.o || '', c = it.c || '', O = tspan(o, openCls(o)), C = tspan(c, closeCls(c));
+    return o && c ? O + '-' + C : (o ? O + '〜' : '〜' + C); }
   function measure(html) { const m = $('fbMeasure'); m.innerHTML = html; return m.offsetWidth; }
   function buildPages() {
     const view = $('festBand') && $('festBand').querySelector('.fb-view'); if (!view) return [];
-    const W = view.clientWidth - 4;
+    const W = view.clientWidth - 4 - (S.error === 'network' ? measure('<span class="fb-off">前回取得</span>') : 0);
     if (!hasKey()) return ['<span class="fb-dim">開錠・施錠時刻：閲覧キーを入れると表示（時計を押して設定）</span>'];
     if (S.error === 'auth') return ['<span class="fb-dim">開錠・施錠時刻：閲覧キーが違います（時計を押して入れ直す）</span>'];
     const days = bandDays();
@@ -89,7 +101,7 @@
     const pages = [];
     days.forEach(d => {
       const lab = '<span class="fb-day">【' + dayLabel(d.d) + '】</span>', lw = measure(lab);
-      const H = d.items.map(it => '<span class="fb-it">' + esc(facName(it.f)) + ' <b>' + esc(itemText(it)) + '</b></span>'), IW = H.map(measure);
+      const H = d.items.map(it => '<span class="fb-it">' + esc(facName(it.f)) + ' <b>' + itemHtml(it) + '</b></span>'), IW = H.map(measure);
       const greedy = []; let cur = [], w = lw;   // まず入るだけ詰めてページ数を決める
       H.forEach((h, i) => { if (cur.length && w + IW[i] > W) { greedy.push(cur); cur = []; w = lw; } cur.push(i); w += IW[i]; });
       if (cur.length) greedy.push(cur);
@@ -98,6 +110,7 @@
       const fits = even.length === k && even.every(g => lw + g.reduce((t, j) => t + IW[j], 0) <= W);
       (fits ? even : greedy).forEach(g => pages.push(lab + g.map(j => H[j]).join('')));
     });
+    if (S.error === 'network') return pages.map(p => '<span class="fb-off">前回取得</span>' + p);   // 通信できない：前回取得した時刻表と分かるように
     return pages;
   }
   function bandShow(reset) {
@@ -139,6 +152,7 @@
   }
   function editorOpen() {
     const ov = $('festSchedOverlay'); if (!ov) return;
+    if (hasKey() && S.error !== 'auth' && !canEdit()) { if (typeof showStatus === 'function') { showStatus('この配布版では時刻表を編集できません（閲覧のみ）', false); hideStatusLater(); } return; }
     S.draft = null; ov.classList.add('open'); editorRender();
     if (hasKey()) load();
   }
@@ -227,11 +241,13 @@
     const clk = $('liveClock'); if (clk) { clk.addEventListener('click', editorOpen); clk.title = '現在時刻（NTP同期・JST）・EVの可否／押すと開錠・施錠時刻とEVを編集'; }
     const band = $('festBand'); if (band) band.addEventListener('click', editorOpen);
     window.addEventListener('fest-token', () => { S.error = ''; load(); });
+    window.addEventListener('fest-me', () => { const m = window.festHttp && festHttp.me; if (m && m.role === 'invalid') { S.error = 'auth'; cacheClear(); } render(); });
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') load(); });
     let rt = null; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { fitClock(); bandShow(true); }, 200); });
     let lastDay = jst().ymd;
     setInterval(() => { renderEv(); const d = jst().ymd; if (d !== lastDay) { lastDay = d; bandShow(true); } }, 15000);   // EVは分単位・日付が変われば帯を作り直す
     fitClock(); setTimeout(fitClock, 800);
+    if (hasKey()) cacheLoad();   // 通信より先に、前回取得した時刻表を出す
     render(); load();
   };
 })();

@@ -1,7 +1,8 @@
 // たびマップ Service Worker — アプリシェルをキャッシュしオフライン起動を可能に。
 // 地図タイル/Places/Routes 等のクロスオリジンは常にネットワーク（キャッシュしない）。
-const CACHE = 'tabimap-v3';
-const SHELL = ['./index-google.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png'];
+const CACHE = 'tabimap-v4';
+const SHELL = ['./index-google.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
+  './manifest-senshu.json', './icon-senshu-192.png', './icon-senshu-512.png', './icon-senshu-maskable-512.png', './apple-touch-icon-senshu.png'];   // 本祭支援ツール（別アプリ）
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting()));

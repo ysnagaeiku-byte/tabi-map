@@ -2,14 +2,16 @@
 // index-google.html?m=senshu のときだけ読み込む（通常版・研究版では読み込まず、通信もしない）。
 // 3台の最新位置を受信APIから10秒ごとに取り、地図の印（festSh.peers・festShRender）で
 // 標準・白地図・高低差3D・実写3Dのどれにも描く。画面はメニューの「位置情報共有設定」。
-// 公開してよいのは受信APIのURLだけ。閲覧キーは実行時に入力し、このタブ（sessionStorage）だけに保存する。
+// 公開してよいのは受信APIのURLだけ。閲覧キーは配布されたリンク（#key=…）か入力で受け取り、この端末（localStorage）に記憶する。
+// キーの種類で権限が決まる：本部版（全権限）／配布版（本部が発行時に選んだ制限）。権限は /api/v1/me で確かめ、festPermsApply に渡す。
+// 本部版では、配布版のキーの発行・一覧・取り消しができる（位置情報共有設定の下）。
 // ローカル開発では localStorage の fest_track_cfg に {"apiBase":"http://127.0.0.1:8787"} を入れると、そちらへつなぐ。
 (function () {
   'use strict';
   if (window.festHttp) return;
 
   const API_DEFAULT = 'https://festival-vehicle-tracking.festival-vehicle-tracking.workers.dev';   // 受信APIの URL（公開してよい値。閲覧キーは実行時に入力）
-  const CFG_KEY = 'fest_track_cfg', TOK_KEY = 'fest_track_view';
+  const CFG_KEY = 'fest_track_cfg', TOK_KEY = 'fest_view_key', OLD_TOK_KEY = 'fest_track_view', ME_KEY = 'fest_me';
   const POLL_MS = 10000, RETRY_S = [10, 20, 40, 80, 120], TIMEOUT_MS = 8000;
   const CAUTION_MS = 30000, OLD_MS = 120000, HIDE_MS = 15 * 60000, CONTACT_OK_MS = 120000;
   const VEH = [
@@ -25,7 +27,15 @@
     timer: null, abortController: null,
     lastSuccessAt: 0, lastError: '', serverClockOffsetMs: 0,
     vehicles: {}, fails: 0, authBlocked: false, paused: false, uiTick: null, nextAt: 0,
+    me: null, fromLink: false,
   };
+  /** 閲覧キーそのもの、または配布リンク（…#key=キー）からキーを取り出す */
+  function extractKey(v) {
+    v = String(v || '').trim();
+    if (TOKEN_RE.test(v)) return v;
+    const m = /[#&?]key=([A-Za-z0-9_-]{43})(?![A-Za-z0-9_-])/.exec(v);
+    return m ? m[1] : '';
+  }
 
   // ---------- 設定 ----------
   function normBase(s) {
@@ -38,11 +48,14 @@
     let c = null;
     try { c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); } catch (e) {}
     let tok = '';
-    try { tok = sessionStorage.getItem(TOK_KEY) || ''; } catch (e) {}
+    try { tok = localStorage.getItem(TOK_KEY) || sessionStorage.getItem(OLD_TOK_KEY) || ''; sessionStorage.removeItem(OLD_TOK_KEY); } catch (e) {}
+    const fromLink = extractKey(location.hash);   // 配布リンク：キーを記憶してアドレス欄から消す
+    if (fromLink) { tok = fromLink; festHttp.fromLink = true; try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
     const local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);   // 受信APIの差し替えはローカル開発のページだけ
     festHttp.config.apiBase = (local && normBase(c && c.apiBase)) || API_DEFAULT;
     festHttp.config.viewerToken = TOKEN_RE.test(tok) ? tok : '';
-    festHttp.enabled = !!(c && c.on);
+    festHttp.enabled = !!(c && c.on) || festHttp.fromLink;   // リンクから開いたら車両の表示も始める
+    if (festHttp.fromLink) cfgSave();
   }
   function cfgSave() {
     try {
@@ -51,8 +64,8 @@
       localStorage.setItem(CFG_KEY, JSON.stringify(c));
     } catch (e) {}
     try {
-      if (festHttp.config.viewerToken) sessionStorage.setItem(TOK_KEY, festHttp.config.viewerToken);
-      else sessionStorage.removeItem(TOK_KEY);
+      if (festHttp.config.viewerToken) localStorage.setItem(TOK_KEY, festHttp.config.viewerToken);
+      else localStorage.removeItem(TOK_KEY);
     } catch (e) {}
   }
 
@@ -200,6 +213,7 @@
     const st = $('festTrkStop'); if (st) st.disabled = !festHttp.enabled;
     const cf = $('festTrkCfg'); if (cf && festHttp.enabled && (festHttp.authBlocked || !festHttp.config.viewerToken || !festHttp.config.apiBase)) cf.open = true;   // 入力が要るときは設定を開く
     if (msg) { msg.textContent = recvText(); msg.classList.toggle('err', !!(festHttp.enabled && (festHttp.lastError || festHttp.authBlocked))); }
+    const rl = $('festTrkRole'); if (rl) { const t = roleText(); rl.textContent = t; rl.style.display = t ? '' : 'none'; }
     if (!list) return;
     if (!festHttp.enabled) { list.innerHTML = ''; return; }
     list.innerHTML = VEH.map(v => {
@@ -258,22 +272,133 @@
   festHttp.start = start; festHttp.stop = stop;
   // 閲覧キーだけを入れる（車両の表示は始めない）。本部の時刻表（fest-schedule.js）からも使う
   festHttp.setToken = function (tok) {
-    tok = String(tok || '').trim();
-    if (!TOKEN_RE.test(tok)) return false;
+    tok = extractKey(tok);
+    if (!tok) return false;
     festHttp.config.viewerToken = tok; festHttp.authBlocked = false;
-    try { sessionStorage.setItem(TOK_KEY, tok); } catch (e) {}
+    try { localStorage.setItem(TOK_KEY, tok); } catch (e) {}
     try { window.dispatchEvent(new Event('fest-token')); } catch (e) {}
     if (festHttp.enabled) { cancel(); fetchNow(); }
-    ui(); return true;
+    fetchMe(); ui(); return true;
   };
 
+  // ---------- 権限（本部版／配布版） ----------
+  function applyMe(me) { try { if (typeof festPermsApply === 'function') festPermsApply(me); } catch (e) {} try { window.dispatchEvent(new Event('fest-me')); } catch (e) {} }
+  async function fetchMe() {
+    const c = festHttp.config;
+    if (!c.apiBase || !c.viewerToken) { festHttp.me = null; try { localStorage.removeItem(ME_KEY); } catch (e) {} applyMe(null); adminUi(); return; }
+    try {
+      const r = await fetch(c.apiBase + '/api/v1/me', { headers: { Authorization: 'Bearer ' + c.viewerToken }, cache: 'no-store', credentials: 'omit', mode: 'cors', referrerPolicy: 'no-referrer' });
+      if (r.status === 200) {
+        const b = await r.json(); festHttp.me = b; try { localStorage.setItem(ME_KEY, JSON.stringify(b)); } catch (e) {}
+        applyMe(b);
+      } else if (r.status === 401) {   // 取り消し・期限切れ・違うキー：記憶した権限と時刻表を消す（画面の制限は「未確認」のまま）
+        festHttp.me = { role: 'invalid' }; try { localStorage.removeItem(ME_KEY); localStorage.removeItem('fest_sched_cache'); } catch (e) {}
+        applyMe('pending');
+      }
+    } catch (e) {   // 通信できない：前回の権限のまま
+      try { festHttp.me = JSON.parse(localStorage.getItem(ME_KEY) || 'null'); } catch (e2) {}
+    }
+    adminUi(); ui();
+  }
+  festHttp.fetchMe = fetchMe;
+  festHttp.isFull = () => !!(festHttp.me && festHttp.me.role === 'full');
+  function roleText() {
+    const m = festHttp.me;
+    if (!festHttp.config.viewerToken) return '';
+    if (!m) return 'この端末：権限を確認中…';
+    if (m.role === 'invalid') return 'この端末の閲覧キーは使えません（取り消し・期限切れ・入力違い）';
+    if (m.role === 'full') return 'この端末：本部版（全権限）';
+    const p = m.perms || {}, no = [p.settings ? '' : '設定', p.pins ? '' : 'ピンの保存', p.edit ? '' : '時刻表の編集'].filter(Boolean);
+    return '配布版「' + (m.label || '') + '」' + (no.length ? '・' + no.join('・') + 'は不可' : '') + (m.expiresAtMs ? '・' + fmtDay(m.expiresAtMs) + 'まで有効' : '');
+  }
+  function fmtDay(ms) { const d = new Date(ms + 9 * 3600000); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate(); }
+
+  // ---------- 配布版の発行・一覧・取り消し（本部版だけ） ----------
+  const QR_LIB = ['https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js', 'sha384-mZT2gIty7ZDdOGkxfP6joZcYdMW1Jvj9dRlfpTmaJAKKXTqzygtB22k7FLe+KZC1'];
+  let qrP = null;
+  function qrLib() {
+    if (window.qrcode) return Promise.resolve();
+    if (!qrP) qrP = new Promise((ok, ng) => { const sc = document.createElement('script'); sc.src = QR_LIB[0]; sc.integrity = QR_LIB[1]; sc.crossOrigin = 'anonymous'; sc.onload = () => ok(); sc.onerror = () => { qrP = null; ng(new Error('qr')); }; document.head.appendChild(sc); });
+    return qrP;
+  }
+  async function adminApi(method, path, body) {
+    const c = festHttp.config;
+    const r = await fetch(c.apiBase + path, { method, cache: 'no-store', credentials: 'omit', mode: 'cors', referrerPolicy: 'no-referrer',
+      headers: Object.assign({ Authorization: 'Bearer ' + c.viewerToken }, body ? { 'Content-Type': 'application/json' } : {}), body: body ? JSON.stringify(body) : undefined });
+    let j = null; try { j = await r.json(); } catch (e) {}
+    return { status: r.status, body: j };
+  }
+  function adminUi() {
+    let box = $('festAdm');
+    const sec = $('festTrkSec');
+    if (!festHttp.isFull()) { if (box) box.remove(); return; }
+    if (box || !sec) return;
+    box = document.createElement('div'); box.id = 'festAdm'; box.className = 'fest-adm';
+    box.innerHTML = '<div class="set-label">配布版の発行（本部版だけ）</div>'
+      + '<input id="fadLabel" maxlength="40" placeholder="配布先の名前（例：受付係）" autocomplete="off" />'
+      + '<div class="fad-cks"><label><input type="checkbox" id="fadNoSet" checked />設定画面を開けない</label><label><input type="checkbox" id="fadNoPins" checked />ピンを保存できない</label><label><input type="checkbox" id="fadNoEdit" checked />時刻表を編集できない</label></div>'
+      + '<div class="fad-exp"><span>期限</span><input type="date" id="fadExp" aria-label="期限" /><small>この日の終わりまで有効（空欄＝期限なし）</small></div>'
+      + '<button class="set-save" id="fadIssue" type="button">発行する</button><div id="fadOut"></div>'
+      + '<div class="set-label">発行した配布版</div><div id="fadList" class="fad-list"></div>';
+    sec.appendChild(box);
+    $('fadIssue').onclick = issue;
+    loadShares();
+  }
+  async function issue() {
+    const out = $('fadOut'), label = $('fadLabel').value.trim(), ex = $('fadExp').value;
+    if (!label) { out.innerHTML = '<div class="fad-msg err">配布先の名前を入れてください</div>'; return; }
+    let expiresAtMs = null;
+    if (ex) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ex); if (m) expiresAtMs = Date.UTC(+m[1], +m[2] - 1, +m[3], 14, 59, 59, 999); }   // 日本時間のその日の終わり
+    const perms = { settings: !$('fadNoSet').checked, pins: !$('fadNoPins').checked, edit: !$('fadNoEdit').checked };
+    $('fadIssue').disabled = true; out.innerHTML = '<div class="fad-msg">発行しています…</div>';
+    try {
+      const r = await adminApi('POST', '/api/v1/shares', { label, perms, expiresAtMs });
+      if (r.status !== 201 || !r.body || !r.body.token) { out.innerHTML = '<div class="fad-msg err">発行できませんでした（' + escapeHtml(String((r.body && r.body.error) || r.status)) + '）</div>'; return; }
+      const url = location.origin + location.pathname + '?m=senshu#key=' + r.body.token;
+      let qr = '';
+      try { await qrLib(); const q = qrcode(0, 'M'); q.addData(url); q.make(); qr = q.createSvgTag({ cellSize: 4, margin: 2, scalable: true }); } catch (e) { qr = ''; }
+      out.innerHTML = '<div class="fad-res"><b>' + escapeHtml(label) + '</b> の配布版' + (qr ? '<div class="fad-qr">' + qr + '</div>' : '')
+        + '<div class="share-row"><button class="set-save ghost share-pub" id="fadCopy" type="button">リンクをコピー</button>' + (navigator.share ? '<button class="set-save ghost share-pub" id="fadShare" type="button">共有</button>' : '') + '</div>'
+        + '<div class="fad-msg">このリンクとQRコードは配布先にだけ渡してください。開いた端末にキーが記憶されます。この画面を閉じると再表示できません（必要なら取り消して発行し直す）。iPhoneでホーム画面に追加して使う人には、リンクを送ってアプリ内で貼り付けてもらってください。</div></div>';
+      $('fadCopy').onclick = async () => { try { await navigator.clipboard.writeText(url); $('fadCopy').textContent = 'コピーしました'; } catch (e) { prompt('配布リンク（配布先にだけ渡す）', url); } };
+      const sh = $('fadShare'); if (sh) sh.onclick = async () => { try { await navigator.share({ title: '本祭支援ツール', text: label + ' 用の本祭支援ツール（開くと使えるようになります）', url }); } catch (e) {} };
+      $('fadLabel').value = '';
+      loadShares();
+    } catch (e) { out.innerHTML = '<div class="fad-msg err">発行できませんでした（通信を確認してください）</div>'; }
+    finally { $('fadIssue').disabled = false; }
+  }
+  async function loadShares() {
+    const box = $('fadList'); if (!box) return;
+    try {
+      const r = await adminApi('GET', '/api/v1/shares');
+      if (r.status !== 200 || !r.body) { box.innerHTML = '<div class="fad-msg err">一覧を読み込めませんでした</div>'; return; }
+      const L = r.body.shares || [];
+      box.innerHTML = L.length ? L.map(x => {
+        const p = x.perms || {}, no = [p.settings ? '' : '設定', p.pins ? '' : 'ピン', p.edit ? '' : '編集'].filter(Boolean);
+        const st = x.revokedAtMs ? '取り消し済み' : (x.active ? '有効' : '期限切れ');
+        return '<div class="fad-row' + (x.active ? '' : ' off') + '"><div><b>' + escapeHtml(x.label) + '</b><small>' + (no.length ? no.join('・') + 'は不可' : '制限なし') + '・発行 ' + fmtDay(x.createdAtMs) + (x.expiresAtMs ? '・' + fmtDay(x.expiresAtMs) + 'まで' : '') + '・' + st + '</small></div>'
+          + (x.active ? '<button type="button" data-id="' + escapeHtml(x.id) + '">取り消す</button>' : '') + '</div>';
+      }).join('') : '<div class="fad-msg">まだ発行していません</div>';
+      box.querySelectorAll('button[data-id]').forEach(b => b.onclick = async () => {
+        const row = L.find(x => x.id === b.dataset.id);
+        if (!confirm('「' + (row ? row.label : '') + '」の配布版を取り消します。配布先では車両の位置・時刻表が見られなくなります（30秒ほどで反映）。')) return;
+        b.disabled = true; const d = await adminApi('DELETE', '/api/v1/shares/' + b.dataset.id); if (d.status !== 200) alert('取り消せませんでした（' + d.status + '）'); loadShares();
+      });
+    } catch (e) { box.innerHTML = '<div class="fad-msg err">一覧を読み込めませんでした（通信を確認してください）</div>'; }
+  }
+
   function onStartClick() {
-    const tok = $('festTrkTok').value.trim();
-    if (!TOKEN_RE.test(tok) && !(tok === '' && festHttp.config.viewerToken)) { $('festTrkMsg').textContent = '閲覧キーの形が違います（43文字）'; return; }
+    const raw = $('festTrkTok').value.trim(), tok = extractKey(raw);
+    if (!tok && !(raw === '' && festHttp.config.viewerToken)) { $('festTrkMsg').textContent = '閲覧キー（43文字）か、配布されたリンクを貼り付けてください'; return; }
     if (tok) festHttp.config.viewerToken = tok;
     $('festTrkTok').value = '';
     start();
     try { window.dispatchEvent(new Event('fest-token')); } catch (e) {}   // 時刻表も同じキーで読み直す
+    fetchMe();
+  }
+  async function pasteKey() {   // ホーム画面のアプリ（iPhone は Safari と保存場所が別）向け：コピーした配布リンクを読み込む
+    try { const t = await navigator.clipboard.readText(); const k = extractKey(t); if (!k) { $('festTrkMsg').textContent = 'クリップボードに配布リンク（または閲覧キー）がありません'; return; } $('festTrkTok').value = k; onStartClick(); }
+    catch (e) { $('festTrkMsg').textContent = '貼り付けを読めませんでした。入力欄に長押しで貼り付けてください'; }
   }
 
   festHttp.init = function () {
@@ -282,7 +407,9 @@
     cfgLoad();
     const sb = $('festTrkStart'); if (sb) sb.onclick = onStartClick;
     const xb = $('festTrkStop'); if (xb) xb.onclick = stop;
-    const tk = $('festTrkTok'); if (tk) tk.addEventListener('keydown', e => { if (e.key === 'Enter') onStartClick(); });
+    const tk = $('festTrkTok'); if (tk) { tk.placeholder = '閲覧キー、または配布されたリンク'; tk.addEventListener('keydown', e => { if (e.key === 'Enter') onStartClick(); }); }
+    const pb = $('festTrkPaste'); if (pb) { pb.onclick = pasteKey; pb.style.display = (navigator.clipboard && navigator.clipboard.readText) ? '' : 'none'; }
+    try { festHttp.me = JSON.parse(localStorage.getItem(ME_KEY) || 'null'); } catch (e) {}
     const cf = $('festTrkCfg'); if (cf && (!festHttp.enabled || !festHttp.config.viewerToken)) cf.open = true;
     // 画面が裏に回ったら取得を休み、戻ったらすぐ取る
     document.addEventListener('visibilitychange', () => {
@@ -294,5 +421,7 @@
     window.addEventListener('pageshow', e => { if (festHttp.enabled && e.persisted) { festHttp.paused = false; fetchNow(); } });
     window.addEventListener('online', () => { if (festHttp.enabled && !festHttp.abortController) { festHttp.fails = 0; fetchNow(); } });
     if (festHttp.enabled) start(); else ui();
+    if (festHttp.fromLink) try { window.dispatchEvent(new Event('fest-token')); } catch (e) {}
+    fetchMe();
   };
 })();
