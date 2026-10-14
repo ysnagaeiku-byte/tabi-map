@@ -615,7 +615,9 @@
     #toolBtn.on{background:var(--accent-weak);color:var(--accent);border:none;}
     /* タブ：時計を左下へ移したので上部は全幅。横スクロールで全タブにアクセス可 */
     .tabs{max-width:100%;padding:8px 10px 4px;-webkit-overflow-scrolling:touch;}
-    .tab{padding:5px 10px;font-size:11.5px;min-height:29px;gap:5px;}
+    .tab{padding:5px 9px;font-size:11.5px;min-height:29px;gap:5px;}
+    .tabs{gap:6px;}
+    .fest-adv-tab small{display:none;}   /* スマホは「高度な設定」だけ（4つが1行に入るように） */
     /* 右下FAB：小型の円＋ラベル無し（アイコンのみ）でスリムに */
     #myLocFab,#trackFab,#layerBtn,#settleBtn,#imgBtn{width:46px;height:46px;border-radius:50%;font-size:19px;bottom:auto;}
     #myLocFab small,#trackFab small,#layerBtn small,#settleBtn small,#imgBtn small{display:none;}
