@@ -89,7 +89,7 @@ npx wrangler d1 create festival-vehicle-tracking --location=apac
    curl -s https://festival-vehicle-tracking.<サブドメイン>.workers.dev/health   # {"ok":true}
    ```
 
-5. 受信APIの URL は公開してよい値です。`fest-vehicle-tracking.js` の `API_DEFAULT` に入れると、本部は閲覧キーの入力だけで使えます。
+5. 受信APIの URL は公開してよい値です。`fest-vehicle-tracking.js` の `API_DEFAULT` に入れると、本部は閲覧キーの入力だけで使えます（設定済み：`https://festival-vehicle-tracking.festival-vehicle-tracking.workers.dev`。workers.dev のサブドメインは初回 deploy で自動登録された `festival-vehicle-tracking`）。
 6. 地図の公開 URL（GitHub Pages）が変わったら、`wrangler.jsonc` の `vars.ALLOWED_ORIGINS`（scheme＋host のみ）を直して再配置します。
 
 ## スマホの設定（運転する人）

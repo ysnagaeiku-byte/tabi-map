@@ -2222,7 +2222,7 @@ async function festOtMake(){
   document.getElementById('festOtCopy').onclick=async()=>{try{await navigator.clipboard.writeText(url);festShMsg('設定リンクをコピーしました（運転する人にだけ送ってください）');}catch(e){prompt('設定リンク（運転する人にだけ送ってください）',url);}};
 }
 // 車両の位置（Traccar Client → 受信API）。処理は fest-vehicle-tracking.js（本祭支援ツールのときだけ読み込む）
-const FEST_TRK_V=1;
+const FEST_TRK_V=2;
 function festTrkOn(){try{const c=JSON.parse(localStorage.getItem('fest_track_cfg')||'null');return !!(c&&c.on);}catch(e){return false;}}
 function festTrkLoad(){
   if(!FEST||window.festHttp)return;

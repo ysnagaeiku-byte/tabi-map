@@ -8,7 +8,7 @@
   'use strict';
   if (window.festHttp) return;
 
-  const API_DEFAULT = '';   // 受信APIを配置したら、その URL（https://…workers.dev）をここに入れる
+  const API_DEFAULT = 'https://festival-vehicle-tracking.festival-vehicle-tracking.workers.dev';   // 受信APIの URL（公開してよい値。閲覧キーは実行時に入力）
   const CFG_KEY = 'fest_track_cfg', TOK_KEY = 'fest_track_view';
   const POLL_MS = 10000, RETRY_S = [10, 20, 40, 80, 120], TIMEOUT_MS = 8000;
   const CAUTION_MS = 30000, OLD_MS = 120000, HIDE_MS = 15 * 60000, CONTACT_OK_MS = 120000;

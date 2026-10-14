@@ -9,8 +9,8 @@
     {
       "binding": "DB",
       "database_name": "festival-vehicle-tracking",
-      // ローカル専用の仮値。`wrangler d1 create` で出た実UUIDへ置き換えるまで deploy は止まる（scripts/check-deploy.mjs）
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      // `wrangler d1 create festival-vehicle-tracking --location=apac`（2026-10-14・APAC）で作成。UUID は秘密ではない
+      "database_id": "2f0035db-663b-4613-9e3d-77f2dbd8714e",
       "migrations_dir": "migrations"
     }
   ],
