@@ -3,6 +3,7 @@
 // 3台の最新位置を受信APIから10秒ごとに取り、地図の印（festSh.peers・festShRender）で
 // 標準・白地図・高低差3D・実写3Dのどれにも描く。画面はメニューの「位置情報共有設定」。
 // 公開してよいのは受信APIのURLだけ。閲覧キーは配布されたリンク（#key=…）か入力で受け取り、この端末（localStorage）に記憶する。
+// 本部版の端末で配布版のキーを開いたときは、このタブだけで使う（festStore：index-google.html）。
 // キーの種類で権限が決まる：本部版（全権限）／配布版（本部が発行時に選んだ制限）。権限は /api/v1/me で確かめ、festPermsApply に渡す。
 // 本部版では、配布版のキーの発行・一覧・取り消しができる（位置情報共有設定の下）。
 // ローカル開発では localStorage の fest_track_cfg に {"apiBase":"http://127.0.0.1:8787"} を入れると、そちらへつなぐ。
@@ -48,7 +49,7 @@
     let c = null;
     try { c = JSON.parse(localStorage.getItem(CFG_KEY) || 'null'); } catch (e) {}
     let tok = '';
-    try { tok = localStorage.getItem(TOK_KEY) || sessionStorage.getItem(OLD_TOK_KEY) || ''; sessionStorage.removeItem(OLD_TOK_KEY); } catch (e) {}
+    try { tok = festStore.get(TOK_KEY) || sessionStorage.getItem(OLD_TOK_KEY) || ''; sessionStorage.removeItem(OLD_TOK_KEY); } catch (e) {}
     const fromLink = extractKey(location.hash);   // 配布リンク：キーを記憶してアドレス欄から消す
     if (fromLink) { tok = fromLink; festHttp.fromLink = true; try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {} }
     const local = /^(localhost|127\.0\.0\.1)$/.test(location.hostname);   // 受信APIの差し替えはローカル開発のページだけ
@@ -63,10 +64,8 @@
       c.on = festHttp.enabled;
       localStorage.setItem(CFG_KEY, JSON.stringify(c));
     } catch (e) {}
-    try {
-      if (festHttp.config.viewerToken) localStorage.setItem(TOK_KEY, festHttp.config.viewerToken);
-      else localStorage.removeItem(TOK_KEY);
-    } catch (e) {}
+    if (festHttp.config.viewerToken) festStore.set(TOK_KEY, festHttp.config.viewerToken);
+    else festStore.del(TOK_KEY);
   }
 
   // ---------- 時刻（サーバー時刻を基準に古さを出す。閲覧端末の時計ずれを補正） ----------
@@ -277,8 +276,9 @@
   festHttp.setToken = function (tok) {
     tok = extractKey(tok);
     if (!tok) return false;
+    festStore.useKey(tok);   // 本部版の端末で配布版のキーなら、このタブだけ
     festHttp.config.viewerToken = tok; festHttp.authBlocked = false;
-    try { localStorage.setItem(TOK_KEY, tok); } catch (e) {}
+    festStore.set(TOK_KEY, tok);
     try { window.dispatchEvent(new Event('fest-token')); } catch (e) {}
     if (festHttp.enabled) { cancel(); fetchNow(); }
     fetchMe(); ui(); return true;
@@ -288,16 +288,17 @@
   function applyMe(me) { try { if (typeof festPermsApply === 'function') festPermsApply(me); } catch (e) {} try { window.dispatchEvent(new Event('fest-me')); } catch (e) {} }
   async function fetchMe() {
     const c = festHttp.config;
-    if (!c.apiBase || !c.viewerToken) { festHttp.me = null; try { localStorage.removeItem(ME_KEY); } catch (e) {} applyMe(null); adminUi(); return; }
+    if (!c.apiBase || !c.viewerToken) { festHttp.me = null; festStore.del(ME_KEY); applyMe(null); adminUi(); return; }
     try {
       const r = await fetch(c.apiBase + '/api/v1/me', { headers: { Authorization: 'Bearer ' + c.viewerToken }, cache: 'no-store', credentials: 'omit', mode: 'cors', referrerPolicy: 'no-referrer' });
       if (r.status === 200) {
-        const b = await r.json(); festHttp.me = b; try { localStorage.setItem(ME_KEY, JSON.stringify(b)); } catch (e) {}
+        const b = await r.json(); festHttp.me = b; festStore.set(ME_KEY, JSON.stringify(b));
+        if (festStore.preview && b.role === 'full') festStore.promote();   // このタブのキーが本部版だった：端末に記憶する
         try { if (typeof festLockClear === 'function' && festLockGet()) festLockClear(); } catch (e) {}   // 新しい有効なキー：閉じた状態を解除
         applyMe(b);
       } else if (r.status === 401) {   // 取り消し・期限切れ・違うキー：記憶した権限と時刻表を消す（画面の制限は「未確認」のまま）
         let b = null; try { b = await r.json(); } catch (e) {}
-        festHttp.me = { role: 'invalid', reason: b && b.error }; try { localStorage.removeItem(ME_KEY); localStorage.removeItem('fest_sched_cache'); } catch (e) {}
+        festHttp.me = { role: 'invalid', reason: b && b.error }; festStore.del(ME_KEY); festStore.del('fest_sched_cache');
         applyMe('pending');
         try {
           if (b && (b.error === 'revoked' || b.error === 'expired') && b.lock) festLockSet(b.error);   // 本部が「地図も止める」を選んだ
@@ -305,7 +306,7 @@
         } catch (e) {}
       }
     } catch (e) {   // 通信できない：前回の権限のまま
-      try { festHttp.me = JSON.parse(localStorage.getItem(ME_KEY) || 'null'); } catch (e2) {}
+      try { festHttp.me = JSON.parse(festStore.get(ME_KEY) || 'null'); } catch (e2) {}
     }
     adminUi(); ui();
   }
@@ -318,7 +319,7 @@
     if (m.role === 'invalid') return m.reason === 'revoked' ? 'この配布版は取り消されました' : (m.reason === 'expired' ? 'この配布版は期限が切れました' : 'この端末の閲覧キーは使えません（入力違いの可能性）');
     if (m.role === 'full') return 'この端末：本部版（全権限）';
     const p = m.perms || {}, no = [p.settings ? '' : '設定', p.pins ? '' : 'ピンの保存', p.edit ? '' : '時刻表の編集'].filter(Boolean);
-    return '配布版「' + (m.label || '') + '」' + (no.length ? '・' + no.join('・') + 'は不可' : '') + (m.expiresAtMs ? '・' + fmtDay(m.expiresAtMs) + 'まで有効' : '');
+    return (festStore.preview ? 'このタブだけ（本部版のキーはこの端末に残っています）：' : '') + '配布版「' + (m.label || '') + '」' + (no.length ? '・' + no.join('・') + 'は不可' : '') + (m.expiresAtMs ? '・' + fmtDay(m.expiresAtMs) + 'まで有効' : '');
   }
   function fmtDay(ms) { const d = new Date(ms + 9 * 3600000); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate(); }
 
@@ -404,7 +405,7 @@
   function onStartClick() {
     const raw = $('festTrkTok').value.trim(), tok = extractKey(raw);
     if (!tok && !(raw === '' && festHttp.config.viewerToken)) { $('festTrkMsg').textContent = '閲覧キー（43文字）か、配布されたリンクを貼り付けてください'; return; }
-    if (tok) festHttp.config.viewerToken = tok;
+    if (tok) { festStore.useKey(tok); festHttp.config.viewerToken = tok; }
     $('festTrkTok').value = '';
     start();
     try { window.dispatchEvent(new Event('fest-token')); } catch (e) {}   // 時刻表も同じキーで読み直す
@@ -423,7 +424,7 @@
     const xb = $('festTrkStop'); if (xb) xb.onclick = stop;
     const tk = $('festTrkTok'); if (tk) { tk.placeholder = '閲覧キー、または配布されたリンク'; tk.addEventListener('keydown', e => { if (e.key === 'Enter') onStartClick(); }); }
     const pb = $('festTrkPaste'); if (pb) { pb.onclick = pasteKey; pb.style.display = (navigator.clipboard && navigator.clipboard.readText) ? '' : 'none'; }
-    try { festHttp.me = JSON.parse(localStorage.getItem(ME_KEY) || 'null'); } catch (e) {}
+    try { festHttp.me = JSON.parse(festStore.get(ME_KEY) || 'null'); } catch (e) {}
     const cf = $('festTrkCfg'); if (cf && (!festHttp.enabled || !festHttp.config.viewerToken)) cf.open = true;
     // 画面が裏に回ったら取得を休み、戻ったらすぐ取る
     document.addEventListener('visibilitychange', () => {

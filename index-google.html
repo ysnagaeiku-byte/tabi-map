@@ -16,6 +16,10 @@
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="たびマップ" />
+<script>/* 本祭支援ツールのリンク（…?m=senshu#key=…）が、アプリやQRの読み取りで「?m=senshu」が落ちたり「#」が「%23」に変わったりして届いたときは、支援ツールとして開き直す */
+(function(){var s=location.search,h=location.hash,K=/(?:#|%23|&)key(?:=|%3D)([A-Za-z0-9_-]{43})(?![A-Za-z0-9_-])/i,m=K.exec(s)||K.exec(h);
+  if(!m||(/[?&]m=senshu(?:&|$)/.test(s)&&!K.test(s)))return;
+  location.replace(location.pathname+'?m=senshu#key='+m[1]);})();</script>
 <script>/* 本祭支援ツール（?m=senshu）はドライブ版と別のアプリとして追加できるよう、アプリ情報・アイコン・名前を差し替える */
 (function(){if(!/[?&]m=senshu(?:&|$)/.test(location.search))return;var q=function(s){return document.querySelector(s);};
   q('link[rel="manifest"]').href='manifest-senshu.json';q('link[rel="apple-touch-icon"]').href='apple-touch-icon-senshu.png';q('link[rel="icon"]').href='icon-senshu-192.png';
@@ -998,6 +1002,13 @@
   #festLock .fl-box{max-width:360px;display:flex;flex-direction:column;align-items:center;gap:12px;}
   #festLock .fl-box img{border-radius:18px;}
   #festLock b{font-size:18px;} #festLock p{margin:0;font-size:13.5px;line-height:1.7;color:#ced4da;}
+  #festLock .fl-back{margin-top:6px;padding:9px 18px;border-radius:10px;border:1px solid #495057;background:#f1f3f5;color:#01001b;font-size:14px;font-weight:700;cursor:pointer;}
+  /* 本部版の印（左下・Google のロゴの上）と、本部版の端末で配布版を確かめているタブの案内 */
+  #festHq{display:none;position:fixed;left:8px;bottom:calc(30px + env(safe-area-inset-bottom));z-index:1250;padding:2px 7px;border-radius:5px;background:rgba(0,0,0,.62);color:#fff;font-size:10.5px;font-weight:700;letter-spacing:.06em;pointer-events:none;}
+  html.fest-hq #festHq{display:block;}
+  #festPv{display:none;position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--fb,0px) + env(safe-area-inset-top) + 6px);z-index:1255;align-items:center;gap:8px;padding:5px 6px 5px 11px;border-radius:999px;background:#ffd43b;color:#212529;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.25);}
+  #festPv button{border:0;border-radius:999px;padding:4px 10px;background:#212529;color:#fff;font-size:11.5px;font-weight:700;cursor:pointer;}
+  html.fest.fest-preview #festPv{display:flex;}
   /* 配布版の制限：設定画面・ピンの保存 */
   html.fest-noset #setBtn{display:none !important;}
   html.fest-nopins .keep-pin,html.fest-nopins #pinSaveBtn{display:none !important;}
@@ -1036,6 +1047,7 @@
 </div>
 <div id="festBaseBar"></div>
 <div id="liveClock" title="現在時刻（NTP同期・JST）／タップで緊急避難"><div id="lcMain"><span id="lcTime">--:--:--</span><span id="lcDate"></span><div id="speedChip"><b id="spdVal">--</b><span class="spd-u">km/h</span></div></div><div id="lcEv"></div><span id="evacLabel">緊急避難</span></div>
+<div id="festHq" aria-hidden="true">本部統括用</div><div id="festPv" role="status">配布版を確認中（このタブだけ）<button type="button" onclick="festStore.back()">本部版に戻る</button></div>
 <div id="festBand" role="button" title="各号館の開錠・施錠時刻（押すと編集）"><div class="fb-view"><div class="fb-page"></div><div class="fb-page"></div><span id="fbMeasure" aria-hidden="true"></span></div></div>
 <div id="evacPanel"><div class="evac-h"><b>緊急避難（参考）</b><button id="evacClose" title="閉じる">✕</button></div><div id="evacBody"></div></div>
 <div id="toolMenu">
@@ -2097,6 +2109,31 @@ function festAwakeInit(){
   ['pointerdown','keydown'].forEach(ev=>document.addEventListener(ev,()=>{if(festAwakeOn&&!festAwake)festAwakeReq();},{passive:true}));   // 操作が必要なブラウザ向けに、最初の操作でも取り直す
   festAwakeReq();renderToolMenu();
 }
+// ===== 本祭支援ツール：閲覧キー・権限・止めた状態の保存場所 =====
+// ふだんはこの端末（localStorage）に記憶する。本部版（全権限）の端末で配布版のリンクやキーを開いたときは、
+// 本部版のキーを残したまま「このタブだけ」配布版で表示する（sessionStorage。タブを閉じるか「本部版に戻る」で終わる）。
+// 本部版の端末で配布版を試してから取り消しても、本部版のキーや表示は止まらない
+window.festStore=(function(){
+  const TAB=['fest_view_key','fest_me','fest_locked','fest_sched_cache'],FLAG='fest_tab_preview',de=document.documentElement;
+  const st={preview:false};
+  const area=k=>st.preview&&TAB.indexOf(k)>=0?sessionStorage:localStorage;
+  st.get=k=>{try{return area(k).getItem(k);}catch(e){return null;}};
+  st.set=(k,v)=>{try{area(k).setItem(k,v);}catch(e){}};
+  st.del=k=>{try{area(k).removeItem(k);}catch(e){}};
+  st.hqKey=()=>{try{const k=localStorage.getItem('fest_view_key'),me=JSON.parse(localStorage.getItem('fest_me')||'null');return k&&me&&me.role==='full'?k:'';}catch(e){return '';}};   // 前回、本部版と確かめたキー
+  st.enter=()=>{if(st.preview)return;try{TAB.forEach(k=>sessionStorage.removeItem(k));sessionStorage.setItem(FLAG,'1');}catch(e){return;}st.preview=true;de.classList.add('fest-preview');};
+  st.exit=()=>{try{TAB.forEach(k=>sessionStorage.removeItem(k));sessionStorage.removeItem(FLAG);}catch(e){}st.preview=false;de.classList.remove('fest-preview');};
+  // 新しいキーを使う直前に呼ぶ：本部版の端末で別のキーなら、このタブだけにする。本部版のキーそのものなら、このタブの確認を終える
+  st.useKey=k=>{const hq=st.hqKey();if(!hq)return;if(k===hq)st.exit();else st.enter();};
+  // このタブのキーが本部版（全権限）だった（作り直した本部版のキーなど）：端末に記憶して、このタブだけの表示を終える
+  st.promote=()=>{if(!st.preview)return;const k=st.get('fest_view_key'),me=st.get('fest_me');st.exit();try{if(k)localStorage.setItem('fest_view_key',k);if(me)localStorage.setItem('fest_me',me);localStorage.removeItem('fest_locked');}catch(e){}};
+  st.back=()=>{st.exit();location.replace(location.pathname+location.search);};   // 本部版に戻る
+  try{st.preview=sessionStorage.getItem(FLAG)==='1';}catch(e){}
+  if(st.preview)de.classList.add('fest-preview');
+  const m=/[#&]key=([A-Za-z0-9_-]{43})(?![A-Za-z0-9_-])/.exec(location.hash);
+  if(FEST&&m)st.useKey(m[1]);   // 配布リンクで開いた
+  return st;
+})();
 // ===== 本祭支援ツール：本部版・配布版の権限 =====
 // 閲覧キーの種類で決まる（本部版＝全権限／配布版＝本部が発行時に選んだ制限：設定画面・ピンの保存・時刻表の編集）。
 // 受信APIの /api/v1/me の結果を fest-vehicle-tracking.js が渡す。画面の制限は使い勝手のためのもので、時刻表の保存は受信APIでも拒否する
@@ -2105,6 +2142,7 @@ function festPermsApply(me){   // me：/api/v1/me の結果。'pending'＝キー
   const p=me==='pending'?{settings:false,pins:false,edit:false}:((me&&me.perms)||{settings:true,pins:true,edit:false});
   festPerms={settings:p.settings!==false,pins:p.pins!==false,edit:!!p.edit,role:(me&&me!=='pending')?me.role:''};
   const de=document.documentElement;de.classList.toggle('fest-noset',!festPerms.settings);de.classList.toggle('fest-nopins',!festPerms.pins);
+  de.classList.toggle('fest-hq',FEST&&festPerms.role==='full'&&!festStore.preview);   // 左下の「本部統括用」
   if(!festPerms.settings){const ov=document.getElementById('overlay');if(ov)ov.classList.remove('open');}
   try{if(activeTab==='custom')buildCustomPanel();}catch(e){}
 }
@@ -2112,19 +2150,20 @@ function festDeny(k,msg){if(!FEST||festPerms[k])return false;showStatus(msg,fals
 // ===== 本祭支援ツール：止められた配布版の端末 =====
 // 本部が「取り消して地図も止める」を選んだ（または発行時に「期限が来たら地図も止める」を選んだ配布版の期限が来た）端末は、画面全体を閉じる。
 // 新しい有効なリンク（#key=…）を開けば解除。端末のデータを消すと外れる（地図は公開のため、抑止のための仕組み。車両・時刻表は受信APIで止まる）
-function festLockGet(){try{return JSON.parse(localStorage.getItem('fest_locked')||'null');}catch(e){return null;}}
+function festLockGet(){try{return JSON.parse(festStore.get('fest_locked')||'null');}catch(e){return null;}}
 function festLockShow(info){
   let el=document.getElementById('festLock');
   if(!el){el=document.createElement('div');el.id='festLock';el.setAttribute('role','alertdialog');document.body.appendChild(el);}
   el.innerHTML='<div class="fl-box"><img src="icon-senshu-192.png" alt="" width="76" height="76" /><b>この配布版は'+(info&&info.reason==='expired'?'期限が切れました':'取り消されました')+'</b>'
-    +'<p>本祭支援ツールは、この端末では使えません。必要な場合は本部に連絡し、新しいリンクを受け取って開いてください。</p></div>';
+    +(festStore.preview?'<p>このタブだけの確認表示です。本部版のキーはこの端末に残っています。</p><button type="button" class="fl-back" onclick="festStore.back()">本部版に戻る</button>'
+      :'<p>本祭支援ツールは、この端末では使えません。必要な場合は本部に連絡し、新しいリンクを受け取って開いてください。</p>')+'</div>';
   el.classList.add('show');document.documentElement.classList.add('fest-locked');
 }
-function festLockSet(reason){try{localStorage.setItem('fest_locked',JSON.stringify({reason,at:Date.now()}));}catch(e){}festLockShow({reason});}
-function festLockClear(){try{localStorage.removeItem('fest_locked');}catch(e){}const el=document.getElementById('festLock');if(el)el.classList.remove('show');document.documentElement.classList.remove('fest-locked');}
+function festLockSet(reason){festStore.set('fest_locked',JSON.stringify({reason,at:Date.now()}));festLockShow({reason});}
+function festLockClear(){festStore.del('fest_locked');const el=document.getElementById('festLock');if(el)el.classList.remove('show');document.documentElement.classList.remove('fest-locked');}
 function festLockBoot(){const L=festLockGet();if(L&&!/[#&]key=[A-Za-z0-9_-]{43}/.test(location.hash))festLockShow(L);}   // 新しいリンクで開いたときは確かめてから（無効ならまた閉じる）
 // 最初の表示から制限を当てる（前回確認した権限を使う。キーがあって未確認なら制限側）
-function festPermsBoot(){let me=null,key='';try{key=localStorage.getItem('fest_view_key')||sessionStorage.getItem('fest_track_view')||'';me=JSON.parse(localStorage.getItem('fest_me')||'null');}catch(e){}
+function festPermsBoot(){let me=null,key='';try{key=festStore.get('fest_view_key')||sessionStorage.getItem('fest_track_view')||'';me=JSON.parse(festStore.get('fest_me')||'null');}catch(e){}
   if(/[#&]key=[A-Za-z0-9_-]{43}/.test(location.hash))key='x';festPermsApply(key?(me&&me.role?me:'pending'):null);}
 if(FEST)try{festPermsBoot();festLockBoot();}catch(e){}   // 地図の準備を待たずに、最初の表示から制限を当てる・止められた端末は閉じる
 // ===== 本祭支援ツール：アプリとして追加（PWA） =====
@@ -2146,7 +2185,7 @@ function festInstallInit(){
   festInstallUi();
 }
 // 車両の位置の取得・一覧は fest-vehicle-tracking.js（本祭支援ツールのときだけ読み込む）
-const FEST_TRK_V=7;
+const FEST_TRK_V=8;
 function festTrkLoad(){
   if(!FEST||window.festHttp)return;
   const sc=document.createElement('script');sc.src='fest-vehicle-tracking.js?v='+FEST_TRK_V;

@@ -17,10 +17,11 @@
   const HOLD_MS = 7500, SLIDE_MS = 600, POLL_MS = 60000;   // 1ページを7.5秒表示してから流す
   const CACHE_KEY = 'fest_sched_cache';
 
-  const S = window.festSched = { data: null, updatedAtMs: null, error: '', loading: false, timer: null, draft: null, tab: 0, initialized: false, cached: false };
-  function cacheSave() { try { localStorage.setItem(CACHE_KEY, JSON.stringify({ data: S.data, updatedAtMs: S.updatedAtMs })); } catch (e) {} }
-  function cacheLoad() { try { const c = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null'); if (c && c.data) { S.data = c.data; S.updatedAtMs = c.updatedAtMs || null; S.cached = true; } } catch (e) {} }
-  function cacheClear() { try { localStorage.removeItem(CACHE_KEY); } catch (e) {} S.data = null; S.updatedAtMs = null; S.cached = false; }
+  const S = window.festSched = { data: null, updatedAtMs: null, error: '', loading: false, timer: null, draft: null, tab: 0, initialized: false, cached: false,
+    loaded: false, draftBase: null, dirty: false };   // loaded：このキーで受信APIから読めた。draftBase：下書きの元にした版（保存時の照合に使う）
+  function cacheSave() { festStore.set(CACHE_KEY, JSON.stringify({ data: S.data, updatedAtMs: S.updatedAtMs })); }
+  function cacheLoad() { try { const c = JSON.parse(festStore.get(CACHE_KEY) || 'null'); if (c && c.data) { S.data = c.data; S.updatedAtMs = c.updatedAtMs || null; S.cached = true; } } catch (e) {} }
+  function cacheClear() { festStore.del(CACHE_KEY); S.data = null; S.updatedAtMs = null; S.cached = false; S.loaded = false; }
   const canEdit = () => (typeof festPerms === 'undefined') || !!festPerms.edit;
   const $ = id => document.getElementById(id);
   const esc = s => (typeof escapeHtml === 'function' ? escapeHtml(String(s)) : String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]));
@@ -52,7 +53,7 @@
     S.loading = true;
     try {
       const r = await api('GET');
-      if (r.status === 200 && r.body && r.body.schemaVersion === 1) { S.data = r.body.schedule; S.updatedAtMs = r.body.updatedAtMs; S.error = ''; S.cached = false; cacheSave(); }
+      if (r.status === 200 && r.body && r.body.schemaVersion === 1) { S.data = r.body.schedule; S.updatedAtMs = r.body.updatedAtMs; S.error = ''; S.cached = false; S.loaded = true; cacheSave(); }
       else if (r.status === 401) { S.error = 'auth'; cacheClear(); try { if (window.festHttp && festHttp.fetchMe) festHttp.fetchMe(); } catch (e) {} }   // 取り消し・期限切れ：端末に残した時刻表も消し、権限を確かめ直す
       else S.error = 'http';
     } catch (e) { S.error = 'network'; }   // 通信できない：前回取得した時刻表のまま
@@ -160,7 +161,11 @@
     B.tm = setTimeout(bandNext, HOLD_MS + SLIDE_MS);
   }
 
-  function render() { renderEv(); bandShow(false); if ($('festSchedOverlay') && $('festSchedOverlay').classList.contains('open') && !S.draft) editorRender(); }
+  function render() {
+    renderEv(); bandShow(false);
+    const ov = $('festSchedOverlay');   // 編集画面：まだ手を付けていない下書きは、新しい版が届いたら作り直す
+    if (ov && ov.classList.contains('open') && (!S.draft || (!S.dirty && S.draftBase !== S.updatedAtMs))) { S.draft = null; editorRender(); }
+  }
   S.render = render;
 
   // ---------- 編集画面 ----------
@@ -177,7 +182,7 @@
   function editorOpen() {
     const ov = $('festSchedOverlay'); if (!ov) return;
     if (hasKey() && S.error !== 'auth' && !canEdit()) { if (typeof showStatus === 'function') { showStatus('この配布版では時刻表を編集できません（閲覧のみ）', false); hideStatusLater(); } return; }
-    S.draft = null; ov.classList.add('open'); editorRender();
+    S.draft = null; S.dirty = false; ov.classList.add('open'); editorRender();
     if (hasKey()) load();
   }
   S.open = editorOpen;
@@ -190,7 +195,11 @@
       $('fsKeySave').onclick = () => { const v = $('fsKey').value.trim(); if (!window.festHttp || !festHttp.setToken(v)) { msg('閲覧キーの形が違います（43文字）', true); return; } S.error = ''; load(); editorRender(); };
       return;
     }
-    if (!S.draft) S.draft = clone(S.data || emptySchedule());
+    if (!S.loaded) {   // 読み込む前に下書きを作ると、空の表を保存して時刻表を消してしまう
+      body.innerHTML = '<div class="set-help">' + (S.error && !S.loading ? '時刻表を読み込めませんでした（通信を確認してください）。読み込めるまで編集できません。' : '時刻表を読み込んでいます…') + '</div>';
+      return;
+    }
+    if (!S.draft) { S.draft = clone(S.data || emptySchedule()); S.draftBase = S.updatedAtMs; S.dirty = false; }
     const D = S.draft, days = draftDays();
     if (S.tab >= D.days.length) S.tab = Math.max(0, D.days.length - 1);
     let h = '<div class="fs-sec"><div class="set-label">エレベーター（EV）</div>';
@@ -220,29 +229,33 @@
       + '<div class="set-msg" id="fsMsg">' + (S.updatedAtMs ? '最終更新 ' + new Date(S.updatedAtMs + 9 * 3600000).toISOString().slice(5, 16).replace('T', ' ').replace('-', '/') : '') + '</div>';
     body.innerHTML = h;
     // 入力 → 下書き
-    body.querySelectorAll('.fs-mode').forEach(sg => sg.onclick = ev => { const b = ev.target.closest('button'); if (!b) return; D.ev[sg.dataset.u].mode = b.dataset.m; editorRender(); });
+    body.querySelectorAll('.fs-mode').forEach(sg => sg.onclick = ev => { const b = ev.target.closest('button'); if (!b) return; D.ev[sg.dataset.u].mode = b.dataset.m; S.dirty = true; editorRender(); });
     body.querySelectorAll('.fs-evd input[type=text]').forEach(inp => inp.onchange = () => {
       const u = inp.dataset.u, d = inp.dataset.d, sl = parseSlots(inp.value);
       if (sl === null) { msg('時間帯の形が違います（例 10:00-11:30, 14:00-15:00）', true); inp.focus(); return; }
-      D.ev[u].days[d] = sl; editorRender(); });
-    body.querySelectorAll('.fs-evd input[type=checkbox]').forEach(cb => cb.onchange = () => { const u = cb.dataset.u, d = cb.dataset.d; if (cb.checked) D.ev[u].days[d] = D.ev[u].days[d] || []; else delete D.ev[u].days[d]; editorRender(); });
+      D.ev[u].days[d] = sl; S.dirty = true; editorRender(); });
+    body.querySelectorAll('.fs-evd input[type=checkbox]').forEach(cb => cb.onchange = () => { const u = cb.dataset.u, d = cb.dataset.d; if (cb.checked) D.ev[u].days[d] = D.ev[u].days[d] || []; else delete D.ev[u].days[d]; S.dirty = true; editorRender(); });
     body.querySelectorAll('.fs-tabs button[data-i]').forEach(b => b.onclick = () => { S.tab = +b.dataset.i; editorRender(); });
     $('fsAddDay').onclick = () => { const v = $('fsNewDay').value; if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) { msg('追加する日を選んでください', true); return; } if (D.days.some(d => d.d === v)) { msg('その日はすでにあります', true); return; }
-      D.days.push({ d: v, items: [] }); D.days.sort((a, b) => a.d < b.d ? -1 : 1); S.tab = D.days.findIndex(d => d.d === v); editorRender(); };
-    const del = $('fsDelDay'); if (del) del.onclick = () => { if (!confirm(dayLabel(day.d, true) + ' の開錠・施錠時刻を削除します')) return; D.days.splice(S.tab, 1); S.tab = 0; editorRender(); };
+      D.days.push({ d: v, items: [] }); D.days.sort((a, b) => a.d < b.d ? -1 : 1); S.tab = D.days.findIndex(d => d.d === v); S.dirty = true; editorRender(); };
+    const del = $('fsDelDay'); if (del) del.onclick = () => { if (!confirm(dayLabel(day.d, true) + ' の開錠・施錠時刻を削除します')) return; D.days.splice(S.tab, 1); S.tab = 0; S.dirty = true; editorRender(); };
     body.querySelectorAll('.fs-grid input[type=time]').forEach(inp => inp.onchange = () => {
       const f = inp.dataset.f, k = inp.dataset.k, v = inp.value ? inp.value.replace(/^0(\d)/, '$1') : '';
       let it = day.items.find(x => x.f === f); if (!it) { it = { f, o: '', c: '' }; day.items.push(it); }
-      it[k] = v; day.items = day.items.filter(x => x.o || x.c).sort((a, b) => FAC.findIndex(x => x[0] === a.f) - FAC.findIndex(x => x[0] === b.f)); });
-    $('fsReset').onclick = () => { S.draft = null; editorRender(); };
+      it[k] = v; S.dirty = true; day.items = day.items.filter(x => x.o || x.c).sort((a, b) => FAC.findIndex(x => x[0] === a.f) - FAC.findIndex(x => x[0] === b.f)); });
+    $('fsReset').onclick = () => { S.draft = null; S.dirty = false; editorRender(); };
     $('fsSave').onclick = save;
   }
   async function save() {
+    if (!S.draft) return;
+    if (!S.dirty) { msg('変更はありません'); return; }
+    const keep = S.draft.days.map(d => d.d), gone = ((S.data && S.data.days) || []).map(d => d.d).filter(d => keep.indexOf(d) < 0);
+    if (gone.length && !confirm('次の日の開錠・施錠時刻が消えます：' + gone.map(d => dayLabel(d, true)).join('、') + '\nこのまま保存しますか？')) return;
     const btn = $('fsSave'); if (btn) btn.disabled = true; msg('保存しています…');
     try {
-      const r = await api('PUT', { schedule: S.draft, baseUpdatedAtMs: S.updatedAtMs });
-      if (r.status === 200 && r.body) { S.data = r.body.schedule; S.updatedAtMs = r.body.updatedAtMs; S.draft = null; S.error = ''; render(); editorRender(); msg('保存しました'); return; }
-      if (r.status === 409) { msg('ほかの端末が先に保存しました。「変更を取り消す」で最新を読み込み直してから編集してください', true); S.updatedAtMs = null; await load(); }
+      const r = await api('PUT', { schedule: S.draft, baseUpdatedAtMs: S.draftBase });   // 下書きの元にした版と照合（途中で届いた新しい版を上書きしない）
+      if (r.status === 200 && r.body) { S.data = r.body.schedule; S.updatedAtMs = r.body.updatedAtMs; S.draft = null; S.dirty = false; S.error = ''; S.loaded = true; cacheSave(); render(); msg('保存しました'); return; }
+      if (r.status === 409) { msg('ほかの端末が先に保存しました。「変更を取り消す」で最新を読み込み直してから編集してください', true); await load(); }
       else if (r.status === 401) { S.error = 'auth'; editorRender(); }
       else msg('保存できませんでした（' + ((r.body && (r.body.detail || r.body.error)) || r.status) + '）', true);
     } catch (e) { msg('保存できませんでした（通信を確認してください）', true); }
@@ -261,10 +274,10 @@
     if (S.initialized || typeof FEST === 'undefined' || !FEST) return;
     S.initialized = true;
     const ov = $('festSchedOverlay');
-    if (ov) { $('festSchedClose').onclick = () => { ov.classList.remove('open'); S.draft = null; }; ov.addEventListener('click', e => { if (e.target === ov) { ov.classList.remove('open'); S.draft = null; } }); }
+    if (ov) { $('festSchedClose').onclick = () => { ov.classList.remove('open'); S.draft = null; S.dirty = false; }; ov.addEventListener('click', e => { if (e.target === ov) { ov.classList.remove('open'); S.draft = null; S.dirty = false; } }); }
     const clk = $('liveClock'); if (clk) { clk.addEventListener('click', editorOpen); clk.title = '現在時刻（NTP同期・JST）・EVの可否／押すと開錠・施錠時刻とEVを編集'; }
     const band = $('festBand'); if (band) band.addEventListener('click', editorOpen);
-    window.addEventListener('fest-token', () => { S.error = ''; load(); });
+    window.addEventListener('fest-token', () => { S.error = ''; S.loaded = false; S.draft = null; S.dirty = false; render(); load(); });   // キーが変わった：読み直すまで編集しない
     window.addEventListener('fest-vehicles', renderEv);   // 車両の位置が変わったら G倉庫IN を更新
     window.addEventListener('fest-me', () => { const m = window.festHttp && festHttp.me; if (m && m.role === 'invalid') { S.error = 'auth'; cacheClear(); } render(); });
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') load(); });
