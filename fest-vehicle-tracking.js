@@ -318,7 +318,7 @@
     if (!m) return 'この端末：権限を確認中…';
     if (m.role === 'invalid') return m.reason === 'revoked' ? 'この配布版は取り消されました' : (m.reason === 'expired' ? 'この配布版は期限が切れました' : 'この端末の閲覧キーは使えません（入力違いの可能性）');
     if (m.role === 'full') return 'この端末：本部版（全権限）';
-    const p = m.perms || {}, no = [p.settings ? '' : '設定', p.pins ? '' : 'ピンの保存', p.edit ? '' : '時刻表の編集'].filter(Boolean);
+    const p = m.perms || {}, no = [p.settings ? '' : '設定', p.pins ? '' : 'ピンの保存', p.edit ? '' : 'EVの編集'].filter(Boolean);
     return (festStore.preview ? 'このタブだけ（本部版のキーはこの端末に残っています）：' : '') + '配布版「' + (m.label || '') + '」' + (no.length ? '・' + no.join('・') + 'は不可' : '') + (m.expiresAtMs ? '・' + fmtDay(m.expiresAtMs) + 'まで有効' : '');
   }
   function fmtDay(ms) { const d = new Date(ms + 9 * 3600000); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate(); }
@@ -346,7 +346,7 @@
     box = document.createElement('div'); box.id = 'festAdm'; box.className = 'fest-adm';
     box.innerHTML = '<div class="set-label">配布版の発行（本部版だけ）</div>'
       + '<input id="fadLabel" maxlength="40" placeholder="配布先の名前（例：受付係）" autocomplete="off" />'
-      + '<div class="fad-cks"><label><input type="checkbox" id="fadNoSet" checked />設定画面を開けない</label><label><input type="checkbox" id="fadNoPins" checked />ピンを保存できない</label><label><input type="checkbox" id="fadNoEdit" checked />時刻表を編集できない</label></div>'
+      + '<div class="fad-cks"><label><input type="checkbox" id="fadNoSet" checked />設定画面を開けない</label><label><input type="checkbox" id="fadNoPins" checked />ピンを保存できない</label><label><input type="checkbox" id="fadNoEdit" checked />EVの可否を編集できない</label></div>'
       + '<div class="fad-exp"><span>期限</span><input type="date" id="fadExp" aria-label="期限" /><small>この日の終わりまで有効（空欄＝期限なし）</small></div>'
       + '<div class="fad-cks"><label><input type="checkbox" id="fadLockExp" />期限が来たら地図も止める</label></div>'
       + '<button class="set-save" id="fadIssue" type="button">発行する</button><div id="fadOut"></div>'
@@ -385,7 +385,7 @@
       if (r.status !== 200 || !r.body) { box.innerHTML = '<div class="fad-msg err">一覧を読み込めませんでした</div>'; return; }
       const L = r.body.shares || [];
       box.innerHTML = L.length ? L.map(x => {
-        const p = x.perms || {}, no = [p.settings ? '' : '設定', p.pins ? '' : 'ピン', p.edit ? '' : '編集'].filter(Boolean);
+        const p = x.perms || {}, no = [p.settings ? '' : '設定', p.pins ? '' : 'ピン', p.edit ? '' : 'EV編集'].filter(Boolean);
         const st = x.revokedAtMs ? (x.lock ? '取り消し済み（地図も停止）' : '取り消し済み（データのみ）') : (x.active ? '有効' : '期限切れ' + (x.lockOnExpiry ? '（地図も停止）' : ''));
         const bt = x.active ? '<button type="button" data-id="' + escapeHtml(x.id) + '" data-lock="0">取り消す（データだけ）</button><button type="button" data-id="' + escapeHtml(x.id) + '" data-lock="1">取り消して地図も止める</button>'
           : (x.revokedAtMs && !x.lock ? '<button type="button" data-id="' + escapeHtml(x.id) + '" data-lock="1">地図も止める</button>' : '');

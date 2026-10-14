@@ -1,10 +1,11 @@
-// たびマップ 本祭支援ツール：本部の時刻表（各号館の開錠・施錠時刻、エレベーターの使用可否）
-// index-google.html?m=senshu のときだけ fest-vehicle-tracking.js の後に読み込む。
-// 値は受信API（/api/v1/schedule）に置き、閲覧キーを持つ本部の端末だけが読み書きする（地図は公開のため、時刻はコードに書かない）。
-//  - 画面最上部の黒い帯：その日の開錠・施錠時刻を数秒ごとに流す（その日の情報がなければ全日程を順に）
+// たびマップ 本祭支援ツール：本部の時刻表と、画面最上部の黒帯に流す情報
+// index-google.html?m=senshu のときだけ fest-vehicle-tracking.js の後に読み込む（編集画面「高度な設定」は fest-advanced.js）。
+// 値は受信API（/api/v1/schedule）に置き、閲覧キーを持つ端末だけが読む（地図は公開のため、時刻や営業時間はコードに書かない）。
+//  - 黒帯：開錠・施錠時刻／学内施設時間／イベント時間／インフォメーションを、本部が決めた順番・回数・秒数・色で流す
+//    期間中（既定は情報のある日の最初〜最後）はその日の情報だけ。期間外と、日付で絞るのをOFFにしたときは全日程を順に
 //  - 時計の右側：9号館・10号館のエレベーター（9-EV・10-EV）の使用可否 ○／×／ー
 //    G倉庫IN：車両がG倉庫の中・外周から8m以内にいれば×、いなければ○。22時〜6時と、車両の位置を取得していないときはー
-//  - 時計（または帯）を押すと編集画面（時刻表の編集の権限があるキーだけ。配布版は発行時に選ぶ）
+//  - 時計を押すとエレベーターの編集（時刻表の編集の権限があるキーだけ）。黒帯の情報と設定は本部版の「高度な設定」で編集
 //  - 最後に取得した時刻表は端末に残し、通信できないときも表示する（キーが無効になったら消す）
 (function () {
   'use strict';
@@ -14,17 +15,23 @@
   const FAC_NOTE = { b4: '420教室', b10: '10101教室' };   // 開錠・施錠の基準
   const EVU = [['9', '9-EV', '9号館'], ['10', '10-EV', '10号館']];
   const WD = ['日', '月', '火', '水', '木', '金', '土'];
-  const HOLD_MS = 7500, SLIDE_MS = 600, POLL_MS = 60000;   // 1ページを7.5秒表示してから流す
-  const CACHE_KEY = 'fest_sched_cache';
+  const SRC = ['lock', 'fac', 'evt', 'info'];
+  const SRC_NAME = { lock: '開錠・施錠', fac: '学内施設', evt: 'イベント', info: 'お知らせ' };
+  const DEF_COL = { lock: '#ffffff', fac: '#c3fae8', evt: '#ffe8cc', info: '#ffffff' };
+  const SLIDE_MS = 600, POLL_MS = 60000, SCROLL_PX_S = 45, URGENT_MAX_MS = 30 * 60000;
+  const CACHE_KEY = 'fest_sched_cache', SEEN_U_KEY = 'fest_band_seen_u';
 
-  const S = window.festSched = { data: null, updatedAtMs: null, error: '', loading: false, timer: null, draft: null, tab: 0, initialized: false, cached: false,
-    loaded: false, draftBase: null, dirty: false };   // loaded：このキーで受信APIから読めた。draftBase：下書きの元にした版（保存時の照合に使う）
+  const S = window.festSched = { data: null, updatedAtMs: null, error: '', loading: false, timer: null, draft: null, initialized: false, cached: false,
+    loaded: false, draftBase: null, dirty: false,   // loaded：このキーで受信APIから読めた。draftBase：下書きの元にした版（保存時の照合に使う）
+    preview: null, hooks: [] };   // preview：高度な設定で編集中の内容（この端末の黒帯で試す）。hooks：新しい版が届いたときに呼ぶ
   function cacheSave() { festStore.set(CACHE_KEY, JSON.stringify({ data: S.data, updatedAtMs: S.updatedAtMs })); }
   function cacheLoad() { try { const c = JSON.parse(festStore.get(CACHE_KEY) || 'null'); if (c && c.data) { S.data = c.data; S.updatedAtMs = c.updatedAtMs || null; S.cached = true; } } catch (e) {} }
   function cacheClear() { festStore.del(CACHE_KEY); S.data = null; S.updatedAtMs = null; S.cached = false; S.loaded = false; }
   const canEdit = () => (typeof festPerms === 'undefined') || !!festPerms.edit;
+  const isFull = () => !!(window.festHttp && festHttp.isFull && festHttp.isFull()) && !festStore.preview;
   const $ = id => document.getElementById(id);
   const esc = s => (typeof escapeHtml === 'function' ? escapeHtml(String(s)) : String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]));
+  const clone = o => JSON.parse(JSON.stringify(o));
 
   // ---------- 時刻（時計と同じくNTPで補正した日本時間） ----------
   const nowMs = () => (typeof window.festClockNow === 'function' ? window.festClockNow() : Date.now());
@@ -32,6 +39,23 @@
   const toMin = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? (+m[1]) * 60 + (+m[2]) : null; };
   function dayLabel(ymd, withMonth) { const [y, m, d] = ymd.split('-').map(Number), w = WD[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]; return (withMonth ? m + '/' : '') + d + '(' + w + ')'; }
   const facName = f => (FAC.find(x => x[0] === f) || [f, f])[1];
+
+  // ---------- 時刻表の形（受信APIの形に既定値を補う。以前の版の時刻表にも対応） ----------
+  function emptySchedule() { return normDoc(null); }
+  function normDoc(src) {
+    const d = src ? clone(src) : { v: 1, days: [] };
+    d.v = 1; d.days = Array.isArray(d.days) ? d.days : [];
+    d.ev = d.ev && typeof d.ev === 'object' ? d.ev : {};
+    EVU.forEach(([u]) => { const e = d.ev[u] && typeof d.ev[u] === 'object' ? d.ev[u] : {}; d.ev[u] = { mode: e.mode || 'auto', days: e.days && typeof e.days === 'object' ? e.days : {} }; });
+    const f = d.fac && typeof d.fac === 'object' ? d.fac : {};
+    d.fac = { days: Array.isArray(f.days) ? f.days : [], items: Array.isArray(f.items) ? f.items.map(x => ({ n: x.n || '', h: x.h && typeof x.h === 'object' ? x.h : {} })) : [] };
+    d.evt = Array.isArray(d.evt) ? d.evt : [];
+    d.info = Array.isArray(d.info) ? d.info.map(m => ({ id: m.id, t: m.t || '', on: m.on !== false, d: m.d || '', u: m.u || 0 })) : [];
+    const b = d.band && typeof d.band === 'object' ? d.band : {}, bs = b.src && typeof b.src === 'object' ? b.src : {};
+    d.band = { dateOnly: b.dateOnly !== false, from: b.from || '', to: b.to || '', src: {}, seq: Array.isArray(b.seq) ? b.seq.map(q => ({ s: q.s, n: q.n })) : SRC.map(s => ({ s, n: 1 })) };
+    SRC.forEach(k => { const x = bs[k] || {}; d.band.src[k] = { on: x.on !== false, col: /^#[0-9a-f]{6}$/i.test(x.col || '') ? x.col : DEF_COL[k], sec: typeof x.sec === 'number' ? x.sec : 7.5 }; });
+    return d;
+  }
 
   // ---------- 受信API ----------
   function cfg() { const h = window.festHttp; return h ? h.config : { apiBase: '', viewerToken: '' }; }
@@ -62,6 +86,17 @@
     S.timer = setTimeout(load, POLL_MS);
   }
   S.reload = load;
+  /** 下書きを保存する。base：下書きの元にした版（違えば 409 で上書きしない）。結果 { ok, status, text } */
+  async function saveDoc(doc, base) {
+    try {
+      const r = await api('PUT', { schedule: doc, baseUpdatedAtMs: base });
+      if (r.status === 200 && r.body) { S.data = r.body.schedule; S.updatedAtMs = r.body.updatedAtMs; S.error = ''; S.loaded = true; cacheSave(); render(); return { ok: true, status: 200, text: '保存しました' }; }
+      if (r.status === 409) { load(); return { ok: false, status: 409, text: 'ほかの端末が先に保存しました。「変更を取り消す」で最新を読み込み直してから編集してください' }; }
+      if (r.status === 401) { S.error = 'auth'; render(); return { ok: false, status: 401, text: '閲覧キーが使えません（取り消し・期限切れ）' }; }
+      if (r.status === 403) return { ok: false, status: 403, text: 'この端末では保存できません（権限がありません）' };
+      return { ok: false, status: r.status, text: '保存できませんでした（' + ((r.body && (r.body.detail || r.body.error)) || r.status) + '）' };
+    } catch (e) { return { ok: false, status: 0, text: '保存できませんでした（通信を確認してください）' }; }
+  }
 
   // ---------- EV の判定 ----------
   function evState(u) {
@@ -102,76 +137,139 @@
     if (box.__h !== h) { box.__h = h; box.innerHTML = h; }
   }
 
-  // ---------- 最上部の帯（開錠・施錠時刻） ----------
-  const B = { pages: [], i: 0, key: '', tm: null, cur: 0, busy: false };
-  function bandDays() {
-    const days = (S.data && Array.isArray(S.data.days)) ? S.data.days.filter(d => d.items && d.items.length) : [];
-    const today = jst().ymd, td = days.find(d => d.d === today);
-    return td ? [td] : days;   // その日の情報があればその日だけ、なければ全日程を順に
+  // ---------- 最上部の黒帯 ----------
+  // 情報の種類ごとにページを作り、流す順番（band.seq：種類と回数）に並べて1周を作る。1回＝その種類の全ページを1度ずつ
+  const B = { list: [], i: -1, key: '', tm: null, cur: 0, urgent: [] };
+  function datesOf(doc) {
+    return doc.days.map(x => x.d).concat(doc.fac.days, doc.evt.map(x => x.d)).filter((x, i, a) => x && a.indexOf(x) === i).sort();
   }
+  /** 期間中で日付で絞るなら、その日（YYYY-MM-DD）。全日程を流すなら null */
+  function bandDay(doc) {
+    const b = doc.band; if (!b.dateOnly) return null;
+    let from = b.from, to = b.to;
+    if (!from || !to) { const ds = datesOf(doc); if (!ds.length) return null; from = from || ds[0]; to = to || ds[ds.length - 1]; }
+    const t = jst().ymd;
+    return t >= from && t <= to ? t : null;
+  }
+  S.bandDay = () => { const d = S.preview || (S.data && normDoc(S.data)); return d ? bandDay(d) : null; };
   // 時刻の色：施錠が21:00より後（21:00は含まない）＝黄、22:30を過ぎて翌4:00まで＝赤。開錠が4:00〜6:59＝水色
   function closeCls(t) { const m = toMin(t); if (m == null) return ''; if (m > 22 * 60 + 30 || m <= 4 * 60) return 'fb-red'; if (m > 21 * 60) return 'fb-yel'; return ''; }
   function openCls(t) { const m = toMin(t); return m != null && m >= 4 * 60 && m < 7 * 60 ? 'fb-cyan' : ''; }
   const tspan = (t, cls) => cls ? '<span class="' + cls + '">' + esc(t) + '</span>' : esc(t);
-  function itemHtml(it) { const o = it.o || '', c = it.c || '', O = tspan(o, openCls(o)), C = tspan(c, closeCls(c));
+  function lockHtml(it) { const o = it.o || '', c = it.c || '', O = tspan(o, openCls(o)), C = tspan(c, closeCls(c));
     return o && c ? O + '-' + C : (o ? O + '〜' : '〜' + C); }
+  const rangeTxt = (a, b) => a && b ? a + '-' + b : (a ? a + '〜' : (b ? '〜' + b : ''));
+  /** 種類ごとのまとまり：[{ lab, items: [html] }] */
+  function groupsOf(k, doc, day) {
+    const pick = list => day ? list.filter(x => x.d === day) : list;
+    const it = (n, v, extra) => '<span class="fb-it">' + esc(n) + (v ? ' <b>' + v + '</b>' : '') + (extra || '') + '</span>';
+    if (k === 'lock') return pick(doc.days).filter(d => d.items && d.items.length)
+      .map(d => ({ lab: SRC_NAME.lock + ' ' + dayLabel(d.d), items: d.items.map(x => it(facName(x.f), lockHtml(x))) }));
+    if (k === 'fac') return (day ? doc.fac.days.filter(d => d === day) : doc.fac.days).map(d => ({ lab: SRC_NAME.fac + ' ' + dayLabel(d),
+      items: doc.fac.items.filter(x => x.n && x.h[d]).map(x => it(x.n, esc(x.h[d]))) })).filter(g => g.items.length);
+    if (k === 'evt') return pick(doc.evt).filter(d => d.items && d.items.length)
+      .map(d => ({ lab: SRC_NAME.evt + ' ' + dayLabel(d.d), items: d.items.map(x => it(x.n, esc(rangeTxt(x.from, x.to)), x.note ? '<small>（' + esc(x.note) + '）</small>' : '')) }));
+    if (k === 'info') return doc.info.filter(m => m.on && m.t && (!day || !m.d || m.d === day)).map(m => ({ lab: SRC_NAME.info, items: [it(m.t, '')] }));
+    return [];
+  }
   function measure(html) { const m = $('fbMeasure'); m.innerHTML = html; return m.offsetWidth; }
-  function buildPages() {
+  /** まとまりをページに分ける（同じページ数で件数をそろえる：7件＋1件 → 4件＋4件） */
+  function paginate(g, W) {
+    const lab = '<span class="fb-day">【' + esc(g.lab) + '】</span>', lw = measure(lab), H = g.items, IW = H.map(measure);
+    const greedy = []; let cur = [], w = lw;
+    H.forEach((h, i) => { if (cur.length && w + IW[i] > W) { greedy.push(cur); cur = []; w = lw; } cur.push(i); w += IW[i]; });
+    if (cur.length) greedy.push(cur);
+    const k = greedy.length, per = Math.ceil(H.length / k), even = [];
+    for (let i = 0; i < H.length; i += per) even.push(H.map((_, j) => j).slice(i, i + per));
+    const fits = even.length === k && even.every(p => lw + p.reduce((t, j) => t + IW[j], 0) <= W);
+    return (fits ? even : greedy).map(p => lab + p.map(j => H[j]).join(''));
+  }
+  const dim = t => [{ html: '<span class="fb-dim">' + t + '</span>', sec: 7.5 }];
+  function playlist() {
     const view = $('festBand') && $('festBand').querySelector('.fb-view'); if (!view) return [];
-    const W = view.clientWidth - 4 - (S.error === 'network' ? measure('<span class="fb-off">前回取得</span>') : 0);
-    if (!hasKey()) return ['<span class="fb-dim">開錠・施錠時刻：閲覧キーを入れると表示（時計を押して設定）</span>'];
-    if (S.error === 'auth') return ['<span class="fb-dim">開錠・施錠時刻：閲覧キーが違います（時計を押して入れ直す）</span>'];
-    const days = bandDays();
-    if (!days.length) return ['<span class="fb-dim">' + (S.data ? '開錠・施錠時刻：未登録（時計を押して編集）' : '開錠・施錠時刻を読み込み中…') + '</span>'];
-    const pages = [];
-    days.forEach(d => {
-      const lab = '<span class="fb-day">【' + dayLabel(d.d) + '】</span>', lw = measure(lab);
-      const H = d.items.map(it => '<span class="fb-it">' + esc(facName(it.f)) + ' <b>' + itemHtml(it) + '</b></span>'), IW = H.map(measure);
-      const greedy = []; let cur = [], w = lw;   // まず入るだけ詰めてページ数を決める
-      H.forEach((h, i) => { if (cur.length && w + IW[i] > W) { greedy.push(cur); cur = []; w = lw; } cur.push(i); w += IW[i]; });
-      if (cur.length) greedy.push(cur);
-      const k = greedy.length, per = Math.ceil(H.length / k), even = [];   // 同じページ数で件数をそろえる（7件＋1件 → 4件＋4件）
-      for (let i = 0; i < H.length; i += per) even.push(H.map((_, j) => j).slice(i, i + per));
-      const fits = even.length === k && even.every(g => lw + g.reduce((t, j) => t + IW[j], 0) <= W);
-      (fits ? even : greedy).forEach(g => pages.push(lab + g.map(j => H[j]).join('')));
-    });
-    if (S.error === 'network') return pages.map(p => '<span class="fb-off">前回取得</span>' + p);   // 通信できない：前回取得した時刻表と分かるように
-    return pages;
+    if (!hasKey()) return dim('開錠・施錠時刻など：閲覧キーを入れると表示（時計を押して設定）');
+    if (S.error === 'auth') return dim('開錠・施錠時刻など：閲覧キーが違います（時計を押して入れ直す）');
+    if (!S.preview && !S.data) return dim(S.loaded ? '黒帯に流す情報は未登録です' : '開錠・施錠時刻などを読み込み中…');
+    const doc = S.preview || normDoc(S.data), day = bandDay(doc), off = S.error === 'network' && !S.preview;
+    const W = view.clientWidth - 4 - (off ? measure('<span class="fb-off">前回取得</span>') : 0);
+    const pages = {};
+    SRC.forEach(k => { const c = doc.band.src[k]; pages[k] = c.on ? [].concat(...groupsOf(k, doc, day).map(g => paginate(g, W))).map(h => '<span style="color:' + c.col + '">' + h + '</span>') : []; });
+    const out = [];
+    doc.band.seq.forEach(q => { const P = pages[q.s] || []; for (let r = 0; r < q.n; r++) P.forEach(h => out.push({ html: h, sec: doc.band.src[q.s].sec })); });
+    if (!out.length) return dim(S.preview ? '（この設定では流す情報がありません）' : '黒帯に流す情報は未登録です');
+    return off ? out.map(p => ({ html: '<span class="fb-off">前回取得</span>' + p.html, sec: p.sec })) : out;   // 通信できない：前回取得した情報と分かるように
+  }
+  // 「今すぐ1回流す」：まだ見ていない新しいお知らせを、次のページの前にはさむ（30分より前のものは流さない）
+  function seenU() {   // 初めての端末は、10分以内に押されたものだけ流す
+    let v = 0; try { v = +(localStorage.getItem(SEEN_U_KEY) || 0); if (!v) { v = nowMs() - 10 * 60000; localStorage.setItem(SEEN_U_KEY, String(v)); } } catch (e) { v = nowMs() - 10 * 60000; }
+    return v;
+  }
+  function checkUrgent() {
+    const doc = S.data && normDoc(S.data); if (!doc || S.preview) return;
+    const seen = seenU(), now = nowMs();
+    const fresh = doc.info.filter(m => m.u && m.t && m.u > seen && now - m.u < URGENT_MAX_MS && !B.urgent.some(x => x.id === m.id && x.u === m.u)).sort((a, b) => a.u - b.u);
+    if (!fresh.length) return;
+    fresh.forEach(m => B.urgent.push({ id: m.id, u: m.u, html: '<span style="color:' + doc.band.src.info.col + '"><span class="fb-day">【' + SRC_NAME.info + '】</span><span class="fb-it">' + esc(m.t) + '</span></span>', sec: Math.max(doc.band.src.info.sec, 7.5) }));
+    if (!B.tm) B.tm = setTimeout(bandNext, 300);
+  }
+  function pagesEls() { const band = $('festBand'); return band ? band.querySelectorAll('.fb-page') : []; }
+  /** ページを出す。長い文は、出てから左へ流して最後まで見せる。表示する時間（ミリ秒）を返す */
+  function put(el, item) {
+    el.innerHTML = '<span class="fb-in">' + item.html + '</span>';
+    const inn = el.firstChild, view = el.parentNode, over = inn.scrollWidth - view.clientWidth + 6;
+    inn.style.transition = 'none'; inn.style.transform = 'translateX(0)';
+    let hold = item.sec * 1000;
+    if (over > 0) {
+      const dur = over / SCROLL_PX_S * 1000;
+      setTimeout(() => { inn.style.transition = 'transform ' + Math.round(dur) + 'ms linear'; inn.style.transform = 'translateX(' + (-over) + 'px)'; }, SLIDE_MS + 1200);
+      hold = Math.max(hold, SLIDE_MS + 1200 + dur + 1800);
+    }
+    return hold;
   }
   function bandShow(reset) {
-    const band = $('festBand'); if (!band) return;
-    const pages = buildPages(), key = pages.join('|');
-    if (!reset && key === B.key) return;
-    B.key = key; B.pages = pages; B.i = 0; clearTimeout(B.tm);
-    const P = band.querySelectorAll('.fb-page');
+    if (!$('festBand')) return;
+    const list = playlist(), key = JSON.stringify(list);
+    if (!reset && key === B.key) { checkUrgent(); return; }
+    B.key = key; B.list = list; B.i = 0; clearTimeout(B.tm); B.tm = null;
+    const P = pagesEls();
     P.forEach(p => { p.style.transition = 'none'; p.style.transform = 'translateX(110%)'; });
-    B.cur = 0; P[0].innerHTML = pages[0] || ''; P[0].style.transform = 'translateX(0)';
-    if (pages.length > 1) B.tm = setTimeout(bandNext, HOLD_MS);
+    B.cur = 0; P[0].style.transform = 'translateX(0)';
+    const hold = list[0] ? put(P[0], list[0]) : (P[0].innerHTML = '', 0);
+    const long = P[0].firstChild && P[0].firstChild.scrollWidth > P[0].parentNode.clientWidth;
+    if (list.length > 1 || long) B.tm = setTimeout(bandNext, hold);
+    checkUrgent();
   }
   function bandNext() {
-    const band = $('festBand'); if (!band || B.pages.length < 2) return;
-    if (document.visibilityState === 'hidden') { B.tm = setTimeout(bandNext, HOLD_MS); return; }
-    const P = band.querySelectorAll('.fb-page'), a = P[B.cur], b = P[1 - B.cur];
-    B.i = (B.i + 1) % B.pages.length;
-    b.style.transition = 'none'; b.style.transform = 'translateX(105%)'; b.innerHTML = B.pages[B.i];
+    B.tm = null;
+    const P = pagesEls(); if (!P.length || !B.list.length) return;
+    if (document.visibilityState === 'hidden') { B.tm = setTimeout(bandNext, 5000); return; }
+    let item;
+    if (B.urgent.length) {
+      const u = B.urgent.shift(); item = u;
+      try { localStorage.setItem(SEEN_U_KEY, String(Math.max(u.u, +(localStorage.getItem(SEEN_U_KEY) || 0)))); } catch (e) {}
+    } else { B.i = (B.i + 1) % B.list.length; item = B.list[B.i]; }
+    const a = P[B.cur], b = P[1 - B.cur];
+    b.style.transition = 'none'; b.style.transform = 'translateX(105%)';
+    const hold = put(b, item);
     void b.offsetWidth;   // 位置を確定させてから流す
     a.style.transition = b.style.transition = 'transform ' + SLIDE_MS + 'ms ease';
     a.style.transform = 'translateX(-105%)'; b.style.transform = 'translateX(0)';
     B.cur = 1 - B.cur;
-    B.tm = setTimeout(bandNext, HOLD_MS + SLIDE_MS);
+    const long = b.firstChild && b.firstChild.scrollWidth > b.parentNode.clientWidth;
+    if (B.list.length > 1 || B.urgent.length || long) B.tm = setTimeout(bandNext, hold + SLIDE_MS);
   }
+  /** 高度な設定で編集中の内容を、この端末の黒帯で試す（null で元に戻す） */
+  S.setPreview = doc => { S.preview = doc ? normDoc(doc) : null; bandShow(true); };
 
   function render() {
     renderEv(); bandShow(false);
     const ov = $('festSchedOverlay');   // 編集画面：まだ手を付けていない下書きは、新しい版が届いたら作り直す
     if (ov && ov.classList.contains('open') && (!S.draft || (!S.dirty && S.draftBase !== S.updatedAtMs))) { S.draft = null; editorRender(); }
+    S.hooks.forEach(f => { try { f(); } catch (e) {} });
   }
   S.render = render;
 
-  // ---------- 編集画面 ----------
-  function emptySchedule() { return { v: 1, days: [], ev: { '9': { mode: 'auto', days: {} }, '10': { mode: 'auto', days: {} } } }; }
-  function clone(o) { return JSON.parse(JSON.stringify(o)); }
-  function draftDays() { return S.draft.days.map(d => d.d).concat(Object.keys(S.draft.ev['9'].days), Object.keys(S.draft.ev['10'].days)).filter((x, i, a) => a.indexOf(x) === i).sort(); }
+  // ---------- エレベーターの編集画面（時計を押す） ----------
   function msg(t, err) { const m = $('fsMsg'); if (m) { m.textContent = t || ''; m.classList.toggle('err', !!err); } }
   function slotsText(sl) { return (sl || []).map(s => s.from + '-' + s.to).join(', '); }
   function parseSlots(t) {
@@ -179,17 +277,18 @@
     for (const p of parts) { const m = /^(\d{1,2}:\d{2})[-〜~ー–](\d{1,2}:\d{2})$/.exec(p); if (!m || toMin(m[1]) == null || toMin(m[2]) == null || toMin(m[1]) >= toMin(m[2])) return null; out.push({ from: m[1], to: m[2] }); }
     return out;
   }
+  let evExtra = [];   // この画面で足した日（まだ時間帯を入れていない日）
   function editorOpen() {
     const ov = $('festSchedOverlay'); if (!ov) return;
-    if (hasKey() && S.error !== 'auth' && !canEdit()) { if (typeof showStatus === 'function') { showStatus('この配布版では時刻表を編集できません（閲覧のみ）', false); hideStatusLater(); } return; }
-    S.draft = null; S.dirty = false; ov.classList.add('open'); editorRender();
+    if (hasKey() && S.error !== 'auth' && !canEdit()) { if (typeof showStatus === 'function') { showStatus('この配布版ではEVを編集できません（閲覧のみ）', false); hideStatusLater(); } return; }
+    S.draft = null; S.dirty = false; evExtra = []; ov.classList.add('open'); editorRender();
     if (hasKey()) load();
   }
   S.open = editorOpen;
   function editorRender() {
     const body = $('festSchedBody'); if (!body) return;
     if (!hasKey() || S.error === 'auth') {
-      body.innerHTML = '<div class="set-help">開錠・施錠時刻とEVの可否は、閲覧キーを持つ本部の端末だけに表示します。' + (S.error === 'auth' ? '<b>閲覧キーが違います。</b>' : '') + '</div>'
+      body.innerHTML = '<div class="set-help">開錠・施錠時刻やEVの可否などは、閲覧キーを持つ端末だけに表示します。' + (S.error === 'auth' ? '<b>閲覧キーが違います。</b>' : '') + '</div>'
         + '<input id="fsKey" type="password" placeholder="本部が配布した閲覧キー" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="閲覧キー" />'
         + '<button class="set-save" id="fsKeySave" type="button">閲覧キーを使う</button><div class="set-msg" id="fsMsg"></div>';
       $('fsKeySave').onclick = () => { const v = $('fsKey').value.trim(); if (!window.festHttp || !festHttp.setToken(v)) { msg('閲覧キーの形が違います（43文字）', true); return; } S.error = ''; load(); editorRender(); };
@@ -199,10 +298,10 @@
       body.innerHTML = '<div class="set-help">' + (S.error && !S.loading ? '時刻表を読み込めませんでした（通信を確認してください）。読み込めるまで編集できません。' : '時刻表を読み込んでいます…') + '</div>';
       return;
     }
-    if (!S.draft) { S.draft = clone(S.data || emptySchedule()); S.draftBase = S.updatedAtMs; S.dirty = false; }
-    const D = S.draft, days = draftDays();
-    if (S.tab >= D.days.length) S.tab = Math.max(0, D.days.length - 1);
-    let h = '<div class="fs-sec"><div class="set-label">エレベーター（EV）</div>';
+    if (!S.draft) { S.draft = normDoc(S.data); S.draftBase = S.updatedAtMs; S.dirty = false; }
+    const D = S.draft;
+    const days = datesOf(D).concat(Object.keys(D.ev['9'].days), Object.keys(D.ev['10'].days), evExtra).filter((x, i, a) => a.indexOf(x) === i).sort();
+    let h = '<div class="fs-sec fs-first"><div class="set-label">エレベーター（EV）</div>';
     EVU.forEach(([u, lab, bld]) => {
       const e = D.ev[u];
       h += '<div class="fs-ev"><div class="fs-ev-h"><b>' + lab + '</b><span>' + bld + '</span><div class="seg fs-mode" data-u="' + u + '">'
@@ -210,22 +309,14 @@
       if (e.mode === 'auto') {
         h += days.length ? days.map(d => { const has = Object.prototype.hasOwnProperty.call(e.days, d);
           return '<label class="fs-evd"><span>' + dayLabel(d, true) + '</span><input type="text" data-u="' + u + '" data-d="' + d + '" value="' + esc(has ? slotsText(e.days[d]) : '') + '" placeholder="' + (has ? 'なし（終日使用可）' : 'データなし') + '" inputmode="numeric" /><span class="fs-chk"><input type="checkbox" data-u="' + u + '" data-d="' + d + '"' + (has ? ' checked' : '') + ' />設定済み</span></label>'; }).join('')
-          : '<div class="set-help">日付がありません（下の「開錠・施錠」で日を追加してください）</div>';
+          : '<div class="set-help">日付がありません（下で日を追加してください）</div>';
       }
       h += '</div>';
     });
-    h += '<div class="set-help">使用不可の時間帯を「10:00-11:30, 14:00-15:00」の形で入力。「設定済み」の日は、時間帯の外が○、内が×になります。設定していない日はー（データなし）。</div></div>';
-    h += '<div class="fs-sec"><div class="set-label">各号館の開錠・施錠</div><div class="fs-tabs">'
-      + D.days.map((d, i) => '<button type="button" data-i="' + i + '" class="' + (i === S.tab ? 'on' : '') + '">' + dayLabel(d.d, true) + '</button>').join('')
-      + '<span class="fs-add"><input type="date" id="fsNewDay" aria-label="追加する日" /><button type="button" id="fsAddDay">日を追加</button></span></div>';
-    const day = D.days[S.tab];
-    if (day) {
-      h += '<div class="fs-grid"><span></span><span>開錠</span><span>施錠</span>' + FAC.map(([f, n]) => { const it = day.items.find(x => x.f === f) || { o: '', c: '' };
-        const pad = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? m[1].padStart(2, '0') + ':' + m[2] : ''; };
-        return '<span class="fs-fac">' + n + (FAC_NOTE[f] ? '<small>' + FAC_NOTE[f] + '</small>' : '') + '</span><input type="time" data-f="' + f + '" data-k="o" value="' + pad(it.o) + '" /><input type="time" data-f="' + f + '" data-k="c" value="' + pad(it.c) + '" />'; }).join('')
-        + '</div><button type="button" class="set-save ghost fs-del" id="fsDelDay">この日（' + dayLabel(day.d, true) + '）を削除</button>';
-    } else h += '<div class="set-help">日がありません。「日を追加」で作成してください。</div>';
-    h += '</div><div class="share-row"><button class="set-save" id="fsSave" type="button">保存</button><button class="set-save ghost" id="fsReset" type="button">変更を取り消す</button></div>'
+    h += '<div class="fs-tabs"><span class="fs-add"><input type="date" id="fsNewDay" aria-label="追加する日" /><button type="button" id="fsAddDay">日を追加</button></span></div>'
+      + '<div class="set-help">使用不可の時間帯を「10:00-11:30, 14:00-15:00」の形で入力。「設定済み」の日は、時間帯の外が○、内が×になります。設定していない日はー（データなし）。'
+      + (isFull() ? '<br>開錠・施錠時刻と黒帯に流す情報は、上の「高度な設定（情報組込）」で編集します。' : '') + '</div></div>';
+    h += '<div class="share-row"><button class="set-save" id="fsSave" type="button">保存</button><button class="set-save ghost" id="fsReset" type="button">変更を取り消す</button></div>'
       + '<div class="set-msg" id="fsMsg">' + (S.updatedAtMs ? '最終更新 ' + new Date(S.updatedAtMs + 9 * 3600000).toISOString().slice(5, 16).replace('T', ' ').replace('-', '/') : '') + '</div>';
     body.innerHTML = h;
     // 入力 → 下書き
@@ -235,30 +326,17 @@
       if (sl === null) { msg('時間帯の形が違います（例 10:00-11:30, 14:00-15:00）', true); inp.focus(); return; }
       D.ev[u].days[d] = sl; S.dirty = true; editorRender(); });
     body.querySelectorAll('.fs-evd input[type=checkbox]').forEach(cb => cb.onchange = () => { const u = cb.dataset.u, d = cb.dataset.d; if (cb.checked) D.ev[u].days[d] = D.ev[u].days[d] || []; else delete D.ev[u].days[d]; S.dirty = true; editorRender(); });
-    body.querySelectorAll('.fs-tabs button[data-i]').forEach(b => b.onclick = () => { S.tab = +b.dataset.i; editorRender(); });
-    $('fsAddDay').onclick = () => { const v = $('fsNewDay').value; if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) { msg('追加する日を選んでください', true); return; } if (D.days.some(d => d.d === v)) { msg('その日はすでにあります', true); return; }
-      D.days.push({ d: v, items: [] }); D.days.sort((a, b) => a.d < b.d ? -1 : 1); S.tab = D.days.findIndex(d => d.d === v); S.dirty = true; editorRender(); };
-    const del = $('fsDelDay'); if (del) del.onclick = () => { if (!confirm(dayLabel(day.d, true) + ' の開錠・施錠時刻を削除します')) return; D.days.splice(S.tab, 1); S.tab = 0; S.dirty = true; editorRender(); };
-    body.querySelectorAll('.fs-grid input[type=time]').forEach(inp => inp.onchange = () => {
-      const f = inp.dataset.f, k = inp.dataset.k, v = inp.value ? inp.value.replace(/^0(\d)/, '$1') : '';
-      let it = day.items.find(x => x.f === f); if (!it) { it = { f, o: '', c: '' }; day.items.push(it); }
-      it[k] = v; S.dirty = true; day.items = day.items.filter(x => x.o || x.c).sort((a, b) => FAC.findIndex(x => x[0] === a.f) - FAC.findIndex(x => x[0] === b.f)); });
-    $('fsReset').onclick = () => { S.draft = null; S.dirty = false; editorRender(); };
+    $('fsAddDay').onclick = () => { const v = $('fsNewDay').value; if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) { msg('追加する日を選んでください', true); return; } if (days.indexOf(v) >= 0) { msg('その日はすでにあります', true); return; } evExtra.push(v); editorRender(); };
+    $('fsReset').onclick = () => { S.draft = null; S.dirty = false; evExtra = []; editorRender(); };
     $('fsSave').onclick = save;
   }
   async function save() {
     if (!S.draft) return;
     if (!S.dirty) { msg('変更はありません'); return; }
-    const keep = S.draft.days.map(d => d.d), gone = ((S.data && S.data.days) || []).map(d => d.d).filter(d => keep.indexOf(d) < 0);
-    if (gone.length && !confirm('次の日の開錠・施錠時刻が消えます：' + gone.map(d => dayLabel(d, true)).join('、') + '\nこのまま保存しますか？')) return;
     const btn = $('fsSave'); if (btn) btn.disabled = true; msg('保存しています…');
-    try {
-      const r = await api('PUT', { schedule: S.draft, baseUpdatedAtMs: S.draftBase });   // 下書きの元にした版と照合（途中で届いた新しい版を上書きしない）
-      if (r.status === 200 && r.body) { S.data = r.body.schedule; S.updatedAtMs = r.body.updatedAtMs; S.draft = null; S.dirty = false; S.error = ''; S.loaded = true; cacheSave(); render(); msg('保存しました'); return; }
-      if (r.status === 409) { msg('ほかの端末が先に保存しました。「変更を取り消す」で最新を読み込み直してから編集してください', true); await load(); }
-      else if (r.status === 401) { S.error = 'auth'; editorRender(); }
-      else msg('保存できませんでした（' + ((r.body && (r.body.detail || r.body.error)) || r.status) + '）', true);
-    } catch (e) { msg('保存できませんでした（通信を確認してください）', true); }
+    const r = await saveDoc(S.draft, S.draftBase);   // 下書きの元にした版と照合（途中で届いた新しい版を上書きしない）
+    if (r.ok) { S.draft = null; S.dirty = false; evExtra = []; editorRender(); msg(r.text); return; }
+    if (r.status === 401) editorRender(); else msg(r.text, true);
     if (btn) btn.disabled = false;
   }
 
@@ -270,13 +348,16 @@
     c.style.width = Math.round(seg.getBoundingClientRect().width) + 'px';
   }
 
+  // 高度な設定（fest-advanced.js）から使う部品
+  S.u = { $, esc, clone, jst, toMin, dayLabel, normDoc, emptySchedule, datesOf, hasKey, isFull, saveDoc, FAC, FAC_NOTE, SRC, SRC_NAME, DEF_COL };
+
   S.init = function () {
     if (S.initialized || typeof FEST === 'undefined' || !FEST) return;
     S.initialized = true;
     const ov = $('festSchedOverlay');
     if (ov) { $('festSchedClose').onclick = () => { ov.classList.remove('open'); S.draft = null; S.dirty = false; }; ov.addEventListener('click', e => { if (e.target === ov) { ov.classList.remove('open'); S.draft = null; S.dirty = false; } }); }
-    const clk = $('liveClock'); if (clk) { clk.addEventListener('click', editorOpen); clk.title = '現在時刻（NTP同期・JST）・EVの可否／押すと開錠・施錠時刻とEVを編集'; }
-    const band = $('festBand'); if (band) band.addEventListener('click', editorOpen);
+    const clk = $('liveClock'); if (clk) { clk.addEventListener('click', editorOpen); clk.title = '現在時刻（NTP同期・JST）・EVの可否・G倉庫IN／押すとEVを編集'; }
+    const band = $('festBand'); if (band) band.addEventListener('click', () => { if (isFull() && S.adv) S.adv.open(); else editorOpen(); });   // 本部版は高度な設定
     window.addEventListener('fest-token', () => { S.error = ''; S.loaded = false; S.draft = null; S.dirty = false; render(); load(); });   // キーが変わった：読み直すまで編集しない
     window.addEventListener('fest-vehicles', renderEv);   // 車両の位置が変わったら G倉庫IN を更新
     window.addEventListener('fest-me', () => { const m = window.festHttp && festHttp.me; if (m && m.role === 'invalid') { S.error = 'auth'; cacheClear(); } render(); });

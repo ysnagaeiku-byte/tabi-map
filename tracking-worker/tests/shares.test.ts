@@ -108,6 +108,23 @@ describe("配布版（制限つき）", () => {
     expect((await put(rw.body.token)).status).toBe(200);
   });
 
+  it("配布版で変えられるのはエレベーターの可否だけ（開錠・施錠・黒帯の情報と設定は本部版だけ）", async () => {
+    const rw = await issue({ label: "編集可", perms: { edit: true } });
+    const body = (sch: unknown, base: number | null) => JSON.stringify({ schedule: sch, baseUpdatedAtMs: base });
+    const putAs = (t: string, sch: unknown, base: number | null) =>
+      call("/api/v1/schedule", { method: "PUT", headers: H(t, { "Content-Type": "application/json" }), body: body(sch, base) });
+    // テスト用の架空の値
+    const hq = { days: [{ d: "2030-01-04", items: [{ f: "b1", o: "8:00", c: "20:00" }] }], info: [{ id: "a", t: "本部の案内" }], band: { dateOnly: false } };
+    const r1 = (await (await putAs(VIEW_TOKEN, hq, null)).json()) as { updatedAtMs: number };
+    const r2 = await putAs(rw.body.token, { days: [], info: [], band: { dateOnly: true }, ev: { "9": { mode: "ng" } } }, r1.updatedAtMs);
+    expect(r2.status).toBe(200);
+    const s = ((await r2.json()) as { schedule: { days: unknown[]; info: unknown[]; band: { dateOnly: boolean }; ev: Record<string, { mode: string }> } }).schedule;
+    expect(s.days).toHaveLength(1);
+    expect(s.info).toHaveLength(1);
+    expect(s.band.dateOnly).toBe(false);
+    expect(s.ev["9"].mode).toBe("ng");
+  });
+
   it("配布版のキーでは配布版の発行・一覧・取り消しができない", async () => {
     const a = await issue({ label: "a", perms: { settings: true, pins: true, edit: true } });
     expect((await issue({ label: "b" }, a.body.token)).status).toBe(403);

@@ -468,9 +468,22 @@ async function handleSchedule(req: Request, env: Env, nowMs: number): Promise<Re
     if (e instanceof TooLarge) return json(413, { error: "payload_too_large" }, cors);
     return json(400, { error: "bad_json" }, cors);
   }
+  let input = body?.schedule;
+  if (who.role !== "full") {
+    // 配布版（時刻表の編集を許可）はエレベーターの可否だけを変えられる。開錠・施錠時刻と黒帯の情報・設定は本部版だけ
+    let cur: SRow | null;
+    try {
+      cur = await read();
+    } catch {
+      logResult("schedule", "storage_error");
+      return json(503, { error: "storage_unavailable" }, cors);
+    }
+    const stored = cur ? (JSON.parse(cur.value) as Record<string, unknown>) : { days: [] };
+    input = { ...stored, ev: (input && typeof input === "object" ? (input as Record<string, unknown>).ev : undefined) };
+  }
   let sch;
   try {
-    sch = normalizeSchedule(body?.schedule);
+    sch = normalizeSchedule(input);
   } catch (e) {
     if (e instanceof ScheduleError) return json(400, { error: "bad_schedule", detail: e.message }, cors);
     throw e;

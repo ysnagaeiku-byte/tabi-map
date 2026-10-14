@@ -59,6 +59,63 @@ describe("時刻表の形（normalizeSchedule）", () => {
   });
 });
 
+describe("黒帯に流す情報（学内施設・イベント・インフォメーション・表示設定）", () => {
+  // テスト用の架空の値（実際の営業時間・イベントではない）
+  const extra = () => ({
+    fac: { days: ["2030-01-05", "2030-01-04"], items: [{ n: " 売店 ", h: { "2030-01-04": "07:30-19:00", "2030-01-05": "休業", "2030-01-09": "9:00-10:00" } }] },
+    evt: [
+      { d: "2030-01-05", items: [{ n: "ステージ", from: "13:00", to: "15:30", note: "" }] },
+      { d: "2030-01-04", items: [{ n: "屋台", from: "09:15", to: "", note: "雨天中止" }] },
+    ],
+    info: [{ id: "a1", t: "  案内の文  ", d: "", u: 5 }],
+    band: { dateOnly: false, from: "2030-01-04", to: "2030-01-06", src: { evt: { col: "#ABCDEF", sec: 9.3 }, info: { on: false } }, seq: [{ s: "lock", n: 3 }, { s: "evt", n: 1 }] },
+  });
+
+  it("形をそろえる（時刻・並び順・既定値）", () => {
+    const s = normalizeSchedule({ ...sample(), ...extra() });
+    expect(s.fac).toEqual({ days: ["2030-01-04", "2030-01-05"], items: [{ n: "売店", h: { "2030-01-04": "7:30-19:00", "2030-01-05": "休業" } }] });
+    expect(s.evt.map((d) => d.d)).toEqual(["2030-01-04", "2030-01-05"]);
+    expect(s.evt[0].items[0]).toEqual({ n: "屋台", from: "9:15", to: "", note: "雨天中止" });
+    expect(s.info).toEqual([{ id: "a1", t: "案内の文", on: true, d: "", u: 5 }]);
+    expect(s.band.dateOnly).toBe(false);
+    expect(s.band.src.evt).toEqual({ on: true, col: "#abcdef", sec: 9.5 });
+    expect(s.band.src.info.on).toBe(false);
+    expect(s.band.src.lock).toEqual({ on: true, col: "#ffffff", sec: 7.5 });
+    expect(s.band.seq).toEqual([{ s: "lock", n: 3 }, { s: "evt", n: 1 }]);
+  });
+
+  it("新しい項目がない以前の時刻表は既定値で補う", () => {
+    const s = normalizeSchedule(sample());
+    expect(s.fac).toEqual({ days: [], items: [] });
+    expect(s.evt).toEqual([]);
+    expect(s.info).toEqual([]);
+    expect(s.band.dateOnly).toBe(true);
+    expect(s.band.seq.map((q) => q.s)).toEqual(["lock", "fac", "evt", "info"]);
+  });
+
+  it("不正な値を拒否する", () => {
+    const base = () => ({ ...sample(), ...extra() });
+    const bad: ((x: ReturnType<typeof base>) => void)[] = [
+      (x) => { x.band.src.evt.sec = 1; },
+      (x) => { x.band.src.evt.col = "red"; },
+      (x) => { (x.band.seq[0] as { s: string }).s = "other"; },
+      (x) => { x.band.seq[0].n = 0; },
+      (x) => { x.band.from = "2030-01-07"; },
+      (x) => { x.info.push({ id: "a1", t: "重複", d: "", u: 0 }); },
+      (x) => { x.info[0].t = "あ".repeat(121); },
+      (x) => { x.info[0].d = "2030-02-30"; },
+      (x) => { x.fac.items[0].n = " "; },
+      (x) => { x.evt[0].items[0].from = "25:00"; },
+      (x) => { x.evt.push({ d: "2030-01-05", items: [] }); },
+    ];
+    for (const f of bad) {
+      const x = base();
+      f(x);
+      expect(() => normalizeSchedule(x)).toThrow(ScheduleError);
+    }
+  });
+});
+
 describe("時刻表の API", () => {
   it("閲覧キーなし・送信キーでは読めない／保存できない", async () => {
     expect((await get({})).status).toBe(401);
@@ -91,13 +148,13 @@ describe("時刻表の API", () => {
     expect(b.schedule.days).toEqual([]);
   });
 
-  it("形式の誤り：JSON 以外 415・壊れた JSON 400・不正な値 400・16KB 超 413", async () => {
+  it("形式の誤り：JSON 以外 415・壊れた JSON 400・不正な値 400・64KB 超 413", async () => {
     expect((await put({ schedule: sample() }, { ...auth, "Content-Type": "text/plain" })).status).toBe(415);
     expect((await put("{", { ...auth, "Content-Type": "application/json" })).status).toBe(400);
     const bad = await put({ schedule: { days: [{ d: "x", items: [] }] } });
     expect(bad.status).toBe(400);
     expect(((await bad.json()) as { error: string }).error).toBe("bad_schedule");
-    expect((await put({ schedule: sample(), pad: "x".repeat(17000) })).status).toBe(413);
+    expect((await put({ schedule: sample(), pad: "x".repeat(70000) })).status).toBe(413);
     expect((await put({ schedule: sample(), baseUpdatedAtMs: "1" })).status).toBe(400);
   });
 

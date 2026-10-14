@@ -162,8 +162,8 @@
   .tr-star{flex:none;border:none;background:none;font-size:15px;color:var(--muted);cursor:pointer;padding:4px;}
   .tabs{display:flex;gap:8px;overflow-x:auto;padding:10px 12px 4px;scrollbar-width:none;}
   .tabs::-webkit-scrollbar{display:none;}
-  .tab{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:8px 14px;border-radius:999px;font-size:13px;font-weight:700;min-height:36px;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 3px 12px var(--shadow);}
-  .tab .dot{width:8px;height:8px;border-radius:50%;}
+  .tab{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700;min-height:32px;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 3px 12px var(--shadow);}
+  .tab .dot{width:7px;height:7px;border-radius:50%;}
   .tab.active{color:#fff;border-color:transparent;text-shadow:0 1px 2px rgba(0,0,0,.35);}   /* 明るい色のタブでも白い文字が読めるように */
   #customPanel{display:none;margin:8px 12px 0;border:1px solid var(--line);border-radius:16px;padding:10px 12px;background:var(--panel);box-shadow:0 10px 30px var(--shadow);gap:8px;flex-wrap:wrap;max-height:66vh;overflow-y:auto;}
   #customPanel.open{display:flex;}
@@ -615,7 +615,7 @@
     #toolBtn.on{background:var(--accent-weak);color:var(--accent);border:none;}
     /* タブ：時計を左下へ移したので上部は全幅。横スクロールで全タブにアクセス可 */
     .tabs{max-width:100%;padding:8px 10px 4px;-webkit-overflow-scrolling:touch;}
-    .tab{padding:7px 12px;font-size:12.5px;min-height:34px;}
+    .tab{padding:5px 10px;font-size:11.5px;min-height:29px;gap:5px;}
     /* 右下FAB：小型の円＋ラベル無し（アイコンのみ）でスリムに */
     #myLocFab,#trackFab,#layerBtn,#settleBtn,#imgBtn{width:46px;height:46px;border-radius:50%;font-size:19px;bottom:auto;}
     #myLocFab small,#trackFab small,#layerBtn small,#settleBtn small,#imgBtn small{display:none;}
@@ -965,8 +965,52 @@
     .lc-ev-u{flex-direction:row;align-items:baseline;gap:3px;} .lc-ev-u span{font-size:8.5px;} .lc-ev-u b{font-size:12px;}
     html.fest #navCard{top:calc(104px + var(--fb) + env(safe-area-inset-top));}
   }
-  #festSchedBody .fs-sec{border-top:1px solid var(--line);padding-top:10px;margin-top:8px;}
-  #festSchedBody .set-label{text-transform:none;}
+  #festSchedBody .fs-sec,#festAdvBody .fs-sec{border-top:1px solid var(--line);padding-top:10px;margin-top:8px;}
+  #festSchedBody .fs-sec.fs-first{border-top:0;padding-top:0;margin-top:0;}
+  #festSchedBody .set-label,#festAdvBody .set-label{text-transform:none;}
+  #festBand .fb-in{display:inline-block;will-change:transform;}
+  #festBand .fb-it small,#fbMeasure .fb-it small{font-size:10px;font-weight:600;opacity:.85;}
+  /* 本部版だけ：上部のタブ「高度な設定（情報組込）」 */
+  .fest-adv-tab{display:none !important;}
+  html.fest-hq .fest-adv-tab{display:flex !important;}
+  .fest-adv-tab small{font-size:.86em;font-weight:600;opacity:.8;margin-left:1px;}
+  /* 高度な設定 */
+  #festAdvOverlay .modal{max-width:520px;}
+  .fa-back{border:0;background:none;color:var(--accent);font-size:13px;font-weight:700;padding:0 0 8px;cursor:pointer;}
+  .fa-menu{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;}
+  .fa-menu button{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:12px;padding:11px 10px;text-align:left;cursor:pointer;display:flex;flex-direction:column;gap:2px;}
+  .fa-menu button b{font-size:13.5px;} .fa-menu button small{font-size:11px;color:var(--muted);font-weight:600;}
+  .fa-line{display:flex;align-items:center;gap:7px;font-size:12.5px;font-weight:600;margin:6px 0;}
+  .fa-line input[type=checkbox]{width:17px;height:17px;margin:0;accent-color:var(--accent);}
+  .fa-period input{margin:0;padding:4px 6px;font-size:12.5px;width:auto;flex:1;min-width:0;}
+  .fa-src{display:grid;grid-template-columns:auto 1fr auto auto;gap:6px 10px;align-items:center;margin:10px 0 4px;font-size:12.5px;}
+  .fa-src>span{font-size:10.5px;color:var(--muted);font-weight:700;}
+  .fa-src input[type=checkbox]{width:17px;height:17px;margin:0;accent-color:var(--accent);}
+  .fa-src input[type=color]{width:40px;height:26px;padding:0 2px;margin:0;border:1px solid var(--line);border-radius:6px;background:var(--surface);}
+  .fa-sec-in{display:flex;align-items:center;gap:3px;font-size:11.5px;color:var(--muted);} .fa-sec-in input{width:58px;margin:0;padding:4px 6px;font-size:12.5px;}
+  .fa-sub{margin-top:12px;}
+  .fa-seq-row{display:flex;align-items:center;gap:5px;margin:4px 0;font-size:12px;}
+  .fa-seq-row select{flex:1;min-width:0;margin:0;padding:4px 6px;font-size:12.5px;} .fa-seq-row input{width:48px;margin:0;padding:4px 6px;font-size:12.5px;}
+  .fa-seq-row button,.fa-row button,.fa-presets button,.fa-msg-ops button{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:7px;padding:4px 7px;font-size:11.5px;font-weight:700;cursor:pointer;white-space:nowrap;}
+  .fa-seq-row button:disabled{opacity:.35;cursor:default;}
+  .fa-no{width:16px;text-align:center;font-weight:800;color:var(--muted);}
+  .fa-addbtn{min-height:34px;margin-top:6px;font-size:12.5px;}
+  .fa-row{display:grid;grid-template-columns:1fr auto;gap:5px 6px;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line);font-size:12px;}
+  .fa-row input{margin:0;padding:5px 6px;font-size:13px;width:100%;box-sizing:border-box;min-width:0;}
+  .fa-row-t{grid-column:1 / -1;display:flex;flex-wrap:wrap;align-items:center;gap:5px;}
+  .fa-row-t input[type=time]{width:98px;flex:none;} .fa-row-t .fa-free{flex:1;} .fa-row-t .fa-note{flex:1 1 150px;}
+  .fa-row-t label{display:flex;align-items:center;gap:4px;font-weight:700;white-space:nowrap;margin-left:auto;} .fa-row-t label input{width:17px;height:17px;margin:0;accent-color:var(--accent);}
+  .fa-row button:disabled{opacity:.35;cursor:default;} .fa-bts{display:flex;gap:4px;}
+  .fa-presets{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin:8px 0;font-size:11.5px;color:var(--muted);}
+  .fa-msg-card{border:1px solid var(--line);border-radius:10px;padding:7px;margin:6px 0;background:var(--surface);}
+  .fa-msg-card.off{opacity:.6;}
+  .fa-msg-card textarea,#faNewMsg{width:100%;box-sizing:border-box;margin:0;padding:6px 7px;font-size:13px;resize:vertical;font-family:inherit;}
+  .fa-msg-ops{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px;font-size:12px;}
+  .fa-msg-ops label{display:flex;align-items:center;gap:4px;font-weight:700;} .fa-msg-ops input{width:16px;height:16px;margin:0;accent-color:var(--accent);}
+  .fa-msg-ops select{margin:0;padding:3px 5px;font-size:12px;width:auto;}
+  .fa-foot{position:sticky;bottom:-18px;background:var(--panel);padding:6px 0 4px;margin-top:10px;border-top:1px solid var(--line);}
+  .fa-foot .set-save{min-height:38px;font-size:13.5px;} .fa-foot .set-msg{margin-top:4px;min-height:0;}
+  .fa-note-s{font-size:11px;color:var(--muted);margin-top:2px;}
   .fs-ev{margin:6px 0 8px;}
   .fs-ev-h{display:flex;align-items:center;gap:8px;margin-bottom:4px;} .fs-ev-h b{font-size:13px;} .fs-ev-h span{font-size:11px;color:var(--muted);flex:1;}
   .fs-mode{margin:0;flex:none;} .fs-mode button{flex:none;min-height:0;height:26px;padding:0 10px;font-size:12px;white-space:nowrap;min-width:34px;}
@@ -1281,8 +1325,11 @@
   <div id="festBldList" class="fest-bl-list"></div>
   <div class="fest-bl-note">外形・高さ・階数・用途：国土交通省 PLATEAU（川崎市2022）／名称：専修大学公式の配置図・施設一覧、OpenStreetMap、配置図との位置照合による推定。番号（B01〜）は確認用の仮番号です。行をタップすると地図で該当の建物を表示します。建物ごとの色は、地図で建物をタップした詳細から変えられます（一括の色より優先）。</div>
 </div></div>
-<div class="overlay" id="festSchedOverlay"><div class="modal"><div class="modal-h"><b>開錠・施錠時刻とEV</b><button id="festSchedClose">✕</button></div>
+<div class="overlay" id="festSchedOverlay"><div class="modal"><div class="modal-h"><b>エレベーター（EV）</b><button id="festSchedClose">✕</button></div>
   <div id="festSchedBody"></div>
+</div></div>
+<div class="overlay" id="festAdvOverlay"><div class="modal"><div class="modal-h"><b id="faTitle">高度な設定（情報組込）</b><button id="festAdvClose">✕</button></div>
+  <div id="festAdvBody"></div>
 </div></div>
 <div class="overlay" id="festShareOverlay"><div class="modal"><div class="modal-h"><b>位置情報共有設定</b><button id="festShClose">✕</button></div>
   <div class="set-sec fest-trk" id="festTrkSec"><div class="set-label">車両の位置（Traccar Client）</div>
@@ -1741,7 +1788,10 @@ document.getElementById('themeBtn').onclick=()=>{
 
 // ===== タブ =====
 const tabsEl=document.getElementById('tabs');
-function buildTabs(){tabsEl.innerHTML='';TAB_ORDER.forEach(key=>{const m=TAB_META[key],color=cssvar(m.cv);const b=document.createElement('button');b.className='tab'+(key===activeTab?' active':'');b.innerHTML=`<span class="dot" style="background:${color}"></span>${m.emoji?m.emoji+' ':''}${m.label}`;if(key===activeTab)b.style.background=color;b.onclick=()=>selectTab(key);tabsEl.appendChild(b);});}
+function buildTabs(){tabsEl.innerHTML='';TAB_ORDER.forEach(key=>{const m=TAB_META[key],color=cssvar(m.cv);const b=document.createElement('button');b.className='tab'+(key===activeTab?' active':'');b.innerHTML=`<span class="dot" style="background:${color}"></span>${m.emoji?m.emoji+' ':''}${m.label}`;if(key===activeTab)b.style.background=color;b.onclick=()=>selectTab(key);tabsEl.appendChild(b);});
+  if(FEST){const b=document.createElement('button');b.className='tab fest-adv-tab';b.type='button';b.innerHTML='<span class="dot" style="background:#ffd43b"></span>高度な設定<small>（情報組込）</small>';b.title='黒帯に流す情報（開錠・施錠時間・学内施設時間・イベント時間・インフォメーション）と表示の設定（本部版だけ）';
+    b.onclick=()=>{if(window.festSched&&festSched.adv)festSched.adv.open();else{showStatus('読み込み中です。少し待ってからもう一度押してください',false);hideStatusLater();}};tabsEl.appendChild(b);}   // 本部版だけ表示（html.fest-hq）
+}
 function setPlain(){
   activeTab=null;buildTabs();
   if(map)map.setOptions({disableDoubleClickZoom:false}); // ルート以外は通常のダブルクリックズームに戻す
@@ -2190,13 +2240,15 @@ function festInstallInit(){
   festInstallUi();
 }
 // 車両の位置の取得・一覧は fest-vehicle-tracking.js（本祭支援ツールのときだけ読み込む）
-const FEST_TRK_V=8;
+const FEST_TRK_V=9;
 function festTrkLoad(){
   if(!FEST||window.festHttp)return;
   const sc=document.createElement('script');sc.src='fest-vehicle-tracking.js?v='+FEST_TRK_V;
   sc.onload=()=>{try{festHttp.init();}catch(e){console.warn('trk',e);}
     const s2=document.createElement('script');s2.src='fest-schedule.js?v='+FEST_TRK_V;   // 本部の時刻表（開錠・施錠時刻・EV）
-    s2.onload=()=>{try{festSched.init();}catch(e){console.warn('sched',e);}};document.head.appendChild(s2);};
+    s2.onload=()=>{try{festSched.init();}catch(e){console.warn('sched',e);}
+      const s3=document.createElement('script');s3.src='fest-advanced.js?v='+FEST_TRK_V;document.head.appendChild(s3);};   // 高度な設定（本部版だけが開ける）
+    document.head.appendChild(s2);};
   sc.onerror=()=>{const m=document.getElementById('festTrkMsg');if(m)m.textContent='車両の位置の機能を読み込めませんでした（通信を確認して再読み込みしてください）';};
   document.head.appendChild(sc);
 }
