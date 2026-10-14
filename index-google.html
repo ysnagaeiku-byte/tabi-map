@@ -21,7 +21,7 @@
   q('link[rel="manifest"]').href='manifest-senshu.json';q('link[rel="apple-touch-icon"]').href='apple-touch-icon-senshu.png';q('link[rel="icon"]').href='icon-senshu-192.png';
   q('meta[name="apple-mobile-web-app-title"]').content='本祭支援';q('meta[name="theme-color"]').content='#000000';})();</script>
 <!-- 配信時にGitHub ActionsがSecretからキーを注入（リポジトリ本体には実キーを置かない）。未注入時はプレースホルダのまま→端末ごとの手入力にフォールバック -->
-<script>window.__TABI_KEYS__={gmap:"__GMAP_KEY__",mapbox:"__MAPBOX_KEY__"};</script>
+<script>window.__TABI_KEYS__={gmap:"__GMAP_KEY__",mapbox:"__MAPBOX_KEY__",festMapId:"__FEST_MAP_ID__"};</script>
 <style>
   :root{
     --tmoff:0px;  /* タクシーメーターを下に出した時に、FAB・時計・凡例を持ち上げる量 */
@@ -5679,7 +5679,9 @@ const FEST_EMPH_DARK=[
   {featureType:'road.arterial',elementType:'geometry.fill',stylers:[{color:'#5c5330'}]},
   {featureType:'transit',stylers:[{visibility:'on'}]}
 ];
-function festMapIdGet(){try{return localStorage.getItem('tabi_fest_mapid')||'';}catch(e){return '';}}
+function festMapIdGet(){   // 3D（ベクター地図）の Map ID：端末の設定（個別の上書き）→ 公開時に埋め込んだ値
+  try{const v=localStorage.getItem('tabi_fest_mapid');if(v)return v;}catch(e){}
+  const inj=(window.__TABI_KEYS__||{}).festMapId;return (inj&&!/^__.*__$/.test(inj))?inj:'';}
 // 既定の画角：構内全体を斜め上から、少し引きで（ユーザー指定のアングル。画面幅に合わせてズームを調整）。向きは FEST_ROT_HEADING
 const FEST_CAM={center:{lat:35.6101,lng:139.5546},zoom:17.0,tilt:37};   // 傾き：以前の47°より10°真上寄り
 function festCamZoom(){const w=(map&&map.getDiv&&map.getDiv().clientWidth)||910;   // 縦長のスマホは横幅で合わせると引きすぎるので、少し寄せる（幅600px以下で+0.5）
