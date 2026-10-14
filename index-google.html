@@ -7050,14 +7050,15 @@ function festTiny(b){   // 9号館・6号館の周り（約140m以内）の名�
     FEST_BLD.forEach(x=>{if(x.n||(x.a||0)>=200)return;const q={lat:x.c[0],lng:x.c[1]};if(ref.some(r=>festGd(r,q)<140))festTinySet.add(x.id);});}
   return festTinySet.has(b.id);
 }
-// 押した建物（建物群ならまとめて）を0.5秒間濃く（続けて押しても延長しない）
-const FEST_EMPH_MS=500;
+// 押した建物（建物群ならまとめて）を一時的に濃く：3D表示中は0.15秒・それ以外は0.5秒（続けて押しても延長しない）
+const FEST_EMPH_MS=500, FEST_EMPH_MS_3D=150;
 let festEmph={key:'',end:0,cnt:0,ids:null,tm:null};
 function festBldEmph(b){
   const key=festBldGroupKey(b)||b.id,now=Date.now();
   if(festEmph.key===key&&now<festEmph.end)return;   // 濃く表示している間に同じ建物を押しても延長しない
-  festEmphClear();festEmph={key,end:now+FEST_EMPH_MS,cnt:1,ids:new Set(festBldGroup(b).map(x=>x.id)),tm:null};
-  festEmphApply();clearTimeout(festEmph.tm);festEmph.tm=setTimeout(festEmphClear,FEST_EMPH_MS);
+  const ms=festB3d?FEST_EMPH_MS_3D:FEST_EMPH_MS;
+  festEmphClear();festEmph={key,end:now+ms,cnt:1,ids:new Set(festBldGroup(b).map(x=>x.id)),tm:null};
+  festEmphApply();clearTimeout(festEmph.tm);festEmph.tm=setTimeout(festEmphClear,ms);
 }
 // 建物のダブルクリック（ダブルタップ）は無効：2回目は無視し、地図の拡大もしない
 let festBldLast={key:'',t:0},festDblTm=null;
