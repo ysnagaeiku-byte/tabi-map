@@ -338,6 +338,8 @@ interface ShareRow {
   perms: string;
   expires_at_ms: number | null;
   revoked_at_ms: number | null;
+  lock: number;
+  lock_on_expiry: number;
 }
 // 配布版のキーの照会を少しの間覚えておく（D1 の読み取りを減らす。取り消しは最大30秒で効く）
 const shareCache = new Map<string, { at: number; row: ShareRow | null }>();
@@ -352,7 +354,7 @@ async function shareLookup(env: Env, token: string, nowMs: number): Promise<Shar
   const h = hex(await sha256(token));
   const c = shareCache.get(h);
   if (c && nowMs - c.at < SHARE_CACHE_MS) return c.row;
-  const row = await env.DB.prepare("SELECT id, label, perms, expires_at_ms, revoked_at_ms FROM fest_shares WHERE token_sha256 = ?1").bind(h).first<ShareRow>();
+  const row = await env.DB.prepare("SELECT id, label, perms, expires_at_ms, revoked_at_ms, lock, lock_on_expiry FROM fest_shares WHERE token_sha256 = ?1").bind(h).first<ShareRow>();
   if (shareCache.size > 500) shareCache.clear();
   shareCache.set(h, { at: nowMs, row: row ?? null });
   return row ?? null;
@@ -405,7 +407,14 @@ async function viewGate(
     logResult(route, "storage_error");
     return json(503, { error: "storage_unavailable" }, cors);
   }
-  if (!row || row.revoked_at_ms !== null || (row.expires_at_ms !== null && row.expires_at_ms <= nowMs)) return unauthorized();
+  if (!row) return unauthorized();
+  // 取り消し・期限切れは理由と「地図も止めるか」を返す（入力違いとは区別する。端末側はこれで画面を閉じる）
+  const ended = (error: string, lock: boolean) => {
+    logResult(route, error);
+    return json(401, { error, lock }, { "WWW-Authenticate": "Bearer", ...cors });
+  };
+  if (row.revoked_at_ms !== null) return ended("revoked", row.lock === 1);
+  if (row.expires_at_ms !== null && row.expires_at_ms <= nowMs) return ended("expired", row.lock_on_expiry === 1);
   return { cors, who: { role: "share", id: row.id, label: row.label, perms: parsePerms(row.perms), expiresAtMs: row.expires_at_ms } };
 }
 
@@ -505,7 +514,7 @@ const SHARE_ID_RE = /^[A-Za-z0-9_-]{10}$/;
 const MAX_SHARES = 200;
 const b64u = (b: Uint8Array) => btoa(String.fromCharCode(...b)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 
-export function normalizeShareInput(o: unknown, nowMs: number): { label: string; perms: Perms; expiresAtMs: number | null } | string {
+export function normalizeShareInput(o: unknown, nowMs: number): { label: string; perms: Perms; expiresAtMs: number | null; lockOnExpiry: boolean } | string {
   if (!o || typeof o !== "object") return "bad_body";
   const r = o as Record<string, unknown>;
   const label = typeof r.label === "string" ? r.label.trim().replace(/[\u0000-\u001f]/g, "") : "";
@@ -519,7 +528,8 @@ export function normalizeShareInput(o: unknown, nowMs: number): { label: string;
     if (typeof r.expiresAtMs !== "number" || !Number.isFinite(r.expiresAtMs) || r.expiresAtMs <= nowMs || r.expiresAtMs > nowMs + 400 * 86400_000) return "bad_expiry";
     expiresAtMs = Math.round(r.expiresAtMs);
   }
-  return { label, perms, expiresAtMs };
+  if (r.lockOnExpiry !== undefined && typeof r.lockOnExpiry !== "boolean") return "bad_lock";
+  return { label, perms, expiresAtMs, lockOnExpiry: r.lockOnExpiry === true && expiresAtMs !== null };
 }
 
 async function handleShares(req: Request, env: Env, nowMs: number, id: string | null): Promise<Response> {
@@ -532,7 +542,7 @@ async function handleShares(req: Request, env: Env, nowMs: number, id: string | 
   }
   try {
     if (req.method === "GET") {
-      const res = await env.DB.prepare("SELECT id, label, perms, created_at_ms, expires_at_ms, revoked_at_ms FROM fest_shares ORDER BY created_at_ms DESC").all<
+      const res = await env.DB.prepare("SELECT id, label, perms, created_at_ms, expires_at_ms, revoked_at_ms, lock, lock_on_expiry FROM fest_shares ORDER BY created_at_ms DESC").all<
         ShareRow & { created_at_ms: number }
       >();
       const shares = (res.results ?? []).map((r) => ({
@@ -542,17 +552,23 @@ async function handleShares(req: Request, env: Env, nowMs: number, id: string | 
         createdAtMs: r.created_at_ms,
         expiresAtMs: r.expires_at_ms,
         revokedAtMs: r.revoked_at_ms,
+        lock: r.lock === 1,
+        lockOnExpiry: r.lock_on_expiry === 1,
         active: r.revoked_at_ms === null && (r.expires_at_ms === null || r.expires_at_ms > nowMs),
       }));
       return json(200, { schemaVersion: 1, serverNowMs: nowMs, shares }, cors);
     }
     if (req.method === "DELETE") {
+      // ?lock=1：地図も止める（取り消し済みの配布版にも後から付けられる）
       if (!SHARE_ID_RE.test(id!)) return json(404, { error: "not_found" }, cors);
-      const res = await env.DB.prepare("UPDATE fest_shares SET revoked_at_ms = ?2 WHERE id = ?1 AND revoked_at_ms IS NULL").bind(id, nowMs).run();
+      const lock = new URL(req.url).searchParams.get("lock") === "1";
+      const res = lock
+        ? await env.DB.prepare("UPDATE fest_shares SET revoked_at_ms = COALESCE(revoked_at_ms, ?2), lock = 1 WHERE id = ?1 AND (revoked_at_ms IS NULL OR lock = 0)").bind(id, nowMs).run()
+        : await env.DB.prepare("UPDATE fest_shares SET revoked_at_ms = ?2 WHERE id = ?1 AND revoked_at_ms IS NULL").bind(id, nowMs).run();
       clearShareCache();
       if (!res.meta.changes) return json(404, { error: "not_found" }, cors);
-      logResult("shares", "revoked");
-      return json(200, { ok: true, id, revokedAtMs: nowMs }, cors);
+      logResult("shares", lock ? "revoked_lock" : "revoked");
+      return json(200, { ok: true, id, lock }, cors);
     }
     // POST：発行（実際のキーはこの応答でだけ返す）
     const ct = (req.headers.get("Content-Type") ?? "").split(";")[0].trim().toLowerCase();
@@ -570,11 +586,11 @@ async function handleShares(req: Request, env: Env, nowMs: number, id: string | 
     if ((cnt?.c ?? 0) >= MAX_SHARES) return json(409, { error: "too_many_shares" }, cors);
     const token = b64u(crypto.getRandomValues(new Uint8Array(32)));
     const sid = b64u(crypto.getRandomValues(new Uint8Array(8))).slice(0, 10);
-    await env.DB.prepare("INSERT INTO fest_shares (id, token_sha256, label, perms, created_at_ms, expires_at_ms) VALUES (?1, ?2, ?3, ?4, ?5, ?6)")
-      .bind(sid, hex(await sha256(token)), n.label, JSON.stringify(n.perms), nowMs, n.expiresAtMs)
+    await env.DB.prepare("INSERT INTO fest_shares (id, token_sha256, label, perms, created_at_ms, expires_at_ms, lock_on_expiry) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)")
+      .bind(sid, hex(await sha256(token)), n.label, JSON.stringify(n.perms), nowMs, n.expiresAtMs, n.lockOnExpiry ? 1 : 0)
       .run();
     logResult("shares", "issued");
-    return json(201, { ok: true, id: sid, token, label: n.label, perms: n.perms, createdAtMs: nowMs, expiresAtMs: n.expiresAtMs }, cors);
+    return json(201, { ok: true, id: sid, token, label: n.label, perms: n.perms, createdAtMs: nowMs, expiresAtMs: n.expiresAtMs, lockOnExpiry: n.lockOnExpiry }, cors);
   } catch {
     logResult("shares", "storage_error");
     return json(503, { error: "storage_unavailable" }, cors);

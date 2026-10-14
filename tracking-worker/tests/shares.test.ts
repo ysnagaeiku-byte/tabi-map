@@ -50,10 +50,43 @@ describe("本部版（全権限）", () => {
     expect(normalizeShareInput({ label: "a", perms: { edit: "yes" } }, now)).toBe("bad_perms");
     expect(normalizeShareInput({ label: "a", perms: {}, expiresAtMs: now - 1 }, now)).toBe("bad_expiry");
     expect(normalizeShareInput({ label: "a", perms: {}, expiresAtMs: now + 401 * 86400_000 }, now)).toBe("bad_expiry");
-    expect(normalizeShareInput({ label: " 係 ", perms: { pins: true } }, now)).toEqual({ label: "係", perms: { settings: false, pins: true, edit: false }, expiresAtMs: null });
+    expect(normalizeShareInput({ label: " 係 ", perms: { pins: true } }, now)).toEqual({ label: "係", perms: { settings: false, pins: true, edit: false }, expiresAtMs: null, lockOnExpiry: false });
+    expect(normalizeShareInput({ label: "a", perms: {}, lockOnExpiry: "y" }, now)).toBe("bad_lock");
+    expect(normalizeShareInput({ label: "a", perms: {}, lockOnExpiry: true }, now)).toMatchObject({ lockOnExpiry: false }); // 期限なしなら意味がない
     expect((await issue({ label: "" })).status).toBe(400);
     const r = await call("/api/v1/shares", { method: "POST", headers: H(VIEW_TOKEN, { "Content-Type": "text/plain" }), body: "{}" });
     expect(r.status).toBe(415);
+  });
+});
+
+describe("取り消し方（データだけ／地図も止める）", () => {
+  it("データだけの取り消し：401 revoked・lock=false。後から地図も止められる", async () => {
+    const a = await issue({ label: "a", perms: {} });
+    expect((await call("/api/v1/shares/" + a.body.id, { method: "DELETE", headers: H(VIEW_TOKEN) })).status).toBe(200);
+    const r1 = await call("/api/v1/me", { headers: H(a.body.token) });
+    expect(r1.status).toBe(401);
+    expect(await r1.json()).toEqual({ error: "revoked", lock: false });
+    expect((await call("/api/v1/shares/" + a.body.id + "?lock=1", { method: "DELETE", headers: H(VIEW_TOKEN) })).status).toBe(200);
+    expect(await (await call("/api/v1/vehicles", { headers: H(a.body.token) })).json()).toEqual({ error: "revoked", lock: true });
+    expect((await call("/api/v1/shares/" + a.body.id + "?lock=1", { method: "DELETE", headers: H(VIEW_TOKEN) })).status).toBe(404); // もう止めてある
+    const l = (await (await call("/api/v1/shares", { headers: H(VIEW_TOKEN) })).json()) as { shares: { lock: boolean; active: boolean }[] };
+    expect(l.shares[0]).toMatchObject({ lock: true, active: false });
+  });
+
+  it("地図も止めて取り消し：401 revoked・lock=true", async () => {
+    const a = await issue({ label: "b", perms: {} });
+    expect((await call("/api/v1/shares/" + a.body.id + "?lock=1", { method: "DELETE", headers: H(VIEW_TOKEN) })).status).toBe(200);
+    expect(await (await call("/api/v1/schedule", { headers: H(a.body.token) })).json()).toEqual({ error: "revoked", lock: true });
+  });
+
+  it("期限切れ：発行時の「期限が来たら地図も止める」に従う。知らないキーは理由を返さない", async () => {
+    const now = Date.now();
+    const a = await issue({ label: "c", perms: {}, expiresAtMs: now + 60_000, lockOnExpiry: true });
+    const b = await issue({ label: "d", perms: {}, expiresAtMs: now + 60_000 });
+    const me = async (t: string) => (await handle(new Request(B + "/api/v1/me", { headers: H(t) }), E, now + 61_000)).json();
+    expect(await me(a.body.token)).toEqual({ error: "expired", lock: true });
+    expect(await me(b.body.token)).toEqual({ error: "expired", lock: false });
+    expect(await me("q".repeat(43))).toEqual({ error: "unauthorized" });
   });
 });
 

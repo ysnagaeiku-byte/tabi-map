@@ -23,7 +23,9 @@ Traccar Client ──POST（送信キー付きURL）──▶ Worker ──▶ D
 | `PUT /api/v1/schedule` | 時刻表を保存（`{schedule, baseUpdatedAtMs}`。編集の権限が要る。ほかの端末が先に保存していれば 409） |
 | `GET /api/v1/me` | このキーの種類と権限（`role: full｜share`、`perms: {settings, pins, edit}`、期限） |
 | `GET・POST /api/v1/shares` | 本部版のキーだけ：配布版の一覧・発行（発行の応答でだけ実際のキーを返す） |
-| `DELETE /api/v1/shares/<id>` | 本部版のキーだけ：配布版の取り消し（30秒ほどで反映） |
+| `DELETE /api/v1/shares/<id>` | 本部版のキーだけ：配布版の取り消し（30秒ほどで反映）。`?lock=1` で「地図も止める」（取り消し済みにも後から付けられる） |
+
+取り消し・期限切れの配布版のキーには `401 {"error":"revoked"|"expired","lock":true|false}` を返します。`lock:true` なら、地図側はその端末の画面全体を閉じます。入力違いなど知らないキーは `401 {"error":"unauthorized"}` です。
 
 - 車両ID は `vehicle-1`〜`vehicle-3` 固定（表示名 1号車〜3号車）。
 - 時刻表は警備に関わる内部資料に由来するため、公開の地図・リポジトリには書かず、受信API（D1 の `fest_settings`）に置いて閲覧キーで守ります。初期値は本番へ直接登録し、リポジトリには入れていません。
@@ -79,7 +81,7 @@ npx wrangler d1 create festival-vehicle-tracking --location=apac
 2. migration と配置を行います。
 
    ```sh
-   npx wrangler d1 migrations apply festival-vehicle-tracking --remote   # 0001（最新位置）・0002（時刻表）・0003（配布版のキー）
+   npx wrangler d1 migrations apply festival-vehicle-tracking --remote   # 0001（最新位置）・0002（時刻表）・0003（配布版のキー）・0004（地図も止める）
    npm run deploy            # 事前確認（scripts/check-deploy.mjs）→ wrangler deploy
    ```
 

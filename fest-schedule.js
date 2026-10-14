@@ -3,6 +3,7 @@
 // 値は受信API（/api/v1/schedule）に置き、閲覧キーを持つ本部の端末だけが読み書きする（地図は公開のため、時刻はコードに書かない）。
 //  - 画面最上部の黒い帯：その日の開錠・施錠時刻を数秒ごとに流す（その日の情報がなければ全日程を順に）
 //  - 時計の右側：9号館・10号館のエレベーター（9-EV・10-EV）の使用可否 ○／×／ー
+//    G倉庫IN：車両がG倉庫の中・外周から8m以内にいれば×、いなければ○。22時〜6時と、車両の位置を取得していないときはー
 //  - 時計（または帯）を押すと編集画面（時刻表の編集の権限があるキーだけ。配布版は発行時に選ぶ）
 //  - 最後に取得した時刻表は端末に残し、通信できないときも表示する（キーが無効になったら消す）
 (function () {
@@ -52,7 +53,7 @@
     try {
       const r = await api('GET');
       if (r.status === 200 && r.body && r.body.schemaVersion === 1) { S.data = r.body.schedule; S.updatedAtMs = r.body.updatedAtMs; S.error = ''; S.cached = false; cacheSave(); }
-      else if (r.status === 401) { S.error = 'auth'; cacheClear(); }   // 取り消し・期限切れ：端末に残した時刻表も消す
+      else if (r.status === 401) { S.error = 'auth'; cacheClear(); try { if (window.festHttp && festHttp.fetchMe) festHttp.fetchMe(); } catch (e) {} }   // 取り消し・期限切れ：端末に残した時刻表も消し、権限を確かめ直す
       else S.error = 'http';
     } catch (e) { S.error = 'network'; }   // 通信できない：前回取得した時刻表のまま
     S.loading = false;
@@ -71,9 +72,32 @@
     return slots.some(s => { const a = toMin(s.from), b = toMin(s.to); return a != null && b != null && t.min >= a && t.min < b; }) ? 'ng' : 'ok';
   }
   const EV_SYM = { ok: '○', ng: '×', na: 'ー' }, EV_TXT = { ok: '使用可', ng: '使用不可', na: 'データなし' };
+  // ---------- G倉庫IN：G倉庫に車両が入れるか（周りに車両がいなければ○） ----------
+  const G_NEAR_M = 8, G_STALE_MS = 15 * 60000;
+  const G_TXT = { ok: '入れる（周りに車両なし）', ng: '車両あり（G倉庫・外周8m以内に停車・走行中）', na: '夜間（22時〜6時）または車両の位置を取得していない' };
+  function distToPoly(lat, lng, P) {   // 点から多角形までの距離（m）。中なら0
+    const kx = 111320 * Math.cos(lat * Math.PI / 180), ky = 110940, Q = P.map(q => [(q[1] - lng) * kx, (q[0] - lat) * ky]);
+    let inside = false;
+    for (let i = 0, j = Q.length - 1; i < Q.length; j = i++) { const a = Q[i], b = Q[j]; if ((a[1] > 0) !== (b[1] > 0) && 0 < (b[0] - a[0]) * (0 - a[1]) / (b[1] - a[1]) + a[0]) inside = !inside; }
+    if (inside) return 0;
+    let m = Infinity;
+    for (let i = 0; i < Q.length; i++) { const a = Q[i], b = Q[(i + 1) % Q.length], dx = b[0] - a[0], dy = b[1] - a[1], L = dx * dx + dy * dy; let t = L ? -(a[0] * dx + a[1] * dy) / L : 0; t = Math.max(0, Math.min(1, t)); m = Math.min(m, Math.hypot(a[0] + t * dx, a[1] + t * dy)); }
+    return m;
+  }
+  function gState() {
+    const t = jst(); if (t.min >= 22 * 60 || t.min < 6 * 60) return 'na';   // 夜間は車両の位置に関係なくー
+    const h = window.festHttp, b = (typeof FEST_BLD !== 'undefined') && FEST_BLD.find(x => x.n === 'G倉庫');
+    if (!h || !h.enabled || !h.lastSuccessAt || h.authBlocked || !b) return 'na';
+    const sn = Date.now() + (h.serverClockOffsetMs || 0);
+    const near = Object.values(h.vehicles || {}).some(v => v && v.pos && sn - v.pos.fixAtMs <= G_STALE_MS && distToPoly(v.pos.lat, v.pos.lon, b.p) <= G_NEAR_M);
+    return near ? 'ng' : 'ok';
+  }
+  S.gState = gState;
   function renderEv() {
     const box = $('lcEv'); if (!box) return;
-    const h = EVU.map(([u, lab]) => { const st = evState(u); return '<div class="lc-ev-u" title="' + lab + '：' + EV_TXT[st] + '"><span>' + lab + '</span><b class="ev-' + st + '">' + EV_SYM[st] + '</b></div>'; }).join('');
+    const gs = gState();
+    const h = EVU.map(([u, lab]) => { const st = evState(u); return '<div class="lc-ev-u" title="' + lab + '：' + EV_TXT[st] + '"><span>' + lab + '</span><b class="ev-' + st + '">' + EV_SYM[st] + '</b></div>'; }).join('')
+      + '<div class="lc-ev-u" title="G倉庫IN：' + G_TXT[gs] + '"><span>G倉庫IN</span><b class="ev-' + gs + '">' + EV_SYM[gs] + '</b></div>';
     if (box.__h !== h) { box.__h = h; box.innerHTML = h; }
   }
 
@@ -241,6 +265,7 @@
     const clk = $('liveClock'); if (clk) { clk.addEventListener('click', editorOpen); clk.title = '現在時刻（NTP同期・JST）・EVの可否／押すと開錠・施錠時刻とEVを編集'; }
     const band = $('festBand'); if (band) band.addEventListener('click', editorOpen);
     window.addEventListener('fest-token', () => { S.error = ''; load(); });
+    window.addEventListener('fest-vehicles', renderEv);   // 車両の位置が変わったら G倉庫IN を更新
     window.addEventListener('fest-me', () => { const m = window.festHttp && festHttp.me; if (m && m.role === 'invalid') { S.error = 'auth'; cacheClear(); } render(); });
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') load(); });
     let rt = null; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { fitClock(); bandShow(true); }, 200); });

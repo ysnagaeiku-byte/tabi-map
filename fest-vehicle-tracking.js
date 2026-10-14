@@ -110,6 +110,7 @@
       if (gen !== festHttp.generation) return;
       if (r.status === 401 || r.status === 403) {   // 入力し直すまで再試行しない
         festHttp.authBlocked = true; festHttp.lastError = r.status === 401 ? 'auth' : 'origin';
+        if (r.status === 401) fetchMe();   // 取り消し・期限切れか確かめる
         return;
       }
       if (!r.ok) throw Object.assign(new Error('http'), { status: r.status });
@@ -149,6 +150,7 @@
       peer(v);
     });
     try { festShRender(); festShAnimKick(); } catch (e) { console.warn('trk render', e); }
+    try { window.dispatchEvent(new Event('fest-vehicles')); } catch (e) {}
   }
   function peer(v) {
     const s = festHttp.vehicles[v.id], pid = 'http:' + v.id, p = festSh.peers[pid];
@@ -268,6 +270,7 @@
     clearInterval(festHttp.uiTick); festHttp.uiTick = null;
     dropAll();
     ui();
+    try { window.dispatchEvent(new Event('fest-vehicles')); } catch (e) {}
   }
   festHttp.start = start; festHttp.stop = stop;
   // 閲覧キーだけを入れる（車両の表示は始めない）。本部の時刻表（fest-schedule.js）からも使う
@@ -290,10 +293,16 @@
       const r = await fetch(c.apiBase + '/api/v1/me', { headers: { Authorization: 'Bearer ' + c.viewerToken }, cache: 'no-store', credentials: 'omit', mode: 'cors', referrerPolicy: 'no-referrer' });
       if (r.status === 200) {
         const b = await r.json(); festHttp.me = b; try { localStorage.setItem(ME_KEY, JSON.stringify(b)); } catch (e) {}
+        try { if (typeof festLockClear === 'function' && festLockGet()) festLockClear(); } catch (e) {}   // 新しい有効なキー：閉じた状態を解除
         applyMe(b);
       } else if (r.status === 401) {   // 取り消し・期限切れ・違うキー：記憶した権限と時刻表を消す（画面の制限は「未確認」のまま）
-        festHttp.me = { role: 'invalid' }; try { localStorage.removeItem(ME_KEY); localStorage.removeItem('fest_sched_cache'); } catch (e) {}
+        let b = null; try { b = await r.json(); } catch (e) {}
+        festHttp.me = { role: 'invalid', reason: b && b.error }; try { localStorage.removeItem(ME_KEY); localStorage.removeItem('fest_sched_cache'); } catch (e) {}
         applyMe('pending');
+        try {
+          if (b && (b.error === 'revoked' || b.error === 'expired') && b.lock) festLockSet(b.error);   // 本部が「地図も止める」を選んだ
+          else if (festLockGet()) festLockShow(festLockGet());   // 以前に止められた端末で無効なリンクを開いた
+        } catch (e) {}
       }
     } catch (e) {   // 通信できない：前回の権限のまま
       try { festHttp.me = JSON.parse(localStorage.getItem(ME_KEY) || 'null'); } catch (e2) {}
@@ -306,7 +315,7 @@
     const m = festHttp.me;
     if (!festHttp.config.viewerToken) return '';
     if (!m) return 'この端末：権限を確認中…';
-    if (m.role === 'invalid') return 'この端末の閲覧キーは使えません（取り消し・期限切れ・入力違い）';
+    if (m.role === 'invalid') return m.reason === 'revoked' ? 'この配布版は取り消されました' : (m.reason === 'expired' ? 'この配布版は期限が切れました' : 'この端末の閲覧キーは使えません（入力違いの可能性）');
     if (m.role === 'full') return 'この端末：本部版（全権限）';
     const p = m.perms || {}, no = [p.settings ? '' : '設定', p.pins ? '' : 'ピンの保存', p.edit ? '' : '時刻表の編集'].filter(Boolean);
     return '配布版「' + (m.label || '') + '」' + (no.length ? '・' + no.join('・') + 'は不可' : '') + (m.expiresAtMs ? '・' + fmtDay(m.expiresAtMs) + 'まで有効' : '');
@@ -338,6 +347,7 @@
       + '<input id="fadLabel" maxlength="40" placeholder="配布先の名前（例：受付係）" autocomplete="off" />'
       + '<div class="fad-cks"><label><input type="checkbox" id="fadNoSet" checked />設定画面を開けない</label><label><input type="checkbox" id="fadNoPins" checked />ピンを保存できない</label><label><input type="checkbox" id="fadNoEdit" checked />時刻表を編集できない</label></div>'
       + '<div class="fad-exp"><span>期限</span><input type="date" id="fadExp" aria-label="期限" /><small>この日の終わりまで有効（空欄＝期限なし）</small></div>'
+      + '<div class="fad-cks"><label><input type="checkbox" id="fadLockExp" />期限が来たら地図も止める</label></div>'
       + '<button class="set-save" id="fadIssue" type="button">発行する</button><div id="fadOut"></div>'
       + '<div class="set-label">発行した配布版</div><div id="fadList" class="fad-list"></div>';
     sec.appendChild(box);
@@ -352,7 +362,7 @@
     const perms = { settings: !$('fadNoSet').checked, pins: !$('fadNoPins').checked, edit: !$('fadNoEdit').checked };
     $('fadIssue').disabled = true; out.innerHTML = '<div class="fad-msg">発行しています…</div>';
     try {
-      const r = await adminApi('POST', '/api/v1/shares', { label, perms, expiresAtMs });
+      const r = await adminApi('POST', '/api/v1/shares', { label, perms, expiresAtMs, lockOnExpiry: !!(expiresAtMs && $('fadLockExp').checked) });
       if (r.status !== 201 || !r.body || !r.body.token) { out.innerHTML = '<div class="fad-msg err">発行できませんでした（' + escapeHtml(String((r.body && r.body.error) || r.status)) + '）</div>'; return; }
       const url = location.origin + location.pathname + '?m=senshu#key=' + r.body.token;
       let qr = '';
@@ -375,14 +385,18 @@
       const L = r.body.shares || [];
       box.innerHTML = L.length ? L.map(x => {
         const p = x.perms || {}, no = [p.settings ? '' : '設定', p.pins ? '' : 'ピン', p.edit ? '' : '編集'].filter(Boolean);
-        const st = x.revokedAtMs ? '取り消し済み' : (x.active ? '有効' : '期限切れ');
-        return '<div class="fad-row' + (x.active ? '' : ' off') + '"><div><b>' + escapeHtml(x.label) + '</b><small>' + (no.length ? no.join('・') + 'は不可' : '制限なし') + '・発行 ' + fmtDay(x.createdAtMs) + (x.expiresAtMs ? '・' + fmtDay(x.expiresAtMs) + 'まで' : '') + '・' + st + '</small></div>'
-          + (x.active ? '<button type="button" data-id="' + escapeHtml(x.id) + '">取り消す</button>' : '') + '</div>';
+        const st = x.revokedAtMs ? (x.lock ? '取り消し済み（地図も停止）' : '取り消し済み（データのみ）') : (x.active ? '有効' : '期限切れ' + (x.lockOnExpiry ? '（地図も停止）' : ''));
+        const bt = x.active ? '<button type="button" data-id="' + escapeHtml(x.id) + '" data-lock="0">取り消す（データだけ）</button><button type="button" data-id="' + escapeHtml(x.id) + '" data-lock="1">取り消して地図も止める</button>'
+          : (x.revokedAtMs && !x.lock ? '<button type="button" data-id="' + escapeHtml(x.id) + '" data-lock="1">地図も止める</button>' : '');
+        return '<div class="fad-row' + (x.active ? '' : ' off') + '"><div><b>' + escapeHtml(x.label) + '</b><small>' + (no.length ? no.join('・') + 'は不可' : '制限なし') + '・発行 ' + fmtDay(x.createdAtMs) + (x.expiresAtMs ? '・' + fmtDay(x.expiresAtMs) + 'まで' + (x.lockOnExpiry ? '（期限後は地図も停止）' : '') : '') + '・' + st + '</small></div>'
+          + (bt ? '<span class="fad-bts">' + bt + '</span>' : '') + '</div>';
       }).join('') : '<div class="fad-msg">まだ発行していません</div>';
       box.querySelectorAll('button[data-id]').forEach(b => b.onclick = async () => {
-        const row = L.find(x => x.id === b.dataset.id);
-        if (!confirm('「' + (row ? row.label : '') + '」の配布版を取り消します。配布先では車両の位置・時刻表が見られなくなります（30秒ほどで反映）。')) return;
-        b.disabled = true; const d = await adminApi('DELETE', '/api/v1/shares/' + b.dataset.id); if (d.status !== 200) alert('取り消せませんでした（' + d.status + '）'); loadShares();
+        const row = L.find(x => x.id === b.dataset.id), lock = b.dataset.lock === '1', nm = '「' + (row ? row.label : '') + '」';
+        const q = lock ? nm + 'の配布版を止めます。配布先の端末では本祭支援ツールの画面全体が閉じ、地図も使えなくなります（30秒ほどで反映）。'
+          : nm + 'の配布版を取り消します。配布先では車両の位置・時刻表が見られなくなります（地図は使える。30秒ほどで反映）。';
+        if (!confirm(q)) return;
+        b.disabled = true; const d = await adminApi('DELETE', '/api/v1/shares/' + b.dataset.id + (lock ? '?lock=1' : '')); if (d.status !== 200) alert('操作できませんでした（' + d.status + '）'); loadShares();
       });
     } catch (e) { box.innerHTML = '<div class="fad-msg err">一覧を読み込めませんでした（通信を確認してください）</div>'; }
   }

@@ -946,7 +946,7 @@
   html.fest #festBaseBar{top:calc(56px + var(--fb) + env(safe-area-inset-top));}
   html.fest #liveClock{top:calc(92px + var(--fb) + env(safe-area-inset-top));flex-direction:row;align-items:center;justify-content:space-between;gap:12px;box-sizing:border-box;}
   html.fest #lcMain{align-items:flex-start;}   /* 時計は左詰め（デザイン・文字の大きさはそのまま） */
-  html.fest #lcEv{display:flex;align-items:center;gap:16px;padding-right:4px;}
+  html.fest #lcEv{display:flex;align-items:center;gap:12px;padding-right:2px;}
   .lc-ev-u{display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1;}
   .lc-ev-u span{font-size:11px;font-weight:800;letter-spacing:.3px;color:var(--fg);}
   .lc-ev-u b{font-size:17px;font-weight:900;}
@@ -992,6 +992,12 @@
   .fad-row{display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:9px;padding:6px 9px;font-size:12.5px;} .fad-row>div{flex:1;min-width:0;}
   .fad-row small{display:block;font-size:10.5px;color:var(--muted);} .fad-row.off{opacity:.55;}
   .fad-row button{flex:none;border:1px solid #e03131;color:#e03131;background:transparent;border-radius:8px;padding:4px 8px;font-size:11.5px;font-weight:800;cursor:pointer;}
+  .fad-bts{flex:none;display:flex;flex-direction:column;gap:4px;} .fad-row button[data-lock="1"]{background:#e03131;color:#fff;}
+  #festLock{display:none;position:fixed;inset:0;z-index:6000;background:#01001b;color:#f1f3f5;align-items:center;justify-content:center;text-align:center;padding:24px;}
+  #festLock.show{display:flex;}
+  #festLock .fl-box{max-width:360px;display:flex;flex-direction:column;align-items:center;gap:12px;}
+  #festLock .fl-box img{border-radius:18px;}
+  #festLock b{font-size:18px;} #festLock p{margin:0;font-size:13.5px;line-height:1.7;color:#ced4da;}
   /* 配布版の制限：設定画面・ピンの保存 */
   html.fest-noset #setBtn{display:none !important;}
   html.fest-nopins .keep-pin,html.fest-nopins #pinSaveBtn{display:none !important;}
@@ -1047,7 +1053,7 @@
   <button class="tm-item" id="tmTaxi"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><rect x="3" y="8" width="18" height="11.5" rx="2"/><path d="M8 5h8M9.6 5v3M14.4 5v3"/><path d="M6.6 12.4h7M6.6 15.6h4"/></svg></span><span class="tm-lab">タクシーメーター<small>追跡中の走行距離・待ち時間を東京の運賃体系で表示（パロディ）</small></span><span class="tm-sw"></span></button>
   <div id="festSec" style="display:none;">
     <div class="tm-sec">本祭支援ツール</div>
-    <div class="seg seg5" id="festBaseSeg" style="margin-bottom:7px;"><button data-b="map" class="on">標準</button><button data-b="white">白地図</button><button data-b="sat">航空</button><button data-b="3d" title="平らな3D（高低差なし）">3D</button><button data-b="3dt" title="高低差のある3D（大学周辺の地形を立体化）">リアル3D</button><button data-b="p3d">実写3D</button></div>
+    <div class="seg seg5" id="festBaseSeg" style="margin-bottom:7px;"><button data-b="map" class="on">標準</button><button data-b="white">白地図</button><button data-b="sat">航空</button><button data-b="3d" title="平らな3D（高低差なし）">3D</button><button data-b="3dt" title="高低差のある3D（大学周辺の地形を立体化）">3D+</button><button data-b="p3d">実写3D</button></div>
     <button class="tm-item" id="tmFestCampus"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M3 21h18M5 21V9l7-5 7 5v12"/><path d="M9.5 21v-5h5v5"/></svg></span><span class="tm-lab">キャンパス詳細<small>構内の建物・本祭で使う学外施設（実測の外形・高さ）と名称・避難場所</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestTerrain"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M2.5 19 9 9l4 6 3-4 5.5 8z"/><path d="M8 13.5l1-1.5 1.6 2.4"/></svg></span><span class="tm-lab">3Dの高低差（地形）<small>大学周辺の地面を5mメッシュ標高で立体化（OFFで平らな3D）</small></span><span class="tm-sw"></span></button>
     <button class="tm-item" id="tmFestBldList"><span class="tm-ic"><svg class="svgi" viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12"/><circle cx="4" cy="6" r="1.2"/><circle cx="4" cy="12" r="1.2"/><circle cx="4" cy="18" r="1.2"/></svg></span><span class="tm-lab">建物一覧・色<small>仮番号・名称・階数・高さ。建物の色を一括で変更</small></span><span class="tm-ex">開く</span></button>
@@ -1697,6 +1703,7 @@ function festResumeSave(){   // 昼/夜の切替（再読込）の直前の状�
 }
 function festResumeTake(){let r=null;try{r=JSON.parse(sessionStorage.getItem('fest_resume')||'null');sessionStorage.removeItem('fest_resume');}catch(e){}return(r&&Date.now()-r.ts<120000)?r:null;}
 function bootGoogle(){
+  if(FEST&&document.documentElement.classList.contains('fest-locked'))return;   // 止められた配布版の端末では地図を読み込まない
   const key=cfgKey('gmap');
   if(!key){document.getElementById('nokey').classList.add('show');return;}
   const s=document.createElement('script');
@@ -2102,10 +2109,24 @@ function festPermsApply(me){   // me：/api/v1/me の結果。'pending'＝キー
   try{if(activeTab==='custom')buildCustomPanel();}catch(e){}
 }
 function festDeny(k,msg){if(!FEST||festPerms[k])return false;showStatus(msg,false);hideStatusLater();return true;}
+// ===== 本祭支援ツール：止められた配布版の端末 =====
+// 本部が「取り消して地図も止める」を選んだ（または発行時に「期限が来たら地図も止める」を選んだ配布版の期限が来た）端末は、画面全体を閉じる。
+// 新しい有効なリンク（#key=…）を開けば解除。端末のデータを消すと外れる（地図は公開のため、抑止のための仕組み。車両・時刻表は受信APIで止まる）
+function festLockGet(){try{return JSON.parse(localStorage.getItem('fest_locked')||'null');}catch(e){return null;}}
+function festLockShow(info){
+  let el=document.getElementById('festLock');
+  if(!el){el=document.createElement('div');el.id='festLock';el.setAttribute('role','alertdialog');document.body.appendChild(el);}
+  el.innerHTML='<div class="fl-box"><img src="icon-senshu-192.png" alt="" width="76" height="76" /><b>この配布版は'+(info&&info.reason==='expired'?'期限が切れました':'取り消されました')+'</b>'
+    +'<p>本祭支援ツールは、この端末では使えません。必要な場合は本部に連絡し、新しいリンクを受け取って開いてください。</p></div>';
+  el.classList.add('show');document.documentElement.classList.add('fest-locked');
+}
+function festLockSet(reason){try{localStorage.setItem('fest_locked',JSON.stringify({reason,at:Date.now()}));}catch(e){}festLockShow({reason});}
+function festLockClear(){try{localStorage.removeItem('fest_locked');}catch(e){}const el=document.getElementById('festLock');if(el)el.classList.remove('show');document.documentElement.classList.remove('fest-locked');}
+function festLockBoot(){const L=festLockGet();if(L&&!/[#&]key=[A-Za-z0-9_-]{43}/.test(location.hash))festLockShow(L);}   // 新しいリンクで開いたときは確かめてから（無効ならまた閉じる）
 // 最初の表示から制限を当てる（前回確認した権限を使う。キーがあって未確認なら制限側）
 function festPermsBoot(){let me=null,key='';try{key=localStorage.getItem('fest_view_key')||sessionStorage.getItem('fest_track_view')||'';me=JSON.parse(localStorage.getItem('fest_me')||'null');}catch(e){}
   if(/[#&]key=[A-Za-z0-9_-]{43}/.test(location.hash))key='x';festPermsApply(key?(me&&me.role?me:'pending'):null);}
-if(FEST)try{festPermsBoot();}catch(e){}   // 地図の準備を待たずに、最初の表示から制限を当てる
+if(FEST)try{festPermsBoot();festLockBoot();}catch(e){}   // 地図の準備を待たずに、最初の表示から制限を当てる・止められた端末は閉じる
 // ===== 本祭支援ツール：アプリとして追加（PWA） =====
 let festInstallEv=null;
 const festStandalone=()=>(window.matchMedia&&matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;
@@ -2125,7 +2146,7 @@ function festInstallInit(){
   festInstallUi();
 }
 // 車両の位置の取得・一覧は fest-vehicle-tracking.js（本祭支援ツールのときだけ読み込む）
-const FEST_TRK_V=6;
+const FEST_TRK_V=7;
 function festTrkLoad(){
   if(!FEST||window.festHttp)return;
   const sc=document.createElement('script');sc.src='fest-vehicle-tracking.js?v='+FEST_TRK_V;
@@ -4210,7 +4231,7 @@ function updateMapOverlayInfo(){
 // ----- リアルタイム渋滞（Google TrafficLayer：緑/橙/赤の混雑色＋通行止め描画。追加費用なし） -----
 function toggleTraffic(){
   if(!map){showStatus('地図の準備ができていません',false);hideStatusLater();return;}
-  const ft=FEST&&festTerrainOn&&festBase==='3d';   // 本祭支援ツールのリアル3D：渋滞の表示中は高低差なしで描く
+  const ft=FEST&&festTerrainOn&&festBase==='3d';   // 本祭支援ツールの3D+：渋滞の表示中は高低差なしで描く
   if(trafficOn){if(trafficLayer)trafficLayer.setMap(null);trafficOn=false;renderToolMenu();if(ft)festTerrainChanged();showStatus('リアルタイム渋滞 OFF',false);hideStatusLater();return;}
   if(!trafficLayer)trafficLayer=new google.maps.TrafficLayer({autoRefresh:true});
   trafficLayer.setMap(map);trafficOn=true;renderToolMenu();if(ft)festTerrainChanged();
@@ -6081,11 +6102,11 @@ const FEST_DEM_V=4, FEST_TERR_EXAG=2, FEST_TERR_V=5, FEST_RAIL_V=2;   // 範囲�
 let festTerrainOn=true, festDem=null, festDemLoading=false, festTerrBusy=false, festB3dTop={};
 // 道路・緑地・水面（fest-terr.json：道路中心線＝国土地理院、緑地・水面＝OSM）。道路は道に沿って高さをならし、道路まわりの地面もその高さへ寄せる
 let festTerrData=null, festTerrDataP=null, festTerrZd=null, festTerrRd=null, festTerrCls=null, festTerrCache=null, festTerrRS=null, festTerrRail=null;
-function festBaseSegUi(){   // 地図の切り替えの押されている所：3D は高低差の有無で「3D」「リアル3D」に分ける
+function festBaseSegUi(){   // 地図の切り替えの押されている所：3D は高低差の有無で「3D」「3D+」に分ける
   const seg=document.getElementById('festBaseSeg');if(!seg)return;const k=(festBase==='3d'&&festTerrainOn)?'3dt':festBase;
   seg.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x.dataset.b===k));
 }
-function festPickBase(b){   // TOP画面の地図の切り替え。リアル3D＝3D＋高低差、3D＝高低差なし
+function festPickBase(b){   // TOP画面の地図の切り替え。3D+＝3D＋高低差、3D＝高低差なし
   if(b==='3d'||b==='3dt'){const on=(b==='3dt');
     if(festBase==='3d'){if(festTerrainOn!==on)festTerrainToggle();else festBaseSegUi();return;}   // 3Dのまま：高低差だけ切り替える（角度はそのまま）
     if(festTerrainOn!==on){festTerrainOn=on;try{localStorage.setItem('tabi_fest_terrain',on?'1':'0');}catch(e){}if(on&&!festDem)festDemFetch();}
