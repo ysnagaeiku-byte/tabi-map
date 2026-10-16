@@ -1,7 +1,7 @@
 // たびマップ 本祭支援ツール：本部の時刻表と、画面最上部の黒帯に流す情報
 // index-google.html?m=senshu のときだけ fest-vehicle-tracking.js の後に読み込む（編集画面「高度な設定」は fest-advanced.js）。
 // 値は受信API（/api/v1/schedule）に置き、閲覧キーを持つ端末だけが読む（地図は公開のため、時刻や営業時間はコードに書かない）。
-//  - 黒帯：開錠・施錠時刻／学内施設時間／イベント時間／インフォメーションを、本部が決めた順番・回数・秒数・色で流す
+//  - 黒帯：開錠・施錠時刻／学内施設時間／イベント時間／ステージ出演／インフォメーションを、本部が決めた順番・回数・秒数・色で流す
 //    期間中（既定は情報のある日の最初〜最後）はその日の情報だけ。期間外と、日付で絞るのをOFFにしたときは全日程を順に
 //  - 時計の右側：9号館・10号館のエレベーター（9-EV・10-EV）の使用可否 ○／×／ー
 //    G倉庫IN：車両がG倉庫の中・外周から8m以内にいれば×、いなければ○。22時〜6時と、車両の位置を取得していないときはー
@@ -15,9 +15,9 @@
   const FAC_NOTE = { b4: '420教室', b10: '10101教室' };   // 開錠・施錠の基準
   const EVU = [['9', '9-EV', '9号館'], ['10', '10-EV', '10号館']];
   const WD = ['日', '月', '火', '水', '木', '金', '土'];
-  const SRC = ['lock', 'fac', 'evt', 'info'];
-  const SRC_NAME = { lock: '開錠・施錠', fac: '学内施設', evt: 'イベント', info: 'お知らせ' };
-  const DEF_COL = { lock: '#ffffff', fac: '#c3fae8', evt: '#ffe8cc', info: '#ffffff' };
+  const SRC = ['lock', 'fac', 'evt', 'act', 'info'];
+  const SRC_NAME = { lock: '開錠・施錠', fac: '学内施設', evt: 'イベント', act: 'ステージ', info: 'お知らせ' };
+  const DEF_COL = { lock: '#ffffff', fac: '#c3fae8', evt: '#ffe8cc', act: '#d0ebff', info: '#ffffff' };
   const SLIDE_MS = 600, POLL_MS = 60000, SCROLL_PX_S = 45, URGENT_MAX_MS = 30 * 60000;
   const CACHE_KEY = 'fest_sched_cache', SEEN_U_KEY = 'fest_band_seen_u';
 
@@ -49,7 +49,7 @@
     EVU.forEach(([u]) => { const e = d.ev[u] && typeof d.ev[u] === 'object' ? d.ev[u] : {}; d.ev[u] = { mode: e.mode || 'auto', days: e.days && typeof e.days === 'object' ? e.days : {} }; });
     const f = d.fac && typeof d.fac === 'object' ? d.fac : {};
     d.fac = { days: Array.isArray(f.days) ? f.days : [], items: Array.isArray(f.items) ? f.items.map(x => ({ n: x.n || '', h: x.h && typeof x.h === 'object' ? x.h : {} })) : [] };
-    d.evt = Array.isArray(d.evt) ? d.evt : [];
+    d.evt = Array.isArray(d.evt) ? d.evt.map(x => ({ d: x.d, items: (Array.isArray(x.items) ? x.items : []).map(it => Object.assign({}, it, { acts: Array.isArray(it.acts) ? it.acts : [] })) })) : [];
     d.info = Array.isArray(d.info) ? d.info.map(m => ({ id: m.id, t: m.t || '', on: m.on !== false, d: m.d || '', u: m.u || 0 })) : [];
     const b = d.band && typeof d.band === 'object' ? d.band : {}, bs = b.src && typeof b.src === 'object' ? b.src : {};
     d.band = { dateOnly: b.dateOnly !== false, from: b.from || '', to: b.to || '', src: {}, seq: Array.isArray(b.seq) ? b.seq.map(q => ({ s: q.s, n: q.n })) : SRC.map(s => ({ s, n: 1 })) };
@@ -169,6 +169,8 @@
       items: doc.fac.items.filter(x => x.n && x.h[d]).map(x => it(x.n, esc(x.h[d]))) })).filter(g => g.items.length);
     if (k === 'evt') return pick(doc.evt).filter(d => d.items && d.items.length)
       .map(d => ({ lab: SRC_NAME.evt + ' ' + dayLabel(d.d), items: d.items.map(x => it(x.n, esc(rangeTxt(x.from, x.to)), x.note ? '<small>（' + esc(x.note) + '）</small>' : '')) }));
+    if (k === 'act') return [].concat(...pick(doc.evt).map(d => d.items.filter(x => x.acts && x.acts.length)   // ステージごとに、出演の時間
+      .map(x => ({ lab: x.n + ' ' + dayLabel(d.d), items: x.acts.map(a => it(a.n, esc(rangeTxt(a.from, a.to)), a.note ? '<small>（' + esc(a.note) + '）</small>' : '')) }))));
     if (k === 'info') return doc.info.filter(m => m.on && m.t && (!day || !m.d || m.d === day)).map(m => ({ lab: SRC_NAME.info, items: [it(m.t, '')] }));
     return [];
   }

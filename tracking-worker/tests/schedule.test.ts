@@ -64,7 +64,7 @@ describe("黒帯に流す情報（学内施設・イベント・インフォメ�
   const extra = () => ({
     fac: { days: ["2030-01-05", "2030-01-04"], items: [{ n: " 売店 ", h: { "2030-01-04": "07:30-19:00", "2030-01-05": "休業", "2030-01-09": "9:00-10:00" } }] },
     evt: [
-      { d: "2030-01-05", items: [{ n: "ステージ", from: "13:00", to: "15:30", note: "" }] },
+      { d: "2030-01-05", items: [{ n: "ステージ", from: "13:00", to: "15:30", note: "", acts: [{ n: "出演A", from: "13:00", to: "13:30" }, { n: " 出演B ", from: "14:05", to: "15:00", note: "整理券" }] }] },
       { d: "2030-01-04", items: [{ n: "屋台", from: "09:15", to: "", note: "雨天中止" }] },
     ],
     info: [{ id: "a1", t: "  案内の文  ", d: "", u: 5 }],
@@ -75,7 +75,8 @@ describe("黒帯に流す情報（学内施設・イベント・インフォメ�
     const s = normalizeSchedule({ ...sample(), ...extra() });
     expect(s.fac).toEqual({ days: ["2030-01-04", "2030-01-05"], items: [{ n: "売店", h: { "2030-01-04": "7:30-19:00", "2030-01-05": "休業" } }] });
     expect(s.evt.map((d) => d.d)).toEqual(["2030-01-04", "2030-01-05"]);
-    expect(s.evt[0].items[0]).toEqual({ n: "屋台", from: "9:15", to: "", note: "雨天中止" });
+    expect(s.evt[0].items[0]).toEqual({ n: "屋台", from: "9:15", to: "", note: "雨天中止", acts: [] });
+    expect(s.evt[1].items[0].acts).toEqual([{ n: "出演A", from: "13:00", to: "13:30", note: "" }, { n: "出演B", from: "14:05", to: "15:00", note: "整理券" }]);
     expect(s.info).toEqual([{ id: "a1", t: "案内の文", on: true, d: "", u: 5 }]);
     expect(s.band.dateOnly).toBe(false);
     expect(s.band.src.evt).toEqual({ on: true, col: "#abcdef", sec: 9.5 });
@@ -90,7 +91,8 @@ describe("黒帯に流す情報（学内施設・イベント・インフォメ�
     expect(s.evt).toEqual([]);
     expect(s.info).toEqual([]);
     expect(s.band.dateOnly).toBe(true);
-    expect(s.band.seq.map((q) => q.s)).toEqual(["lock", "fac", "evt", "info"]);
+    expect(s.band.seq.map((q) => q.s)).toEqual(["lock", "fac", "evt", "act", "info"]);
+    expect(s.band.src.act).toEqual({ on: true, col: "#d0ebff", sec: 7.5 });
   });
 
   it("不正な値を拒否する", () => {
@@ -107,6 +109,8 @@ describe("黒帯に流す情報（学内施設・イベント・インフォメ�
       (x) => { x.fac.items[0].n = " "; },
       (x) => { x.evt[0].items[0].from = "25:00"; },
       (x) => { x.evt.push({ d: "2030-01-05", items: [] }); },
+      (x) => { (x.evt[0].items[0] as { acts: unknown[] }).acts[0] = { n: "", from: "13:00", to: "13:30" }; },
+      (x) => { (x.evt[0].items[0] as { acts: unknown[] }).acts[0] = { n: "出演", from: "13:60", to: "" }; },
     ];
     for (const f of bad) {
       const x = base();

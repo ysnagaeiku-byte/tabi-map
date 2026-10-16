@@ -1,7 +1,7 @@
 // たびマップ 本祭支援ツール：高度な設定（情報組込）— 本部版だけ
 // fest-schedule.js の後に読み込む。上部のタブ「高度な設定（情報組込）」か黒帯を押すと開く。
 //  - 黒帯の表示：日付で絞る（期間中はその日の情報だけ）・情報ごとの ON／文字の色／1ページの秒数・流す順番と回数
-//  - 開錠・施錠時間／学内施設時間（食堂・セブンイレブンなど）／イベント時間（屋台＝出店グランプリ・ステージ・フリマなど）／インフォメーション
+//  - 開錠・施錠時間／学内施設時間（食堂・セブンイレブンなど）／イベント時間（屋台＝出店グランプリ・ステージ・フリマなど。ステージは出演ごとの時間も）／インフォメーション
 // 値は受信APIの時刻表（/api/v1/schedule）にまとめて保存する（受信APIでも本部版のキーだけが変えられる）。
 // 編集中の内容は、保存する前からこの端末の黒帯で試せる（festSched.setPreview）。
 (function () {
@@ -9,9 +9,9 @@
   const S = window.festSched;
   if (!S || S.adv) return;
   const U = S.u, $ = U.$, esc = U.esc;
-  const TITLE = { top: '高度な設定（情報組込）', lock: '開錠・施錠時間', fac: '学内施設時間', evt: 'イベント時間', info: 'インフォメーション' };
+  const TITLE = { top: '高度な設定（情報組込）', lock: '開錠・施錠時間', fac: '学内施設時間', evt: 'イベント時間', act: 'ステージ出演', info: 'インフォメーション' };
   const EVT_PRESET = ['屋台（出店グランプリ）', 'LIVE STAGE', 'Green Stage', 'フリーマーケット'];
-  const A = S.adv = { view: 'top', draft: null, base: null, dirty: false, tab: { lock: 0, fac: 0, evt: 0 } };
+  const A = S.adv = { view: 'top', draft: null, base: null, dirty: false, tab: { lock: 0, fac: 0, evt: 0 }, actOpen: {} };   // actOpen：出演の時間を開いているイベント（日のタブ:行）
 
   const pad = t => { const m = /^(\d{1,2}):(\d{2})$/.exec(t || ''); return m ? m[1].padStart(2, '0') + ':' + m[2] : ''; };
   const unpad = v => v ? v.replace(/^0(\d)/, '$1') : '';
@@ -66,7 +66,8 @@
   // ---------- 各画面 ----------
   function viewTop() {
     const D = A.draft, b = D.band, day = S.bandDay();   // 編集中は S.preview（この下書き）で判定する
-    const cnt = { lock: D.days.length + '日', fac: D.fac.items.length + '施設', evt: D.evt.length + '日', info: D.info.filter(m => m.on).length + '/' + D.info.length + '件' };
+    const nAct = D.evt.reduce((t, d) => t + d.items.reduce((u, x) => u + x.acts.length, 0), 0);
+    const cnt = { lock: D.days.length + '日', fac: D.fac.items.length + '施設', evt: D.evt.length + '日' + (nAct ? '・出演' + nAct + '件' : ''), info: D.info.filter(m => m.on).length + '/' + D.info.length + '件' };
     let h = '<div class="fa-menu">' + ['lock', 'fac', 'evt', 'info'].map(k => '<button type="button" data-go="' + k + '"><b>' + TITLE[k] + '</b><small>' + cnt[k] + '</small></button>').join('') + '</div>';
     h += '<div class="fs-sec"><div class="set-label">黒帯の表示</div>'
       + '<label class="fa-line"><input type="checkbox" data-k="dateOnly"' + (b.dateOnly ? ' checked' : '') + ' /><span>日付で絞る（期間中はその日の情報だけを流す）</span></label>'
@@ -82,7 +83,7 @@
         + '<button type="button" data-act="seqUp" data-i="' + i + '"' + (i ? '' : ' disabled') + ' aria-label="上へ">↑</button><button type="button" data-act="seqDown" data-i="' + i + '"' + (i < b.seq.length - 1 ? '' : ' disabled') + ' aria-label="下へ">↓</button>'
         + '<button type="button" data-act="seqDel" data-i="' + i + '"' + (b.seq.length > 1 ? '' : ' disabled') + '>削除</button></div>').join('')
       + '</div><button type="button" class="set-save ghost fa-addbtn" data-act="seqAdd"' + (b.seq.length >= 12 ? ' disabled' : '') + '>手順を追加</button>'
-      + '<div class="set-help">上から順に流し、最後まで流したら最初に戻ります。1回＝その情報の全ページを1度ずつ。例：開錠・施錠時間を3回 → イベント時間を1回。<br>長い文は、表示してから左へ流して最後まで見せます。</div></div>';
+      + '<div class="set-help">上から順に流し、最後まで流したら最初に戻ります。1回＝その情報の全ページを1度ずつ。例：開錠・施錠時間を3回 → イベント時間を1回。<br>ステージ出演は「イベント時間」の各ステージの中で入力します。長い文は、表示してから左へ流して最後まで見せます。</div></div>';
     return h;
   }
   function viewLock() {
@@ -113,9 +114,19 @@
     h += '<div class="fa-evt">' + day.items.map((x, i) => '<div class="fa-row"><input type="text" maxlength="30" data-k="evt.n" data-i="' + i + '" value="' + esc(x.n) + '" placeholder="名称" />'
       + '<span class="fa-bts"><button type="button" data-act="evtUp" data-i="' + i + '"' + (i ? '' : ' disabled') + ' aria-label="上へ">↑</button><button type="button" data-act="evtDel" data-i="' + i + '">削除</button></span>'
       + '<div class="fa-row-t"><input type="time" data-k="evt.from" data-i="' + i + '" value="' + pad(x.from) + '" aria-label="開始" /><span>〜</span><input type="time" data-k="evt.to" data-i="' + i + '" value="' + pad(x.to) + '" aria-label="終了" />'
-      + '<input type="text" maxlength="40" class="fa-note" data-k="evt.note" data-i="' + i + '" value="' + esc(x.note) + '" placeholder="メモ（例：開場15:00）" /></div></div>').join('')
+      + '<input type="text" maxlength="40" class="fa-note" data-k="evt.note" data-i="' + i + '" value="' + esc(x.note) + '" placeholder="メモ（例：開場15:00）" /></div>' + actsHtml(x, i) + '</div>').join('')
       + '</div><div class="fa-presets"><span>追加：</span>' + EVT_PRESET.concat(['その他']).map(n => '<button type="button" data-act="evtAdd" data-n="' + esc(n === 'その他' ? '' : n) + '">' + esc(n) + '</button>').join('') + '</div>';
     return h + delDayBtn('evt', day.d);
+  }
+  function actsHtml(x, i) {   // ステージの出演ごとの時間（黒帯では「ステージ出演」として流す）
+    const open = A.actOpen[A.tab.evt + ':' + i];
+    let h = '<div class="fa-acts-h"><button type="button" data-act="actToggle" data-i="' + i + '">' + (open ? '出演の時間を閉じる' : '出演の時間（' + x.acts.length + '件）') + '</button></div>';
+    if (!open) return h;
+    return h + '<div class="fa-acts">' + x.acts.map((a, j) => '<div class="fa-row"><input type="text" maxlength="40" data-k="act.n" data-i="' + i + '" data-j="' + j + '" value="' + esc(a.n) + '" placeholder="出演者・団体" />'
+      + '<span class="fa-bts"><button type="button" data-act="actUp" data-i="' + i + '" data-j="' + j + '"' + (j ? '' : ' disabled') + ' aria-label="上へ">↑</button><button type="button" data-act="actDel" data-i="' + i + '" data-j="' + j + '">削除</button></span>'
+      + '<div class="fa-row-t"><input type="time" data-k="act.from" data-i="' + i + '" data-j="' + j + '" value="' + pad(a.from) + '" aria-label="開始" /><span>〜</span><input type="time" data-k="act.to" data-i="' + i + '" data-j="' + j + '" value="' + pad(a.to) + '" aria-label="終了" />'
+      + '<input type="text" maxlength="30" class="fa-note" data-k="act.note" data-i="' + i + '" data-j="' + j + '" value="' + esc(a.note) + '" placeholder="メモ（例：チケット制）" /></div></div>').join('')
+      + '<button type="button" class="set-save ghost fa-addbtn" data-act="actAdd" data-i="' + i + '"' + (x.acts.length >= 20 ? ' disabled' : '') + '>出演を追加</button></div>';
   }
   function viewInfo() {
     const D = A.draft, ds = U.datesOf(D);
@@ -182,6 +193,8 @@
       }
       case 'evt.n': case 'evt.note': D.evt[A.tab.evt].items[i][k.slice(4)] = v; return changed();
       case 'evt.from': case 'evt.to': if (live) return; D.evt[A.tab.evt].items[i][k.slice(4)] = unpad(v); return changed();
+      case 'act.n': case 'act.note': D.evt[A.tab.evt].items[i].acts[+t.dataset.j][k.slice(4)] = v; return changed();
+      case 'act.from': case 'act.to': if (live) return; D.evt[A.tab.evt].items[i].acts[+t.dataset.j][k.slice(4)] = unpad(v); return changed();
       case 'info.t': D.info[i].t = v; return changed();
       case 'info.on': if (live) return; D.info[i].on = t.checked; return changed(true);
       case 'info.d': if (live) return; D.info[i].d = v; return changed();
@@ -196,7 +209,7 @@
     switch (a.dataset.act) {
       case 'save': return save();
       case 'reset': A.draft = null; A.dirty = false; S.setPreview(null); render(); return;
-      case 'tab': A.tab[a.dataset.kind] = i; return render();
+      case 'tab': A.tab[a.dataset.kind] = i; A.actOpen = {}; return render();
       case 'addDay': return addDay(a.dataset.kind);
       case 'delDay': return delDay(a.dataset.kind);
       case 'seqUp': swap(D.band.seq, i, i - 1); return changed(true);
@@ -205,9 +218,13 @@
       case 'seqAdd': D.band.seq.push({ s: 'evt', n: 1 }); return changed(true);
       case 'facAdd': D.fac.items.push({ n: '', h: {} }); return changed(true);
       case 'facDel': if (D.fac.items[i].n && !confirm('「' + D.fac.items[i].n + '」を削除します（すべての日）')) return; D.fac.items.splice(i, 1); return changed(true);
-      case 'evtAdd': D.evt[A.tab.evt].items.push({ n: a.dataset.n || '', from: '', to: '', note: '' }); return changed(true);
+      case 'evtAdd': D.evt[A.tab.evt].items.push({ n: a.dataset.n || '', from: '', to: '', note: '', acts: [] }); return changed(true);
+      case 'actToggle': { const key = A.tab.evt + ':' + i; A.actOpen[key] = !A.actOpen[key]; return render(); }
+      case 'actAdd': D.evt[A.tab.evt].items[i].acts.push({ n: '', from: '', to: '', note: '' }); A.actOpen[A.tab.evt + ':' + i] = true; return changed(true);
+      case 'actUp': { const L = D.evt[A.tab.evt].items[i].acts, j = +a.dataset.j; swap(L, j, j - 1); return changed(true); }
+      case 'actDel': D.evt[A.tab.evt].items[i].acts.splice(+a.dataset.j, 1); return changed(true);
       case 'evtUp': swap(D.evt[A.tab.evt].items, i, i - 1); return changed(true);
-      case 'evtDel': D.evt[A.tab.evt].items.splice(i, 1); return changed(true);
+      case 'evtDel': if (D.evt[A.tab.evt].items[i].acts.length && !confirm('「' + D.evt[A.tab.evt].items[i].n + '」と出演の時間（' + D.evt[A.tab.evt].items[i].acts.length + '件）を削除します')) return; D.evt[A.tab.evt].items.splice(i, 1); A.actOpen = {}; return changed(true);
       case 'infoDel': if (!confirm('このメッセージを削除します')) return; D.info.splice(i, 1); return changed(true);
       case 'infoNow': D.info[i].u = Math.round(nowMs()); A.dirty = true; return save('「' + D.info[i].t.slice(0, 20) + (D.info[i].t.length > 20 ? '…' : '') + '」を各端末に送りました（1分以内に1回流れます）');
       case 'infoAdd': case 'infoAddNow': {
@@ -226,6 +243,7 @@
   function check(D) {
     if (D.fac.items.some(x => !String(x.n).trim())) return '学内施設時間：施設名が空の行があります';
     if (D.evt.some(d => d.items.some(x => !String(x.n).trim()))) return 'イベント時間：名称が空の行があります';
+    if (D.evt.some(d => d.items.some(x => x.acts.some(y => !String(y.n).trim())))) return 'イベント時間：出演者・団体が空の行があります';
     if (D.info.some(m => !String(m.t).trim())) return 'インフォメーション：空のメッセージがあります';
     if (D.band.from && D.band.to && D.band.from > D.band.to) return '黒帯の表示：期間の始めが終わりより後です';
     if (!D.band.seq.length) return '黒帯の表示：流す順番がありません';

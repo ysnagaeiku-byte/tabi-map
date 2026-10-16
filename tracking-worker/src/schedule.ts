@@ -15,7 +15,7 @@ export const FACILITIES = [
 export const EV_UNITS = ["9", "10"] as const;
 export const EV_MODES = ["auto", "ok", "ng", "none"] as const; // auto＝時間帯から判定、ok＝○、ng＝×、none＝ー
 export const MAX_SCHEDULE_BYTES = 64 * 1024;
-export const BAND_SRC = ["lock", "fac", "evt", "info"] as const; // 開錠・施錠／学内施設時間／イベント時間／インフォメーション
+export const BAND_SRC = ["lock", "fac", "evt", "act", "info"] as const; // 開錠・施錠／学内施設時間／イベント時間／ステージ出演／インフォメーション
 
 type FacilityKey = (typeof FACILITIES)[number][0];
 type EvUnit = (typeof EV_UNITS)[number];
@@ -43,11 +43,18 @@ export interface FacHours {
   days: string[]; // 列にする日
   items: { n: string; h: Record<string, string> }[]; // 施設名と、日ごとの営業時間（"8:00-20:00"・"休業"・自由記載。空＝記載なし）
 }
+export interface EventAct {
+  n: string; // 出演者・団体
+  from: string;
+  to: string;
+  note: string; // 例：開場15:00・チケット制
+}
 export interface EventItem {
   n: string; // 名称（例：出店グランプリ、LIVE STAGE）
   from: string;
   to: string;
   note: string;
+  acts: EventAct[]; // ステージの出演ごとの時間（黒帯では「ステージ出演」として流す）
 }
 export interface EventDay {
   d: string;
@@ -82,7 +89,7 @@ export interface Schedule {
   band: BandSettings;
 }
 
-export const BAND_DEFAULT_COL: Record<BandSrcKey, string> = { lock: "#ffffff", fac: "#c3fae8", evt: "#ffe8cc", info: "#ffffff" };
+export const BAND_DEFAULT_COL: Record<BandSrcKey, string> = { lock: "#ffffff", fac: "#c3fae8", evt: "#ffe8cc", act: "#d0ebff", info: "#ffffff" };
 export function defaultBand(): BandSettings {
   return {
     dateOnly: true,
@@ -236,7 +243,15 @@ export function normalizeSchedule(input: unknown): Schedule {
         const it = (y ?? {}) as Record<string, unknown>;
         const n = text(it.n, 30), note = text(it.note, 40), from = normTime(it.from), to = normTime(it.to);
         if (!n || note === null || from === null || to === null) fail("bad evt item");
-        return { n: n as string, from: from as string, to: to as string, note: note as string };
+        const ra = it.acts === undefined ? [] : Array.isArray(it.acts) ? (it.acts as unknown[]) : fail("bad evt acts");
+        if (ra.length > 20) fail("too many acts");
+        const acts = ra.map((z) => {
+          const a = (z ?? {}) as Record<string, unknown>;
+          const an = text(a.n, 40), anote = text(a.note, 30), af = normTime(a.from), at = normTime(a.to);
+          if (!an || anote === null || af === null || at === null) fail("bad act");
+          return { n: an as string, from: af as string, to: at as string, note: anote as string };
+        });
+        return { n: n as string, from: from as string, to: to as string, note: note as string, acts };
       }),
     };
   });
