@@ -1760,7 +1760,8 @@ function festInit(){
   try{map.addListener('click',()=>{if(!festB3d)festCardHide();});}catch(e){}
   if(rs&&rs.c&&festBase!=='p3d'){const cam={center:rs.c,zoom:rs.z,tilt:rs.t||0,heading:rs.h||0};
     if(map.moveCamera)map.moveCamera(cam);else{map.setCenter(cam.center);map.setZoom(cam.zoom);}}
-  else festFit();
+  else{festFit();   // 起動直後（ベクター地図の準備前）は縮尺が整数に丸められるので、準備ができたら合わせ直す（その間に動かしていなければ）
+    try{const once=google.maps.event.addListenerOnce(map,'idle',()=>{if(festAtFit()&&Math.abs((map.getZoom()||0)-festCamZoom())>0.05)festFit();});}catch(e){}}
   if(rs&&rs.tab&&rs.tab!==activeTab)try{selectTab(rs.tab);}catch(e){}
   if(rs&&rs.trk&&liveWatchId==null)try{startLiveLoc();}catch(e){}   // 昼/夜の切替の再読込で追跡が途切れないように
 }
