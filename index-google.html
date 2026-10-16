@@ -1761,8 +1761,9 @@ function festInit(){
   if(rs&&rs.c&&festBase!=='p3d'){const cam={center:rs.c,zoom:rs.z,tilt:rs.t||0,heading:rs.h||0};
     if(map.moveCamera)map.moveCamera(cam);else{map.setCenter(cam.center);map.setZoom(cam.zoom);}}
   else{festFit();   // 起動直後（ベクター地図の準備前）は縮尺が整数に丸められるので、準備ができたら合わせ直す（その間に動かしていなければ）
-    try{const fix=()=>{if(!map.getRenderingType||map.getRenderingType()!=='VECTOR')return false;if(festAtFit()&&Math.abs((map.getZoom()||0)-festCamZoom())>0.05)festFit();return true;};
-      if(!fix()){const l=map.addListener('renderingtype_changed',()=>{if(fix())l.remove();});}}catch(e){}}
+    try{const refit=()=>{if(festAtFit()&&Math.abs((map.getZoom()||0)-festCamZoom())>0.05)festFit();};   // ベクター地図に切り替わった直後もまだ丸められるので、落ち着いてから
+      const onVec=()=>{google.maps.event.addListenerOnce(map,'idle',refit);setTimeout(refit,800);setTimeout(refit,2000);};   // 動かしていなければ合わせる（合っていれば何もしない）
+      if(map.getRenderingType&&map.getRenderingType()==='VECTOR')onVec();else{const l=map.addListener('renderingtype_changed',()=>{if(map.getRenderingType()==='VECTOR'){l.remove();onVec();}});}}catch(e){}}
   if(rs&&rs.tab&&rs.tab!==activeTab)try{selectTab(rs.tab);}catch(e){}
   if(rs&&rs.trk&&liveWatchId==null)try{startLiveLoc();}catch(e){}   // 昼/夜の切替の再読込で追跡が途切れないように
 }
