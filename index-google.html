@@ -607,7 +607,7 @@
     #menuBtn{display:flex;width:38px;height:38px;font-size:17px;}
     #festBaseBar{top:calc(96px + env(safe-area-inset-top));right:10px;}   /* スマホは丸ボタンがメニュー内なので、タブの行の下に出す（タブに隠れていた） */
     #festBaseBar .seg button{padding:0 8px;font-size:11px;}
-    html.fest .fest-r3l{font-size:9.5px;} html.fest .fp-ev{width:19px;height:19px;font:900 10.5px/15px sans-serif;border-width:2px;} html.fest .fp-lb{font-size:8.5px;}   /* スマホは学内施設の文字などを少し小さく */
+    html.fest .fest-r3l{font-size:8.5px;} html.fest .fp-ev{width:19px;height:19px;font:900 10.5px/15px sans-serif;border-width:2px;} html.fest .fp-lb{font-size:8.5px;}   /* スマホは学内施設の文字などを少し小さく */
     html.fest #liveClock{top:auto;}
     #topActions{position:absolute;top:calc(100% + 6px);right:0;flex-direction:column;align-items:stretch;gap:2px;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 14px 34px var(--shadow);padding:6px;z-index:1300;display:none;min-width:168px;}
     #topActions.open{display:flex;}
@@ -770,8 +770,8 @@
   .fp-ev{width:22px;height:22px;border-radius:50%;background:#e03131;border:2.5px solid #fff;color:#fff;font:900 12px/17px sans-serif;text-align:center;box-shadow:0 1px 4px rgba(0,0,0,.35);box-sizing:border-box;}
   .fp-lb{font-size:9.5px;font-weight:800;color:#c92a2a;text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff;white-space:nowrap;}
   [data-theme="dark"] .fp-lb{color:#ffc9c9;text-shadow:0 0 3px #000,0 0 3px #000;}
-  .fp-p{width:18px;height:18px;border-radius:4px;background:#1971c2;border:2px solid #fff;color:#fff;font:900 11px/14px sans-serif;text-align:center;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,.3);}
-  .fp-p.sm{width:14px;height:14px;border-radius:3px;border-width:1.5px;font:900 9px/11px sans-serif;}   /* 有料・9号館駐車場以外のPは少し小さく */
+  .fp-p{width:15px;height:15px;border-radius:3.5px;background:#1971c2;border:1.7px solid #fff;color:#fff;font:900 9.5px/11.6px sans-serif;text-align:center;box-sizing:border-box;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  .fp-p.sm{width:12px;height:12px;border-radius:2.5px;border-width:1.3px;font:900 7.5px/9.4px sans-serif;}   /* 有料・9号館駐車場以外のPは少し小さく */
   .fp-mc,.fp-gb{line-height:0;filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));}
   .fest-pin.fz-tiny>.fp-gb{transform:scale(.55);}   /* ごみ収集場所の印：既定の視点では極小 */
   .fest-pin>.fp-ln{display:block;line-height:0;} .fest-pin.fz-tiny>.fp-ln{display:none;}   /* 出店区画の提灯：既定の視点では出さない */
@@ -850,7 +850,7 @@
   #mapLegend .fest-lg i.pk{width:13px;height:13px;border-radius:3px;background:#1971c2;color:#fff;font-style:normal;font-size:9px;font-weight:800;text-align:center;line-height:13px;margin:0 1.5px;}
   #mapLegend .fest-lg i.wk{height:3px;background:repeating-linear-gradient(90deg,#2f9e44 0 4px,transparent 4px 7px);}
   .fest-r3{position:absolute;left:0;top:0;right:0;bottom:0;pointer-events:none;z-index:1;overflow:hidden;}
-  .fest-r3l{position:absolute;left:0;top:0;font-size:10.5px;font-weight:800;color:#2b1a66;white-space:nowrap;will-change:transform;
+  .fest-r3l{position:absolute;left:0;top:0;font-size:9.5px;font-weight:800;color:#2b1a66;white-space:nowrap;will-change:transform;
     text-shadow:0 0 3px #fff,0 0 3px #fff,0 0 2px #fff,0 0 1px #fff;}
   [data-theme="dark"] .fest-r3l{color:#fff;text-shadow:0 0 3px #000,0 0 3px #000,0 0 2px #000,0 0 1px #000;}
   .fest-lbl-d{text-shadow:0 0 3px #000,0 0 3px #000,0 0 2px #000,0 0 1px #000;}
@@ -1421,7 +1421,7 @@ if(FEST){   // 同じオリジンでも保存キーを分ける（APIキーと�
       clear:()=>raw.clear(),key:i=>raw.key(i),get length(){return raw.length;}};
     Object.defineProperty(window,'localStorage',{configurable:true,get:()=>shim});
   }catch(e){console.warn('fest storage',e);}
-  document.title='たびマップ 本祭支援ツール（専修大学 鳳祭）';
+  document.title='たびマップ 本祭支援ツール';
   document.documentElement.classList.add('fest');   // 試験用だけのUI調整（画像出力ボタンを出さない等）
   const vg=document.getElementById('verGoogle'),vt=document.getElementById('verTest');
   if(vg)vg.classList.remove('on');if(vt)vt.classList.add('on');
@@ -4371,9 +4371,9 @@ function updateMapOverlayInfo(){
     attr.push('天気: Open-Meteo.com（CC BY 4.0）');
     if(festPinsActive())attr.push('地形・道路: 国土地理院（標高・道路中心線）・緑地: © OpenStreetMap contributors');
     if(festWayOn){attr.push('道路の幅員: 国土交通省 PLATEAU（川崎市2022）');
-      html+='<div class="lg-block"><div class="lg-ttl">構内の動線（下書き）</div>'
+      html+='<div class="lg-block"><div class="lg-ttl">構内の動線</div>'
         +[['vin','#d4a017','構内道路'],['vthru','#d9480f','主要道路'],['bus','#1c7ed6','路線バス']].filter(x=>festWayL[x[0]]).map(([k,c,t])=>'<div class="fest-lg"><i style="background:'+c+'"></i>'+t+'</div>').join('')
-        +(festWayL.vent?'<div class="fest-lg"><i class="dia"></i>車両の出入口（候補）</div>':'')+(festWayL.walk?'<div class="fest-lg"><i class="wk"></i>歩道</div>':'')+'</div>';}
+        +(festWayL.vent?'<div class="fest-lg"><i class="dia"></i>車両の出入口</div>':'')+'</div>';}
     if(festCampusOn)attr.push('建物: 国土交通省 PLATEAU（川崎市2022）・名称: 専修大学 生田キャンパス配置図');
     if(festCampusOn||festOsmOn||festWayOn||festFacOn)attr.push('名称・動線: © OpenStreetMap contributors');
   }
@@ -5812,7 +5812,7 @@ function toggleWeatherMode(){
    内蔵データ（取得待ちなしで描画。形状は © OpenStreetMap contributors / ODbL 由来）
      FEST_CAMPUS キャンパス外周69点／FEST_BLD 建物63棟（外形・高さ=PLATEAU、名称=大学公式の配置図・OSM・位置照合の推定）
      FEST_VEH 車両動線（構内道路・構内を通る道路・周辺の道路。幅員つき）／FEST_VENT 車両の出入り地点／FEST_PARK 駐車場／FEST_BUS・FEST_BSTOP 路線バス
-     FEST_WALK 歩道／FEST_FAC 構内の施設
+     FEST_FAC 構内の施設
    ※OSMの構内情報は部分的なので、本部用の正確な動線・施設は簡易編集で足していく前提。
    ベースマップ：標準（建物・道路を強調）／航空写真／3D（ベクター地図のMap IDがあれば建物が立体） */
 const FEST_BOUNDS={s:35.6068,w:139.5496,n:35.6190,e:139.5668};
@@ -5926,7 +5926,7 @@ function festDrawCampus(on){
   FEST_PARK.forEach(k=>{   // 駐車場（キャンパス詳細の一部）
     if(!terr){const pg=new google.maps.Polygon({paths:k.p.map(p=>({lat:p[0],lng:p[1]})),strokeColor:k.fee?'#e67700':'#1971c2',strokeOpacity:.9,strokeWeight:1.5,fillColor:k.fee?'#ffd43b':'#4dabf7',fillOpacity:k.fee?.38:.22,map,clickable:true,zIndex:3});   // 有料は黄色
       pg.addListener('click',e=>festVehInfo(k,e.latLng));festShapes.push(pg);festVehObj[k.id]=pg;}
-    const big=festPkBig(k),pw=k.bk?17:(big?18:14),ph=k.bk?Math.round(pw*15/17):pw;   // 有料・9号館駐車場は大きいP、その他は少し小さく。バイクは三角にP
+    const big=festPkBig(k),pw=k.bk?14:(big?15:12),ph=k.bk?Math.round(pw*15/17):pw;   // 有料・9号館駐車場は大きいP、その他は少し小さく。バイクは三角にP
     festShapes.push(festMk('pk_'+k.id,k.c[0],k.c[1],k.bk?'<div class="fp-mc">'+FEST_MC_SVG+'</div>':'<div class="fp-p'+(big?'':' sm')+'">P</div>',k.n,()=>festVehInfo(k,null),
       {clickable:true,zIndex:6,icon:{url:k.bk?FEST_MC_ICON:FEST_P_ICON,scaledSize:new google.maps.Size(pw,ph),anchor:new google.maps.Point(pw/2,ph/2)}}));
   });
@@ -5972,7 +5972,7 @@ function festDrawCampus(on){
       {clickable:false,zIndex:6,icon:{url:FEST_P_ICON,scaledSize:new google.maps.Size(14,14),anchor:new google.maps.Point(7,7)}}));
     if(named&&!b.nl&&!roof3d)festLabels.push(new google.maps.Marker({position:{lat:b.c[0],lng:b.c[1]},map:null,clickable:false,zIndex:6,
       icon:{path:google.maps.SymbolPath.CIRCLE,scale:.1,fillOpacity:0,strokeOpacity:0},
-      label:{text:b.n,fontSize:festSmall()?(tilt3d?'9.5px':'9px'):(tilt3d?'10.5px':'10px'),fontWeight:'800',color:light?'#ffffff':'#2b1a66',className:lcls}}));
+      label:{text:b.n,fontSize:festSmall()?(tilt3d?'8.5px':'8px'):(tilt3d?'9.5px':'9px'),fontWeight:'800',color:light?'#ffffff':'#2b1a66',className:lcls}}));
   });
   if(festBase==='map')FEST_VEH.filter(v=>v.t&&/WING/.test(v.n)).forEach(v=>{const a=v.p[0],b=v.p[v.p.length-1];   // 標準地図：トンネルの名前（白地図は白地図の側で表示）
     festLabels.push(new google.maps.Marker({position:{lat:(a[0]+b[0])/2-0.00006,lng:(a[1]+b[1])/2},map:null,clickable:false,zIndex:5,
@@ -6032,7 +6032,6 @@ async function festP3dOpen(){
     line(ring,'#9775fa',5,'#ffffff');
     if(festWayOn){
       FEST_VEH.filter(festVehShown).forEach(w=>line(P(w.p),(FEST_VEH_ST[w.k]||FEST_VEH_ST.in).c,w.k==='edge'?5:7));   // 単色（白い縁なし）
-      FEST_WALK.forEach(w=>line(P(w.p),'#51cf66',4));
     }
     // ラベルは「遠いと主要な建物だけ→寄るほど細かく」出し分け、重なるものは優先度の低い方を自動で隠す。
     // 既定の大きなピンではなく小さな点にし、地面からの棒（extruded）も出さない
@@ -6069,7 +6068,7 @@ function festP3dTier(){   // カメラの距離(range)で表示する段階を�
 //     データは fest-shiro.json（約210KB）。白地図を初めて開いたときだけ読み込む。構内の建物は FEST_BLD（PLATEAU）で描く
 const FEST_DATA_V=7;
 const FEST_P_ICON='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 22 22"><rect x="1" y="1" width="20" height="20" rx="4" fill="#1971c2" stroke="#ffffff" stroke-width="2"/><path d="M8 17V5.5h4.2a3.6 3.6 0 0 1 0 7.2H8" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linejoin="round"/></svg>');
-const FEST_MC_SVG='<svg xmlns="http://www.w3.org/2000/svg" width="17" height="15" viewBox="0 0 22 19.4"><path d="M11 1.6 20.6 18H1.4Z" fill="#1971c2" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.9 16.2V8.6h2.5a2.25 2.25 0 0 1 0 4.5H8.9" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linejoin="round"/></svg>';   // バイク置き場：三角の枠にP
+const FEST_MC_SVG='<svg xmlns="http://www.w3.org/2000/svg" width="14" height="12.4" viewBox="0 0 22 19.4"><path d="M11 1.6 20.6 18H1.4Z" fill="#1971c2" stroke="#ffffff" stroke-width="1.8" stroke-linejoin="round"/><path d="M8.9 16.2V8.6h2.5a2.25 2.25 0 0 1 0 4.5H8.9" fill="none" stroke="#ffffff" stroke-width="1.9" stroke-linejoin="round"/></svg>';   // バイク置き場：三角の枠にP
 const FEST_MC_ICON='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(FEST_MC_SVG);
 const FEST_GB_SVG='<svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 18 18"><rect x="1" y="1" width="16" height="16" rx="3.5" fill="#8a5a2b" stroke="#ffffff" stroke-width="1.6"/><path d="M5 6.2h8M7.4 6.2V4.8h3.2v1.4M6.1 7.6l.6 5.8h4.6l.6-5.8" fill="none" stroke="#ffffff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';   // ごみ収集場所：ごみ箱の印
 const FEST_GB_ICON='data:image/svg+xml;charset=UTF-8,'+encodeURIComponent(FEST_GB_SVG);
@@ -6886,7 +6885,6 @@ function festTerrainGeom(dark,TT,TD,TL,add,C,TC,TR,TB){
   if(festWayOn){
     if(festWayL.bus)FEST_BUS.forEach(b=>ribbon(b.p,b.m?7:5,C(dark?'#1b4a7a':'#a5d8ff'),.4));
     FEST_VEH.forEach(vv=>{if(!festWayL[{in:'vin',thru:'vthru',edge:'vthru'}[vv.k]]||vv.hid)return;ribbon(vv.p,vv.k==='edge'?4.4:(vv.k==='thru'?8:5),C((FEST_VEH_ST[vv.k]||FEST_VEH_ST.in).c),vv.k==='thru'?.6:.55);});   // 構内を通る道路は太く強調、周辺の道路も少し太く
-    if(festWayL.walk)FEST_WALK.forEach(w=>lineDrape(w.p,C('#2f9e44'),.6));
   }
   // カスタムタブの「鉄道」「高速道路」の強調：3Dの地面の上に帯で描く（Google側の地図は地形に隠れるため）。小田急線は線路の模型の上（festRailGeom）
   if(festRail){if(festEmphOn('rail'))(festRail.x||[]).forEach(LL=>ribbon(LL,3.4,C('#7048e8'),.9));   // 小田急線以外（JR南武線）：地面の上に紫の帯
@@ -7272,7 +7270,7 @@ function festBldOpen(){
 // --- 構内の動線（車両が通れる道・歩道）
 // 構内の動線の要素（レイヤーで個別に表示/非表示）
 const FEST_WAYL=[['vin','構内道路','#d4a017'],['vthru','主要道路','#d9480f'],['bus','路線バス','#1c7ed6'],
-  ['bstop','バス停','#1c7ed6'],['vent','車両の出入口（候補）','#e8590c'],['walk','歩道','#2f9e44']];
+  ['bstop','バス停','#1c7ed6'],['vent','車両の出入口（候補）','#e8590c']];
 let festWayL={};FEST_WAYL.forEach(x=>festWayL[x[0]]=true);
 function festWayLLoad(){try{const j=JSON.parse(localStorage.getItem('tabi_fest_wayl')||'null');if(j)FEST_WAYL.forEach(x=>{if(typeof j[x[0]]==='boolean')festWayL[x[0]]=j[x[0]];});}catch(e){}}
 function festWayLSave(){try{localStorage.setItem('tabi_fest_wayl',JSON.stringify(festWayL));}catch(e){}}
@@ -7311,11 +7309,6 @@ function festDrawWays(on,keepSel){
       label:{text:b.n,fontSize:'9px',fontWeight:'700',color:'#1864ab',className:'fest-lbl'}});
     lab.__vlab=true;festWayShapes.push(lab);}
   });
-  const wclip=festBase==='white'?festShiroClipper():null;   // 白地図：建物の中に入る部分は描かない
-  if(L.walk&&!terr)FEST_WALK.forEach(w=>(wclip?wclip(w.p):[w.p]).forEach(seg=>{  // 歩道：緑の破線
-    festWayShapes.push(new google.maps.Polyline({path:P(seg),strokeOpacity:0,map,clickable:false,zIndex:5,
-      icons:[{icon:{path:'M 0,-1 0,1',strokeColor:'#2f9e44',strokeOpacity:.95,strokeWeight:3.4,scale:1},offset:'0',repeat:'9px'}]}));
-  }));
   festLabelZoom();
   try{renderToolMenu();}catch(e){}
   updateMapOverlayInfo();
@@ -7539,7 +7532,6 @@ const FEST_BUS=[{"p":[[35.614608,139.552791],[35.614931,139.552853],[35.61536,13
 // 避難場所（学生課の避難経路図）。建物ごとの割り当ては FEST_BLD の ev
 const FEST_EVAC=[{"k":"A","n":"生田緑地","c":[35.60935,139.557]},{"k":"B","n":"10号館前広場","c":[35.611785,139.554456]},{"k":"C","n":"北グラウンド","c":[35.613205,139.553679]},{"k":"D","n":"西グラウンド","c":[35.6101,139.55173]}];
 const FEST_BSTOP=[{"n":"専修大学9号館","c":[35.610913,139.5536],"r":"向10（構内の終点）"},{"n":"専修大学前","c":[35.60843,139.554133],"r":"向10"},{"n":"専修大学120年記念館前","c":[35.611203,139.551415],"r":"向10"},{"n":"専修大学入口・川崎ゴルフ場入口","c":[35.607565,139.551958],"r":"向11・向12"},{"n":"明大入口","c":[35.613861,139.552529],"r":"向10"},{"n":"向ヶ丘遊園駅","c":[35.617914,139.564486],"r":"各系統の起点"}];
-const FEST_WALK=[{"p":[[35.60851,139.554115],[35.608635,139.554596],[35.608658,139.554721],[35.60869,139.554848]]},{"p":[[35.61071,139.551706],[35.61077,139.551463],[35.610824,139.551347]]},{"p":[[35.611501,139.551947],[35.611501,139.552004],[35.611501,139.552049],[35.611421,139.552126],[35.611372,139.552145],[35.611294,139.552162],[35.611243,139.552169],[35.611082,139.552181],[35.61097,139.552216]]},{"p":[[35.610374,139.554416],[35.610361,139.554478],[35.610328,139.554626],[35.6103,139.554753],[35.610272,139.554735]]},{"p":[[35.610361,139.554478],[35.610461,139.554516]]},{"p":[[35.610328,139.554626],[35.610856,139.554839],[35.61094,139.555091]]},{"p":[[35.610426,139.553309],[35.610433,139.553254],[35.610584,139.553035]]},{"p":[[35.610073,139.55541],[35.610004,139.555657]]},{"p":[[35.609207,139.555051],[35.609161,139.5552],[35.609572,139.555396],[35.609497,139.55564]]},{"p":[[35.609161,139.5552],[35.609097,139.555413]]},{"p":[[35.61209,139.555516],[35.611933,139.555284],[35.611901,139.554991],[35.611857,139.554995]]},{"p":[[35.610668,139.553706],[35.610898,139.553685]]},{"p":[[35.61112,139.554193],[35.611113,139.554135],[35.610756,139.554171],[35.610736,139.553952],[35.610685,139.553923]]}];
 const FEST_FAC=[{"k":"convenience","n":"セブン","c":[35.609369,139.554316]},{"k":"cafe","n":"スエヒロ","c":[35.609053,139.556042]},{"k":"gate","n":"","c":[35.609207,139.555051]},{"k":"atm","n":"","c":[35.60986,139.55454]},{"k":"bicycle_rental","n":"専修大学10号館前","c":[35.611695,139.55546]},{"k":"fast_food","n":"モスバーガー","c":[35.61124,139.554557]},{"k":"post_box","n":"","c":[35.609656,139.555146]},{"k":"telephone","n":"","c":[35.609678,139.55515]},{"k":"vending_machine","n":"","c":[35.610141,139.554978]},{"k":"vending_machine","n":"コカ・コーラ","c":[35.610146,139.554962]},{"k":"vending_machine","n":"コカ・コーラ","c":[35.610151,139.554949]},{"k":"vending_machine","n":"セブンティーンアイス","c":[35.610156,139.554932]},{"k":"atm","n":"","c":[35.610363,139.554543]},{"k":"waste_basket","n":"","c":[35.608557,139.555331]},{"k":"recycling","n":"","c":[35.608564,139.555335]},{"k":"recycling","n":"","c":[35.608569,139.555338]}];
 
 /* ===== 走行支援ナビ（提案A）＋ Googleマップへの案内受け渡し（提案C） ======================

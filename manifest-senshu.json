@@ -1,6 +1,6 @@
 {
   "id": "./index-google.html?m=senshu",
-  "name": "本祭支援ツール（専修大学 鳳祭）",
+  "name": "本祭支援ツール",
   "short_name": "本祭支援",
   "description": "鳳祭の本部向け地図。構内の建物・動線、車両の位置、開錠・施錠時刻をまとめて表示。",
   "start_url": "./index-google.html?m=senshu",
