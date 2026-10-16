@@ -177,8 +177,8 @@
     const pop = (typeof d.pop === 'number' && isFinite(d.pop)) ? Math.round(d.pop) : null;
     const tip = '今日の天気（専修大学周辺）：' + k[1] + '・最高' + num(d.hi) + '℃・最低' + num(d.lo) + '℃' + (pop != null ? '・降水確率' + pop + '%' : '') + '（Open-Meteo）';
     return '<div class="lc-wx-in" title="' + esc(tip) + '"><svg class="wx-ic" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + WX_SVG[k[2]] + '</svg>'
-      + '<span class="wx-t">' + esc(k[0]) + '</span><span class="wx-tp"><b class="wx-hi">' + num(d.hi) + '</b><i>/</i><b class="wx-lo">' + num(d.lo) + '</b><i>℃</i></span>'
-      + (pop != null ? '<span class="wx-p"><i>降水</i><b>' + pop + '</b><i>%</i></span>' : '') + '</div>';
+      + '<span class="wx-t">' + esc(k[0]) + '</span><span class="wx-tp"><b class="wx-hi">' + num(d.hi) + '</b><i>/</i><b class="wx-lo">' + num(d.lo) + '</b><i>℃</i>'
+      + (pop != null ? '<span class="wx-p" aria-label="降水確率"><svg class="wx-drop" viewBox="0 0 10 12" aria-hidden="true"><path d="M5 .8S1.4 5.4 1.4 7.8a3.6 3.6 0 0 0 7.2 0C8.6 5.4 5 .8 5 .8z"/></svg><b>' + pop + '</b><i>%</i></span>' : '') + '</span></div>';   // 降水確率はしずく＋%（詳しくは説明に）
   }
   // エレベーター（15秒）⇔ 天気（7秒）を、フェードアウト→フェードインで入れ替える。G倉庫INは入れ替えない
   let wxShown = false, wxTm = null;
