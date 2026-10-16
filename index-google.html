@@ -960,6 +960,42 @@
   .lc-ev-u b{font-size:17px;font-weight:900;}
   .lc-ev-u .ev-ok{color:#2f9e44;} .lc-ev-u .ev-ng{color:#e03131;} .lc-ev-u .ev-na{color:var(--muted);}
   [data-theme="dark"] .lc-ev-u .ev-ok{color:#69db7c;} [data-theme="dark"] .lc-ev-u .ev-ng{color:#ff8787;}
+  /* エレベーター（15秒）⇔ 今日の天気（7秒）：同じ場所に重ねて、フェードアウト→フェードインで入れ替える（幅は広い方に合わせて固定） */
+  html.fest #lcEv .lc-rot{display:grid;align-items:center;}
+  html.fest #lcEv .lc-rot>div{grid-area:1/1;display:flex;align-items:center;gap:12px;}
+  #lcEv .lc-ev-a{justify-content:space-around;transition:opacity .6s ease .6s;}   /* 天気の幅に合わせた枠の中に均等に並べる */
+  #lcEv .lc-wx{opacity:0;visibility:hidden;pointer-events:none;transition:opacity .6s ease,visibility 0s linear .6s;}
+  #lcEv .lc-rot.wx .lc-ev-a{opacity:0;transition-delay:0s;}
+  #lcEv .lc-rot.wx .lc-wx{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .6s ease .6s,visibility 0s linear .6s;}
+  .lc-wx-in{display:flex;align-items:center;gap:5px;line-height:1;white-space:nowrap;}
+  .lc-wx-in .wx-ic{width:20px;height:20px;flex:none;}
+  .lc-wx-in .wx-t{font-size:11px;font-weight:800;letter-spacing:.3px;color:var(--fg);}
+  .lc-wx-in b{font-weight:900;font-variant-numeric:tabular-nums;} .lc-wx-in .wx-tp b{font-size:15px;}
+  .lc-wx-in .wx-hi{color:#e8590c;} .lc-wx-in .wx-lo{color:#1c7ed6;} .lc-wx-in .wx-p b{font-size:13px;color:#1c7ed6;}
+  .lc-wx-in i{font-style:normal;font-size:10px;font-weight:700;color:var(--muted);margin:0 1px;}
+  [data-theme="dark"] .lc-wx-in .wx-hi{color:#ff922b;} [data-theme="dark"] .lc-wx-in .wx-lo,[data-theme="dark"] .lc-wx-in .wx-p b{color:#74c0fc;}
+  @media(max-width:600px){
+    html.fest #lcEv .lc-rot>div{gap:8px;}
+    .lc-wx-in{gap:3px;} .lc-wx-in .wx-ic{width:14px;height:14px;} .lc-wx-in .wx-t{display:none;}   /* スマホはアイコンと数字だけ */
+    .lc-wx-in .wx-tp b{font-size:12px;} .lc-wx-in .wx-p b{font-size:11px;} .lc-wx-in i{font-size:8px;}
+  }
+  /* 構内図（8号館・9号館・10号館。大学公式の配置図） */
+  .fest-floor-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;margin:2px 0 4px;padding:9px 10px;border-radius:10px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);font-size:13px;font-weight:800;cursor:pointer;}
+  .fest-floor-btn svg{width:17px;height:17px;}
+  #festFloorOverlay .ff-modal{max-width:760px;height:min(92dvh,920px);max-height:none;overflow:hidden;display:flex;flex-direction:column;padding:14px;}
+  #festFloorOverlay .modal-h{margin-bottom:8px;}
+  .ff-tabs{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:8px;min-height:0;}
+  .ff-tabs button{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:5px 11px;font-size:12px;font-weight:800;cursor:pointer;}
+  .ff-tabs button.on{background:var(--accent-btn);border-color:var(--accent-btn);color:#fff;}
+  .ff-one{font-size:12px;font-weight:800;color:var(--muted);}
+  .ff-view{position:relative;flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;background:#ffffff;border:1px solid var(--line);border-radius:10px;}
+  .ff-view img{display:block;margin:0 auto;max-width:none;user-select:none;-webkit-user-select:none;}
+  .ff-msg{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:20px;text-align:center;font-size:13px;font-weight:600;color:#495057;line-height:1.6;}
+  .ff-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px;}
+  .ff-zoom{display:flex;align-items:center;gap:6px;} .ff-zoom span{min-width:44px;text-align:center;font-size:12px;font-weight:800;color:var(--muted);}
+  .ff-zoom button{width:36px;height:32px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--fg);font-size:18px;font-weight:800;cursor:pointer;}
+  #ffPdf{font-size:12.5px;font-weight:800;color:var(--accent);}
+  .ff-src{margin-top:6px;font-size:10.5px;line-height:1.5;color:var(--muted);} .ff-src a{color:var(--accent);}
   html.fest #navCard{top:calc(140px + var(--fb) + env(safe-area-inset-top));}
   @media (min-width:768px){html.fest #festCard{top:calc(112px + var(--fb) + env(safe-area-inset-top));}}
   @media(max-width:600px){
@@ -2256,7 +2292,7 @@ function festInstallInit(){
   festInstallUi();
 }
 // 車両の位置の取得・一覧は fest-vehicle-tracking.js（本祭支援ツールのときだけ読み込む）
-const FEST_TRK_V=10;
+const FEST_TRK_V=11;
 function festTrkLoad(){
   if(!FEST||window.festHttp)return;
   const sc=document.createElement('script');sc.src='fest-vehicle-tracking.js?v='+FEST_TRK_V;
@@ -4327,6 +4363,7 @@ function updateMapOverlayInfo(){
   }
   if(FEST){
     if(festBase==='white')attr.push('白地図: 国土地理院 基盤地図情報を加工して作成');
+    attr.push('天気: Open-Meteo.com（CC BY 4.0）');
     if(festPinsActive())attr.push('地形・道路: 国土地理院（標高・道路中心線）・緑地: © OpenStreetMap contributors');
     if(festWayOn){attr.push('道路の幅員: 国土交通省 PLATEAU（川崎市2022）');
       html+='<div class="lg-block"><div class="lg-ttl">構内の動線（下書き）</div>'
@@ -6206,7 +6243,7 @@ const FEST_B3D_O={lat:35.6100,lng:139.5540}, FEST_ER=6371010;
 const FEST_STN3D=[{"n":"向ヶ丘遊園駅","c":[35.617508,139.56479],"parts":[[11.6,[[35.617452,139.564616],[35.617465,139.564607],[35.617374,139.564401],[35.617375,139.564401],[35.617344,139.56433],[35.617315,139.564349],[35.617331,139.564384],[35.617295,139.564408],[35.617309,139.564441],[35.617358,139.564411],[35.617358,139.564412],[35.617362,139.564409]]],[10.9,[[35.616989,139.564684],[35.617043,139.564651],[35.616971,139.564483],[35.616999,139.564466],[35.616928,139.5643],[35.616897,139.56432],[35.616878,139.564275],[35.616865,139.564284],[35.616917,139.564406],[35.616869,139.564439],[35.616936,139.564589],[35.616948,139.564582]]],[3.9,[[35.6176,139.565073],[35.617644,139.565043],[35.617607,139.56496],[35.617562,139.564989]]],[4.4,[[35.616835,139.564452],[35.61691,139.564402],[35.616835,139.564232],[35.616761,139.564282]]],[10.6,[[35.617044,139.564809],[35.617109,139.564769],[35.617064,139.564658],[35.61705,139.564668],[35.617047,139.564662],[35.616997,139.564693]]],[9.3,[[35.61752,139.564933],[35.617633,139.564859],[35.617566,139.564706],[35.617553,139.564714],[35.61753,139.564661],[35.617498,139.564682],[35.61747,139.564618],[35.617451,139.564631],[35.617435,139.564595],[35.617398,139.564619],[35.617465,139.564773],[35.617453,139.56478]]],[6.9,[[35.617619,139.56494],[35.617597,139.564887],[35.617511,139.564943],[35.617546,139.565025],[35.617567,139.565011],[35.617554,139.564982]]]]},{"n":"登戸駅","c":[35.621113,139.569546],"parts":[[11.4,[[35.620692,139.570398],[35.62069,139.570401],[35.620651,139.570505],[35.620607,139.570598],[35.620531,139.570748],[35.620568,139.570774],[35.620591,139.570736],[35.620667,139.570597],[35.620744,139.57045],[35.620752,139.570435]]],[6.1,[[35.620491,139.570436],[35.620464,139.570504],[35.620518,139.570539],[35.620516,139.570543],[35.620475,139.570629],[35.620413,139.570741],[35.620358,139.570842],[35.620306,139.570936],[35.620293,139.570956],[35.620321,139.570983],[35.620333,139.570965],[35.620366,139.570907],[35.62043,139.570792],[35.620486,139.570691],[35.620544,139.570574],[35.620598,139.570455],[35.620639,139.570365],[35.620617,139.570352],[35.620564,139.570481]]],[18.3,[[35.620693,139.569751],[35.620619,139.569532],[35.620674,139.569423],[35.620743,139.569478],[35.62092,139.569607],[35.621144,139.569744],[35.621152,139.569749],[35.621325,139.56984],[35.62175,139.570042],[35.621798,139.56993],[35.621689,139.569862],[35.621685,139.569871],[35.621604,139.569819],[35.621597,139.56983],[35.621517,139.569779],[35.62151,139.569789],[35.621436,139.569739],[35.621432,139.569748],[35.621384,139.56972],[35.621381,139.569729],[35.621143,139.569588],[35.621133,139.569581],[35.621143,139.569554],[35.621145,139.569549],[35.621461,139.569731],[35.621705,139.569864],[35.621805,139.569917],[35.621849,139.569812],[35.621419,139.569543],[35.621143,139.56938],[35.621114,139.569363],[35.620927,139.569254],[35.620544,139.569029],[35.620241,139.56885],[35.620119,139.568776],[35.620091,139.568842],[35.620521,139.569142],[35.620507,139.569172],[35.620409,139.569109],[35.620376,139.569162],[35.6205,139.569263],[35.620494,139.569278],[35.620422,139.569441],[35.620458,139.569464],[35.620443,139.569497],[35.620495,139.569644],[35.620584,139.569905],[35.6206,139.569913],[35.620582,139.569952],[35.620601,139.569966],[35.620527,139.570143],[35.620587,139.570178],[35.620747,139.569793],[35.62069,139.569758]]],[17.4,[[35.620898,139.570365],[35.620912,139.570373],[35.621048,139.569968],[35.621039,139.569962],[35.621016,139.569948],[35.621008,139.569943],[35.621001,139.569959],[35.620977,139.569944],[35.621043,139.569784],[35.621011,139.569764],[35.621023,139.569736],[35.620765,139.569577],[35.620753,139.569607],[35.620693,139.569751],[35.62069,139.569758],[35.620747,139.569793],[35.620587,139.570178],[35.620539,139.570296],[35.620547,139.570301],[35.620491,139.570436],[35.620564,139.570481],[35.620617,139.570352],[35.620639,139.570365],[35.620692,139.570398],[35.620752,139.570435],[35.620803,139.570467],[35.620856,139.570339],[35.620868,139.570347]]]]},{"n":"生田駅","c":[35.615039,139.542241],"parts":[[16.3,[[35.615124,139.542365],[35.615119,139.542318],[35.615257,139.542292],[35.615251,139.542218],[35.615128,139.542248],[35.615109,139.542043],[35.615071,139.542048],[35.615033,139.542053],[35.614976,139.542061],[35.614953,139.542065],[35.61491,139.542071],[35.614901,139.542009],[35.614893,139.541947],[35.614887,139.541895],[35.614869,139.541897],[35.61489,139.542123],[35.614878,139.542125],[35.614885,139.542197],[35.614912,139.542193],[35.614919,139.54227],[35.614793,139.542286],[35.614802,139.542376],[35.614922,139.542359],[35.614973,139.542352],[35.614976,139.542386],[35.615002,139.542383],[35.615064,139.542374]]],[14.2,[[35.614924,139.542362],[35.614799,139.542386],[35.614804,139.542422],[35.614943,139.542395]]],[13.5,[[35.614943,139.542395],[35.614983,139.542462],[35.615021,139.54284],[35.615051,139.542835],[35.615002,139.542383],[35.614976,139.542386],[35.614973,139.542352],[35.614922,139.542359],[35.614924,139.542362]]]]}];
 // --- 3Dの高低差（地形）：国土地理院 5mメッシュ標高を約6m間隔にした fest-dem.json で大学周辺の地面を立体化（ON/OFFで平らな3Dに戻せる）
 //     基準＝構内の建物の地面の中央値（約76m）。地面・等高線・道路縁・動線・駐車場をWebGLで地形に沿って描き、建物は地面の高さから立ち上げる
-const FEST_DEM_V=4, FEST_TERR_EXAG=2, FEST_TERR_V=6, FEST_RAIL_V=2;   // 範囲は北東の枡形6丁目（セブン-イレブン・枡形天神社）まで。高低差を2倍に強調して描く（建物・印・当たり判定も同じ倍率の地面に乗る）
+const FEST_DEM_V=4, FEST_TERR_EXAG=2, FEST_TERR_V=7, FEST_RAIL_V=2;   // 範囲は北東の枡形6丁目（セブン-イレブン・枡形天神社）まで。高低差を2倍に強調して描く（建物・印・当たり判定も同じ倍率の地面に乗る）
 let festTerrainOn=true, festDem=null, festDemLoading=false, festTerrBusy=false, festB3dTop={};
 // 道路・緑地・水面（fest-terr.json：道路中心線＝国土地理院、緑地・水面＝OSM）。道路は道に沿って高さをならし、道路まわりの地面もその高さへ寄せる
 let festTerrData=null, festTerrDataP=null, festTerrZd=null, festTerrRd=null, festTerrCls=null, festTerrCache=null, festTerrRS=null, festTerrRail=null;
@@ -6442,6 +6479,7 @@ function festTerrPrep(){
       if(!(fx>=0&&fy>=0&&fx<=nx-1&&fy<=ny-1))continue;const i=Math.min(nx-2,Math.floor(fx)),j=Math.min(ny-2,Math.floor(fy)),u=fx-i,v=fy-j;
       const c=[[i,j,(1-u)*(1-v)],[i+1,j,u*(1-v)],[i,j+1,(1-u)*v],[i+1,j+1,u*v]];let w=0,wz=0;c.forEach(([a,b,f])=>{const kk=b*nx+a;w+=PW[kk]*f;wz+=PW[kk]*PZ[kk]*f;});
       if(w>0.001)r.z[k]+=(wz/w-r.z[k])*w;}});}
+  rd.forEach(r=>{if(!(r.fl&16))return;const n=r.z.length;if(n<2)return;const a=r.z[0],b=r.z[n-1];for(let k=0;k<n;k++)r.z[k]=a+(b-a)*k/(n-1);});   // fl&16＝勾配が一定の道（第1体育館と6号館の間など）：両端を結ぶなめらかな高さにして、でこぼこをなくす
   const Z0=D.z.slice();   // 描く高さ（festDemZ）
   const Zd=Z0.slice(),CS=8,grid=new Map(),key=(cx,cy)=>(cx+4096)*8192+(cy+4096);
   rd.forEach(r=>{if(r.fl&1)return;for(let k=0;k<r.x.length;k++){const kk=key(Math.floor(r.x[k]/CS),Math.floor(r.y[k]/CS));let a=grid.get(kk);if(!a){a=[];grid.set(kk,a);}a.push(r.x[k],r.y[k],r.z[k],r.dw/2);}});
@@ -7120,6 +7158,14 @@ function festEvacInfo(ev){
   const L=FEST_BLD.filter(b=>b.ev===ev.k&&!b.nl&&b.n).map(b=>escapeHtml(b.n));
   festCardShow(festCard({id:ev.k,title:'避難場所 '+ev.n,kind:'避難場所',dot:'#e03131',rows:[['対象の建物',L.join('・')||'—']]}));
 }
+// 構内図：大学公式サイトの配置図（PDF）を各階ごとに表示（fest-floor.js を初めて押したときに読み込む）
+const FEST_FLOOR=['8号館','9号館','10号館'];
+let festFloorP=null;
+function festFloorOpen(n){
+  if(window.festFloor){festFloor.open(n);return;}
+  if(!festFloorP)festFloorP=new Promise((ok,ng)=>{const sc=document.createElement('script');sc.src='fest-floor.js?v='+FEST_TRK_V;sc.onload=()=>ok();sc.onerror=()=>{festFloorP=null;ng(new Error('floor'));};document.head.appendChild(sc);});
+  festFloorP.then(()=>festFloor.open(n)).catch(()=>{showStatus('構内図の機能を読み込めませんでした（通信を確認してください）',false);hideStatusLater();});
+}
 function festBldInfo(b,ll){
   festBldInfoCur={b,ll:ll||{lat:b.c[0],lng:b.c[1]}};
   const rows=[];   // 備考・建物群は出さない（情報を絞る）
@@ -7130,7 +7176,8 @@ function festBldInfo(b,ll){
   if(b.q)notes.push(['warn','要確認',escapeHtml(typeof b.q==='string'?b.q:'名称の候補：'+[b.n].concat(b.alt||[]).join('／'))]);
   const cur=festBldCol.per[b.id]||'';
   const scope=grp.length>1?'<div class="fest-scope"><button type="button" class="'+(festColScope==='g'?'on':'')+'" onclick="festSetScope(\'g\')">'+escapeHtml(festBldGroupKey(b))+' 全体</button><button type="button" class="'+(festColScope==='g'?'':'on')+'" onclick="festSetScope(\'one\')">この部分だけ</button></div>':'';
-  const extra='<div class="fest-bi-sec">建物の色</div>'
+  const extra=(FEST_FLOOR.indexOf(b.n)>=0?'<div class="fest-bi-sec">構内図</div><button type="button" class="fest-floor-btn" onclick="festFloorOpen(\''+b.n+'\')"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM4 11h7M11 4v10M15 11h5M11 17h3"/></svg>構内図（各階）を見る</button>':'')
+    +'<div class="fest-bi-sec">建物の色</div>'
     +scope+festSwatches(cur,'festBldSetColor',b.id);
   const html=festCard({id:b.id,title:b.n||'名称未確認',kind:(b.x?'学外の施設':'建物'),dot:festBldShown(b),
     stats:[[b.f?b.f:'—','階数'],[(b.hc||b.h)?(b.hc||b.h).toFixed(1):'—','高さ m'],[b.a?b.a.toLocaleString():'—','面積 m²']],rows,notes,extra});

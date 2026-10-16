@@ -3,7 +3,7 @@
 // 値は受信API（/api/v1/schedule）に置き、閲覧キーを持つ端末だけが読む（地図は公開のため、時刻や営業時間はコードに書かない）。
 //  - 黒帯：開錠・施錠時刻／学内施設時間／イベント時間／ステージ出演／インフォメーションを、本部が決めた順番・回数・秒数・色で流す
 //    期間中（既定は情報のある日の最初〜最後）はその日の情報だけ。期間外と、日付で絞るのをOFFにしたときは全日程を順に
-//  - 時計の右側：9号館・10号館のエレベーター（9-EV・10-EV）の使用可否 ○／×／ー
+//  - 時計の右側：9号館・10号館のエレベーター（9-EV・10-EV）の使用可否 ○／×／ー。15秒ごとに7秒間、今日の天気（専修大学周辺）と入れ替える
 //    G倉庫IN：車両がG倉庫の中・外周から8m以内にいれば×、いなければ○。22時〜6時と、車両の位置を取得していないときはー
 //  - 時計を押すとエレベーターの編集（時刻表の編集の権限があるキーだけ）。黒帯の情報と設定は本部版の「高度な設定」で編集
 //  - 最後に取得した時刻表は端末に残し、通信できないときも表示する（キーが無効になったら消す）
@@ -129,12 +129,79 @@
     return near ? 'ng' : 'ok';
   }
   S.gState = gState;
+  // ---------- 今日の天気（専修大学周辺。Open-Meteo：鍵不要・CORS可。30分ごと） ----------
+  const WX_URL = 'https://api.open-meteo.com/v1/forecast?latitude=35.6101&longitude=139.5546&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Asia%2FTokyo&forecast_days=1';
+  const WX_EV_MS = 15000, WX_SHOW_MS = 7000, WX_POLL_MS = 30 * 60000;
+  const W = { d: null, at: 0, busy: false };
+  // 天気の種類（WMO）→ 短い表記・詳しい表記・アイコン
+  function wxKind(c) {
+    if (c <= 1) return [c ? '晴れ' : '快晴', c ? '晴れ' : '快晴', 'sun'];
+    if (c === 2) return ['晴時々曇', '晴れ時々くもり', 'part'];
+    if (c === 3) return ['くもり', 'くもり', 'cloud'];
+    if (c === 45 || c === 48) return ['霧', '霧', 'fog'];
+    if (c >= 51 && c <= 57) return ['霧雨', '霧雨', 'rain'];
+    if (c === 61 || c === 80) return [c === 80 ? 'にわか雨' : '小雨', c === 80 ? 'にわか雨' : '小雨', 'rain'];
+    if (c === 63 || c === 81) return ['雨', c === 81 ? 'にわか雨' : '雨', 'rain'];
+    if (c === 65 || c === 82) return ['強い雨', '強い雨', 'rain'];
+    if (c === 66 || c === 67) return ['冷たい雨', '冷たい雨', 'rain'];
+    if ((c >= 71 && c <= 77) || c === 85 || c === 86) return ['雪', '雪', 'snow'];
+    if (c >= 95) return ['雷雨', '雷雨', 'storm'];
+    return ['—', '不明', 'cloud'];
+  }
+  const WX_SVG = {
+    sun: '<circle cx="12" cy="12" r="4.2" fill="#fab005" stroke="#f08c00"/><path d="M12 2.5v2.6M12 18.9v2.6M2.5 12h2.6M18.9 12h2.6M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8" stroke="#f08c00"/>',
+    part: '<circle cx="9" cy="9" r="3.6" fill="#fab005" stroke="#f08c00"/><path d="M9 2.4v1.8M2.4 9h1.8M4.3 4.3l1.3 1.3M13.7 4.3l-1.3 1.3" stroke="#f08c00"/><path d="M8.5 19.5h9.2a3.6 3.6 0 0 0 .2-7.2 5 5 0 0 0-9.4 1.6 2.8 2.8 0 0 0 0 5.6z" fill="#dee2e6" stroke="#868e96"/>',
+    cloud: '<path d="M7 19h10.5a4.2 4.2 0 0 0 .3-8.4 5.8 5.8 0 0 0-11 1.8A3.3 3.3 0 0 0 7 19z" fill="#dee2e6" stroke="#868e96"/>',
+    fog: '<path d="M7 13.5h10.5a4 4 0 0 0 .2-8 5.6 5.6 0 0 0-10.6 1.7A3.2 3.2 0 0 0 7 13.5z" fill="#dee2e6" stroke="#868e96"/><path d="M4 17h16M6 20.5h12" stroke="#868e96"/>',
+    rain: '<path d="M7 14.5h10.5a4 4 0 0 0 .2-8 5.6 5.6 0 0 0-10.6 1.7A3.2 3.2 0 0 0 7 14.5z" fill="#ced4da" stroke="#868e96"/><path d="M8.5 17.2l-1 2.8M12.5 17.2l-1 2.8M16.5 17.2l-1 2.8" stroke="#339af0"/>',
+    snow: '<path d="M7 14.5h10.5a4 4 0 0 0 .2-8 5.6 5.6 0 0 0-10.6 1.7A3.2 3.2 0 0 0 7 14.5z" fill="#e9ecef" stroke="#868e96"/><circle cx="8.5" cy="18.4" r="1" fill="#74c0fc"/><circle cx="12.5" cy="19.6" r="1" fill="#74c0fc"/><circle cx="16.5" cy="18.4" r="1" fill="#74c0fc"/>',
+    storm: '<path d="M7 14h10.5a4 4 0 0 0 .2-8 5.6 5.6 0 0 0-10.6 1.7A3.2 3.2 0 0 0 7 14z" fill="#ced4da" stroke="#868e96"/><path d="M12.8 14.5l-2.6 4h2.6l-1.6 3.5" stroke="#f59f00" stroke-width="1.8"/>',
+  };
+  async function wxLoad() {
+    if (W.busy || document.visibilityState === 'hidden') return;
+    W.busy = true;
+    try {
+      const r = await fetch(WX_URL, { cache: 'no-store', credentials: 'omit', referrerPolicy: 'no-referrer' });
+      const j = r.ok ? await r.json() : null, d = j && j.daily;
+      if (d && Array.isArray(d.time) && d.time.length && typeof d.weather_code[0] === 'number') {
+        W.d = { ymd: d.time[0], code: d.weather_code[0], hi: d.temperature_2m_max[0], lo: d.temperature_2m_min[0], pop: d.precipitation_probability_max[0] };
+        W.at = Date.now();
+      }
+    } catch (e) {}   // 通信できない：前回の天気のまま（日付が変われば出さない）
+    W.busy = false;
+    renderEv();
+  }
+  function wxHtml() {
+    const d = W.d; if (!d || d.ymd !== jst().ymd) return '';   // 今日の分がなければ出さない（エレベーターだけ表示）
+    const k = wxKind(d.code), num = v => (typeof v === 'number' && isFinite(v)) ? Math.round(v) : '—';
+    const pop = (typeof d.pop === 'number' && isFinite(d.pop)) ? Math.round(d.pop) : null;
+    const tip = '今日の天気（専修大学周辺）：' + k[1] + '・最高' + num(d.hi) + '℃・最低' + num(d.lo) + '℃' + (pop != null ? '・降水確率' + pop + '%' : '') + '（Open-Meteo）';
+    return '<div class="lc-wx-in" title="' + esc(tip) + '"><svg class="wx-ic" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + WX_SVG[k[2]] + '</svg>'
+      + '<span class="wx-t">' + esc(k[0]) + '</span><span class="wx-tp"><b class="wx-hi">' + num(d.hi) + '</b><i>/</i><b class="wx-lo">' + num(d.lo) + '</b><i>℃</i></span>'
+      + (pop != null ? '<span class="wx-p"><i>降水</i><b>' + pop + '</b><i>%</i></span>' : '') + '</div>';
+  }
+  // エレベーター（15秒）⇔ 天気（7秒）を、フェードアウト→フェードインで入れ替える。G倉庫INは入れ替えない
+  let wxShown = false, wxTm = null;
+  function wxRotate() {
+    clearTimeout(wxTm);
+    const r = document.querySelector('#lcEv .lc-rot');
+    const can = !!(r && r.classList.contains('has-wx'));
+    wxShown = can ? !wxShown : false;
+    if (r) r.classList.toggle('wx', wxShown);
+    wxTm = setTimeout(wxRotate, wxShown ? WX_SHOW_MS : WX_EV_MS);
+  }
+
   function renderEv() {
     const box = $('lcEv'); if (!box) return;
+    if (!box.__init) { box.__init = true; box.innerHTML = '<div class="lc-rot"><div class="lc-ev-a"></div><div class="lc-wx"></div></div><div class="lc-g"></div>'; }
     const gs = gState();
-    const h = EVU.map(([u, lab]) => { const st = evState(u); return '<div class="lc-ev-u" title="' + lab + '：' + EV_TXT[st] + '"><span>' + lab + '</span><b class="ev-' + st + '">' + EV_SYM[st] + '</b></div>'; }).join('')
-      + '<div class="lc-ev-u" title="G倉庫IN：' + G_TXT[gs] + '"><span>G倉庫IN</span><b class="ev-' + gs + '">' + EV_SYM[gs] + '</b></div>';
-    if (box.__h !== h) { box.__h = h; box.innerHTML = h; }
+    const ev = EVU.map(([u, lab]) => { const st = evState(u); return '<div class="lc-ev-u" title="' + lab + '：' + EV_TXT[st] + '"><span>' + lab + '</span><b class="ev-' + st + '">' + EV_SYM[st] + '</b></div>'; }).join('');
+    const g = '<div class="lc-ev-u" title="G倉庫IN：' + G_TXT[gs] + '"><span>G倉庫IN</span><b class="ev-' + gs + '">' + EV_SYM[gs] + '</b></div>';
+    const wx = wxHtml();
+    const set = (el, h) => { if (el.__h !== h) { el.__h = h; el.innerHTML = h; } };
+    set(box.querySelector('.lc-ev-a'), ev); set(box.querySelector('.lc-g'), g); set(box.querySelector('.lc-wx'), wx);
+    const r = box.querySelector('.lc-rot'); r.classList.toggle('has-wx', !!wx);
+    if (!wx && r.classList.contains('wx')) { r.classList.remove('wx'); wxShown = false; }
   }
 
   // ---------- 最上部の黒帯 ----------
@@ -363,10 +430,11 @@
     window.addEventListener('fest-token', () => { S.error = ''; S.loaded = false; S.draft = null; S.dirty = false; render(); load(); });   // キーが変わった：読み直すまで編集しない
     window.addEventListener('fest-vehicles', renderEv);   // 車両の位置が変わったら G倉庫IN を更新
     window.addEventListener('fest-me', () => { const m = window.festHttp && festHttp.me; if (m && m.role === 'invalid') { S.error = 'auth'; cacheClear(); } render(); });
-    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') load(); });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { load(); if (Date.now() - W.at > WX_POLL_MS) wxLoad(); } });
     let rt = null; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { fitClock(); bandShow(true); }, 200); });
     let lastDay = jst().ymd;
-    setInterval(() => { renderEv(); const d = jst().ymd; if (d !== lastDay) { lastDay = d; bandShow(true); } }, 15000);   // EVは分単位・日付が変われば帯を作り直す
+    setInterval(() => { renderEv(); const d = jst().ymd; if (d !== lastDay) { lastDay = d; bandShow(true); wxLoad(); } }, 15000);   // EVは分単位・日付が変われば帯を作り直し、天気も取り直す
+    wxLoad(); setInterval(wxLoad, WX_POLL_MS); wxTm = setTimeout(wxRotate, WX_EV_MS);   // 今日の天気（30分ごと）・エレベーターと入れ替え
     fitClock(); setTimeout(fitClock, 800);
     if (hasKey()) cacheLoad();   // 通信より先に、前回取得した時刻表を出す
     render(); load();

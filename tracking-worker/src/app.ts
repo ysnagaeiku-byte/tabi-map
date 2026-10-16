@@ -140,9 +140,13 @@ function corsHeaders(origin: string, methods = "GET, OPTIONS", headers = "Author
 class TooLarge extends Error {}
 
 async function readBodyLimited(req: Request, limit: number): Promise<string> {
+  return new TextDecoder().decode(await readBytesLimited(req, limit));
+}
+/** 本文をバイト列で読む（上限を超えたら TooLarge） */
+async function readBytesLimited(req: Request, limit: number): Promise<Uint8Array> {
   const len = req.headers.get("Content-Length");
   if (len !== null && Number(len) > limit) throw new TooLarge();
-  if (!req.body) return "";
+  if (!req.body) return new Uint8Array(0);
   const reader = req.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
@@ -162,7 +166,7 @@ async function readBodyLimited(req: Request, limit: number): Promise<string> {
     buf.set(c, off);
     off += c.byteLength;
   }
-  return new TextDecoder().decode(buf);
+  return buf;
 }
 
 // ---------- 受信 ----------
@@ -610,10 +614,80 @@ async function handleShares(req: Request, env: Env, nowMs: number, id: string | 
   }
 }
 
+// ---------- 構内図（各号館の配置図） ----------
+// 大学公式サイトが公開している配置図（PDF）を、ページ（階）ごとの画像にしてデータベースに置く（公開リポジトリには写しを置かない）。
+//   GET    /api/v1/floor/<号館>         一覧（ページ・タブの名前・大きさ・出典）。閲覧キー
+//   GET    /api/v1/floor/<号館>/<ページ> 画像。閲覧キー
+//   PUT    /api/v1/floor/<号館>/<ページ>?label=…&w=…&h=…&src=…  画像を入れる（本部版のキーだけ）
+//   DELETE /api/v1/floor/<号館>         その号館の画像をすべて消す（本部版のキーだけ）
+export const FLOOR_BLDS = ["b8", "b9", "b10"] as const;
+export const MAX_FLOOR_BYTES = 1536 * 1024;
+const FLOOR_MIME: Record<string, (b: Uint8Array) => boolean> = {
+  "image/webp": (b) => b.length > 12 && String.fromCharCode(...b.slice(0, 4)) === "RIFF" && String.fromCharCode(...b.slice(8, 12)) === "WEBP",
+  "image/png": (b) => b.length > 8 && b[0] === 0x89 && String.fromCharCode(...b.slice(1, 4)) === "PNG",
+};
+
+async function handleFloor(req: Request, env: Env, nowMs: number, bld: string, page: string | null): Promise<Response> {
+  const g = await viewGate(req, env, "floor", page === null ? ["GET", "DELETE"] : ["GET", "PUT"], "Authorization, Content-Type", nowMs);
+  if (g instanceof Response) return g;
+  const { cors, who } = g;
+  if (!(FLOOR_BLDS as readonly string[]).includes(bld)) return json(404, { error: "not_found" }, cors);
+  const pg = page === null ? null : /^[1-9]\d?$/.test(page) ? Number(page) : NaN;
+  if (Number.isNaN(pg)) return json(404, { error: "not_found" }, cors);
+  if (req.method !== "GET" && who.role !== "full") {
+    logResult("floor", "forbidden");
+    return json(403, { error: "forbidden" }, cors);
+  }
+  try {
+    if (req.method === "GET" && pg === null) {
+      type R = { page: number; label: string; mime: string; w: number; h: number; src: string; updated_at_ms: number };
+      const rs = await env.DB.prepare("SELECT page, label, mime, w, h, src, updated_at_ms FROM fest_floor WHERE bld = ?1 ORDER BY page").bind(bld).all<R>();
+      const L = rs.results ?? [];
+      if (!L.length) return json(404, { error: "not_found" }, cors);
+      return json(200, { schemaVersion: 1, bld, src: L[0].src, pages: L.map((r) => ({ page: r.page, label: r.label, mime: r.mime, w: r.w, h: r.h, updatedAtMs: r.updated_at_ms })) }, cors);
+    }
+    if (req.method === "GET") {
+      const r = await env.DB.prepare("SELECT mime, data FROM fest_floor WHERE bld = ?1 AND page = ?2").bind(bld, pg).first<{ mime: string; data: ArrayBuffer | number[] }>();
+      if (!r) return json(404, { error: "not_found" }, cors);
+      const bytes = r.data instanceof ArrayBuffer ? new Uint8Array(r.data) : Uint8Array.from(r.data);   // D1 の BLOB は数値の配列で返ることがある
+      return new Response(bytes, { status: 200, headers: { "Content-Type": r.mime, "Cache-Control": "private, max-age=86400", "X-Content-Type-Options": "nosniff", ...cors } });
+    }
+    if (req.method === "DELETE") {
+      const r = await env.DB.prepare("DELETE FROM fest_floor WHERE bld = ?1").bind(bld).run();
+      logResult("floor", "deleted");
+      return json(200, { ok: true, deleted: r.meta.changes ?? 0 }, cors);
+    }
+    // PUT：画像を入れる
+    const mime = (req.headers.get("Content-Type") ?? "").split(";")[0].trim().toLowerCase();
+    if (!FLOOR_MIME[mime]) return json(415, { error: "unsupported_media_type" }, cors);
+    const q = new URL(req.url).searchParams;
+    const label = (q.get("label") ?? "").trim(), src = (q.get("src") ?? "").trim(), w = Number(q.get("w")), h = Number(q.get("h"));
+    if (!label || label.length > 40 || !/^https:\/\/www\.senshu-u\.ac\.jp\//.test(src) || src.length > 300 || !Number.isInteger(w) || !Number.isInteger(h) || w < 1 || h < 1 || w > 8000 || h > 8000)
+      return json(400, { error: "bad_params" }, cors);
+    let buf: Uint8Array;
+    try {
+      buf = await readBytesLimited(req, MAX_FLOOR_BYTES);
+    } catch (e) {
+      if (e instanceof TooLarge) return json(413, { error: "payload_too_large" }, cors);
+      return json(400, { error: "bad_body" }, cors);
+    }
+    if (!FLOOR_MIME[mime](buf)) return json(400, { error: "bad_image" }, cors);
+    await env.DB.prepare("INSERT OR REPLACE INTO fest_floor (bld, page, label, mime, w, h, data, src, updated_at_ms) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9)")
+      .bind(bld, pg, label, mime, w, h, buf, src, nowMs).run();
+    logResult("floor", "saved");
+    return json(200, { ok: true, bld, page: pg, bytes: buf.length }, cors);
+  } catch {
+    logResult("floor", "storage_error");
+    return json(503, { error: "storage_unavailable" }, cors);
+  }
+}
+
 // ---------- 振り分け ----------
 
 export async function handle(req: Request, env: Env, nowMs: number): Promise<Response> {
   const { pathname } = new URL(req.url);
+  const fm = /^\/api\/v1\/floor\/([^/]+)(?:\/([^/]+))?$/.exec(pathname);
+  if (fm) return handleFloor(req, env, nowMs, fm[1], fm[2] ?? null);
   if (pathname === "/api/v1/vehicles") return handleVehicles(req, env, nowMs);
   if (pathname === "/api/v1/schedule") return handleSchedule(req, env, nowMs);
   if (pathname === "/api/v1/me") return handleMe(req, env, nowMs);
