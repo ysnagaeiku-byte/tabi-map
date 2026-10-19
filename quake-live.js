@@ -296,9 +296,10 @@
     a.slice().reverse().forEach(d => { if (code && d.code !== code) return; const rc = jstMs(d.time); if (isFinite(rc) && (d.code !== 551 || now() - rc < 3600000)) onP2p(d, Math.min(rc, now())); });
   }
   /** 開いたとき・つなぎ直したとき・画面に戻ったとき：途中で出た分を取り寄せる */
-  let cuBusy = false;
+  let cuBusy = false, cuAt = 0;
   async function catchUp() {
-    const w = want(); if (cuBusy || !w.w) return; cuBusy = true;
+    const w = want(); if (cuBusy || !w.w || Date.now() - cuAt < 5000) return;   // 開いた直後に、受信開始と接続の両方から呼ばれても1回だけ
+    cuBusy = true; cuAt = Date.now();
     try {
       try { const r = await fetch(WOLFX_HTTP, FETCH); if (r.ok) onEew(fromWolfx(await r.json())); } catch (e) {}
       try { const a = await history('codes=551&limit=40'); if (a) feed(a, 551); } catch (e) {}
