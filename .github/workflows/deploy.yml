@@ -28,7 +28,7 @@ jobs:
           for f in index.html index-google.html index-senshu.html track.html manifest.json sw.js \
                    apple-touch-icon.png icon-192.png icon-512.png .nojekyll \
                    manifest-senshu.json icon-senshu-192.png icon-senshu-512.png icon-senshu-maskable-512.png apple-touch-icon-senshu.png \
-                   fest-vehicle-tracking.js fest-schedule.js fest-advanced.js fest-floor.js \
+                   fest-vehicle-tracking.js fest-schedule.js fest-advanced.js fest-floor.js quake-live.js \
                    fest-3d.json fest-dem.json fest-rail.json fest-shiro.json fest-terr.json \
                    fest-map-style.json fest-map-style-dark.json; do
             cp "$f" dist-pages/
