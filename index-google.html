@@ -26,7 +26,7 @@
   q('meta[name="apple-mobile-web-app-title"]').content='本祭支援';q('meta[name="theme-color"]').content='#000000';})();</script>
 <!-- 配信時にGitHub ActionsがSecretからキーを注入（リポジトリ本体には実キーを置かない）。未注入時はプレースホルダのまま→端末ごとの手入力にフォールバック -->
 <script>window.__TABI_KEYS__={gmap:"__GMAP_KEY__",mapbox:"__MAPBOX_KEY__",festMapId:"__FEST_MAP_ID__"};</script>
-<script src="quake-live.js?v=2" defer></script><!-- 緊急地震速報・地震情報・津波の即時受信と黒帯（本体のあとに動く） -->
+<script src="quake-live.js?v=3" defer></script><!-- 緊急地震速報・地震情報・津波の即時受信と黒帯（本体のあとに動く） -->
 <style>
   :root{
     --tmoff:0px;  /* タクシーメーターを下に出した時に、FAB・時計・凡例を持ち上げる量 */
@@ -1140,8 +1140,19 @@
   @media (prefers-reduced-motion:reduce){#qkBand .qk-warn{animation:none;}}
   html.qk-on:not(.fest) #disasterBanner{top:var(--qk);}   /* 津波のお知らせ（津波情報のぬり分け）は黒帯の下に出す */
   html.fest #disasterBanner{top:var(--fb);}
-  #mapLegend .qk-lg{display:flex;flex-wrap:wrap;gap:2px 5px;font-size:9px;font-weight:700;color:var(--fg);}
-  #mapLegend .qk-lg span{display:inline-flex;align-items:center;gap:2px;} #mapLegend .qk-lg i{display:inline-block;width:10px;height:10px;border-radius:2px;border:1px solid rgba(0,0,0,.25);}
+  /* 地震のぬり分けの凡例：震度1〜7の色を小さく1列に（色の下に震度。観測のない震度は薄く） */
+  #mapLegend .qk-lt{font-size:8.5px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #mapLegend .qk-lg{display:grid;grid-template-columns:repeat(9,15px);gap:0 1px;}
+  #mapLegend .qk-lg span{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:7.5px;font-weight:700;line-height:1;color:var(--fg);white-space:nowrap;}
+  #mapLegend .qk-lg i{display:block;width:15px;height:7px;border:1px solid rgba(0,0,0,.2);box-sizing:border-box;}
+  #mapLegend .qk-lg span:first-child i{border-radius:2px 0 0 2px;} #mapLegend .qk-lg span:last-child i{border-radius:0 2px 2px 0;}
+  #mapLegend .qk-lg span.off{opacity:.35;}
+  /* スマホでタクシーメーターを出している間は、時計の天気を省く（支援ツールはエレベーターだけにする） */
+  @media(max-width:600px){
+    body:has(#taxiMeter.open) #liveClock.has-wx #lcEv{display:none;}
+    html.fest body:has(#taxiMeter.open) #lcEv .lc-rot .lc-wx{opacity:0;visibility:hidden;}
+    html.fest body:has(#taxiMeter.open) #lcEv .lc-rot.wx .lc-ev-a{opacity:1;}
+  }
 </style>
 </head>
 <body>

@@ -328,12 +328,12 @@
 
   window.quakeLive = {
     sync,
-    /** 地図の凡例（ぬり分けている地震の震度の色） */
+    /** 地図の凡例：震度1〜7の色を小さく1列に並べる（この地震で観測のない震度は薄く） */
     legend() {
       const ev = fillKey && fillEv; if (!ev) return '';
-      const sc = [...new Set(Object.values(ev.pref))].sort((a, b) => b - a);
-      return '<div class="lg-block"><div class="lg-ttl">地震の震度（' + clock(ev.origin) + 'ごろ' + (ev.hypo ? ' ' + esc(ev.hypo) : '') + '）</div><div class="qk-lg">'
-        + sc.map(s => '<span><i style="background:' + COL[s] + '"></i>' + LAB[s] + '</span>').join('') + '</div></div>';
+      const has = new Set(Object.values(ev.pref)), ttl = '震度　' + clock(ev.origin) + 'ごろ' + (ev.hypo ? ' ' + esc(ev.hypo) : '');
+      return '<div class="lg-block"><div class="lg-ttl qk-lt" title="' + ttl + '">' + ttl + '</div><div class="qk-lg">'
+        + Object.keys(LAB).map(Number).map(s => '<span' + (has.has(s) ? '' : ' class="off"') + '><i style="background:' + COL[s] + '"></i>' + LAB[s] + '</span>').join('') + '</div></div>';
     },
     /** 出典（黒帯・ぬり分けを出している間だけ） */
     attr() { return infoKey ? '地震・津波: P2P地震情報（気象庁の発表）・緊急地震速報: Wolfx（気象庁の発表の中継）' : ''; },
