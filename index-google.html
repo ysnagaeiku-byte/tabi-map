@@ -1483,7 +1483,22 @@ const FLAT_ROADS=[
   {re:/横浜新道/,yen:250,name:'横浜新道'},
   {re:/(本四|瀬戸大橋|瀬戸中央)/,yen:0,name:''},
 ].filter(f=>f.yen>0);
-function flatRoad(html){const t=String(html||'').replace(/<[^>]+>/g,'');for(const f of FLAT_ROADS){if(f.re.test(t))return f;}return null;}
+// 案内文から「標識・方面・表示」の部分を除いた本文（標識に出てくる道路名を、走った道路と取り違えないため。例：浜崎橋JCTの「…/東京湾アクアライン 方面の標識に従う」）
+function instrCore(html){
+  return String(html||'').replace(/<[^>]+>/g,' ').replace(/有料区間/g,' ')
+    .replace(/[（(][^（()）]*[)）]/g,' ')            // （… の表示）
+    .replace(/([A-Za-z0-9]|ルート) (?=[A-Za-z0-9])/g,'$1_')   // 「Rainbow Bridge」「ルート 1」の空白は区切りにしない
+    .replace(/\S+\s*(?:の標識に従う|方面)/g,' ');     // 「A/B/C の標識に従う」「A/B 方面」
+}
+/** 案内文のうち「走る道路」の名前だけ（「A に入る」「A を進む」「A のランプに入る」などの A）。
+ *  標識・方面・（…の表示）に並ぶ道路名は、英語名や正式名称（東京都高速道路〇号線 など）が混ざって区切りにくいので使わない */
+function travelText(html){
+  const t=String(html||'').replace(/<[^>]+>/g,' ').replace(/有料区間/g,' ').replace(/[（(][^（()）]*[)）]/g,' ')
+    .replace(/([A-Za-z0-9]|ルート) (?=[A-Za-z0-9])/g,'$1_');   // 「ルート 1」「Rainbow Bridge」は1語
+  const out=[];t.replace(/(\S+?)\s*(?:のランプに入る|のランプに進む|のランプへ|に入る|に入り|に入って|を進む|を進み|を進んで|に合流|を直進|を斜め|を道なりに)/g,(m,a)=>{out.push(a);return m;});
+  return out.join(' ');
+}
+function flatRoad(html){const t=travelText(html);for(const f of FLAT_ROADS){if(f.re.test(t))return f;}return null;}
 const CUSTOM_OPTIONS=FEST?['onsen','parking','fuel']   // 本祭支援ツールでは宿泊・SA/PA・道の駅・コンビニ・飲食店は出さない
   :['onsen','parking','hotel','sapa','michinoeki','conveni','fuel'];   // 飲食店は出さない
 const ONSEN_GO=[
@@ -1599,7 +1614,6 @@ const ONSEN_GO=[
   {name:'妙見温泉',lat:31.831,lng:130.732,area:'鹿児島',note:'天降川の渓谷',s:1}
 ];
 const VEH={kei:0.8,normal:1.0,mid:1.2,large:1.65,xl:2.75},VEHLBL={kei:'軽',normal:'普通車',mid:'中型',large:'大型',xl:'特大'};
-const SHU={kei:0.83,normal:1.0,mid:1.06,large:1.57,xl:2.0};
 const DARK_STYLE=[{elementType:'geometry',stylers:[{color:'#1d2330'}]},{elementType:'labels.text.stroke',stylers:[{color:'#1d2330'}]},{elementType:'labels.text.fill',stylers:[{color:'#9aa3af'}]},{featureType:'water',elementType:'geometry',stylers:[{color:'#0c0e13'}]},{featureType:'road',elementType:'geometry',stylers:[{color:'#2a313d'}]},{featureType:'road.highway',elementType:'geometry',stylers:[{color:'#3a4150'}]},{featureType:'poi',stylers:[{visibility:'off'}]},{featureType:'transit',stylers:[{visibility:'off'}]}];
 const LIGHT_STYLE=[{featureType:'poi',elementType:'labels',stylers:[{visibility:'off'}]},{featureType:'transit',stylers:[{visibility:'off'}]}];
 
@@ -2617,7 +2631,26 @@ function stepClass(s){const n=s.name||'',r=s.ref||'';if(/首都高/.test(n)||/\b
 async function routeOSRM(pts){const path=pts.map(p=>`${p.lng},${p.lat}`).join(';');const d=await (await fetch(`https://router.project-osrm.org/route/v1/driving/${path}?overview=full&geometries=geojson&steps=true`)).json();if(d.code!=='Ok')throw new Error(d.message||'OSRM');const r=d.routes[0];let nexco=0,shu=0;const legs=[];(r.legs||[]).forEach(lg=>{let ln=0,ls=0;(lg.steps||[]).forEach(s=>{const c=stepClass(s);if(c==='nexco')ln+=s.distance;else if(c==='shutoko')ls+=s.distance;});nexco+=ln;shu+=ls;legs.push({km:lg.distance/1000,sec:lg.duration,nexcoKm:ln/1000,shutokoKm:ls/1000});});return{km:r.distance/1000,sec:r.duration,line:r.geometry.coordinates.map(c=>({lat:c[1],lng:c[0]})),nexcoKm:nexco/1000,shutokoKm:shu/1000,legs};}
 async function routeORS(pts,avoid,key){const body={coordinates:pts.map(p=>[p.lng,p.lat]),extra_info:['waycategory']};if(avoid.length)body.options={avoid_features:avoid};const res=await fetch('https://api.openrouteservice.org/v2/directions/driving-car/geojson',{method:'POST',headers:{'Authorization':key,'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await res.json();if(!d.features||!d.features.length)throw new Error((d.error&&(d.error.message||d.error))||('ORS HTTP '+res.status));const f=d.features[0];let hwKm=0;const ex=f.properties.extras&&f.properties.extras.waycategory;if(ex&&ex.summary){let m=0;ex.summary.forEach(s=>{if((s.value&3)!==0)m+=s.distance;});hwKm=m/1000;}const legs=(f.properties.segments||[]).map(sg=>({km:sg.distance/1000,sec:sg.duration,nexcoKm:0,shutokoKm:0}));return{km:f.properties.summary.distance/1000,sec:f.properties.summary.duration,line:f.geometry.coordinates.map(c=>({lat:c[1],lng:c[0]})),nexcoKm:hwKm,shutokoKm:0,legs};}
 function updatePrefHint(){const el=document.getElementById('orsHint');el.textContent='';el.style.display='none';}   // ボタンの表記で分かるので説明は出さない
-function stepClassG(html){const t=String(html||'').replace(/<[^>]+>/g,'');if(/首都高/.test(t))return 'shutoko';if(/(高速道路|自動車道|有料道路|スカイライン)/.test(t))return 'nexco';return null;}
+// NEXCO などの有料道路（名前に「高速道路」「自動車道」が付かないものも。京葉道路・横浜横須賀道路・小田原厚木道路・東名・外環 など）
+const TOLL_ROAD_RE=/(高速道路|自動車道|有料道路|スカイライン|京葉道路|京葉道|横浜横須賀道路|小田原厚木道路|千葉東金道路|バイパス|東名|中央道|関越|東北道|常磐道|東関東道|館山道|外環|圏央道|第三京浜|横浜新道|箱根新道)/;
+function stepClassG(html,marked){const t=travelText(html);if(/首都高|Metropolitan_Expressway|東京都高速道路|東京都自動車道/.test(t))return 'shutoko';if((marked?TOLL_ROAD_RE:/(高速道路|自動車道|有料道路|スカイライン)/).test(t))return 'nexco';return null;}   // 走る道路の名前で判定（標識・方面の道路名では判定しない）。「有料区間」の目印がないときは名前のはっきりした道路だけ
+/** ルート全体のステップを「首都高・NEXCO等・均一料金区間・一般道」に分ける（{c,fr} の配列）。
+ *  Google の案内に付く「有料区間」で有料道路を走るステップを決め、道路名の書かれていない有料区間（JCT・出口ランプ・「埼玉県道124号/S5」のような番号だけの区間）は
+ *  直前（なければ直後）の有料区間の道路を引き継ぐ。一般道の標識に出てくる「首都高」などでは判定しない。
+ *  「有料区間」の目印が一つもない応答では、これまでどおり案内文の道路名だけで判定する */
+function classifySteps(instrs){
+  const toll=instrs.map(h=>/有料区間/.test(String(h||''))),marked=toll.some(Boolean);
+  const out=instrs.map((h,i)=>{
+    if(marked&&!toll[i])return {c:null,fr:null};
+    const fr=flatRoad(h);if(fr)return {c:'flat',fr};
+    return {c:stepClassG(h,marked),fr:null};
+  });
+  if(marked){
+    for(let i=1;i<out.length;i++)if(toll[i]&&!out[i].c&&toll[i-1]&&out[i-1].c)out[i]={c:out[i-1].c,fr:out[i-1].fr};
+    for(let i=out.length-2;i>=0;i--)if(toll[i]&&!out[i].c&&toll[i+1]&&out[i+1].c)out[i]={c:out[i+1].c,fr:out[i+1].fr};
+  }
+  return out;
+}
 function gDeparture(){let d=getEffDep();const now=new Date();return d.getTime()<now.getTime()?now:d;}
 // 区間ごとの色（ナビ風）：渋滞=赤 / やや混雑=橙 / 高速=緑 / 一般道=青
 const COL_JAM='#d93025',COL_SLOW='#f9a825',COL_HW='#1e8e3e';
@@ -3167,13 +3200,15 @@ function parseRoutesAPI(route){
   let gi=0,distM=0,baseSec=0,trafSec=0,cum=0,flatTotal=0;const flatNames=new Set();
   const legArr=[],legSteps=[],legTraf=[],timeline=[],events=[],pointT=[0];let prevHw=false;
   const nexRuns=[],shuRuns=[];let curNex=null,curShu=null; // 走行単位（料金所間）
+  const AI=[].concat(...(route.legs||[]).map(l=>(l.steps||[]).map(s=>(s.navigationInstruction&&s.navigationInstruction.instructions)||'')));
+  const K=classifySteps(AI);let ki=0;const SC={instr:AI,K,pts:[]};   // 道路の種類（ルート全体で判定）。SC＝首都高の入口・出口の特定に使う案内文と経路
   (route.legs||[]).forEach(l=>{
     const ld=parseDur(l.duration),ls=parseDur(l.staticDuration)||ld,ratio=ls>0?ld/ls:1;
     distM+=(l.distanceMeters||0);baseSec+=ls;trafSec+=ld;legTraf.push(ld);
     let lnC=0,lnK=0,lsh=0;const stepInfo=[];
     (l.steps||[]).forEach(s=>{
       const instr=(s.navigationInstruction&&s.navigationInstruction.instructions)||'';
-      const fr=flatRoad(instr),c=stepClassG(instr),klass=fr?'flat':(c||'normal'),hw=(c==='nexco'||c==='shutoko'||!!fr);
+      const gix=ki,k=K[ki++]||{},fr=k.fr,c=k.c==='flat'?null:k.c,klass=fr?'flat':(c||'normal'),hw=(c==='nexco'||c==='shutoko'||!!fr);
       const dm=s.distanceMeters||0;
       if(fr){if(!flatNames.has(fr.name)){flatTotal+=fr.yen;flatNames.add(fr.name);}}
       else if(c==='shutoko')lsh+=dm;
@@ -3188,7 +3223,7 @@ function parseRoutesAPI(route){
       if(c==='nexco'&&!fr){const fk=kinkoFrac(sp);lnK+=dm*fk;lnC+=dm*(1-fk); // 大都市近郊区間を頂点ごとに按分
         if(!curNex||tStart-curNex.t1>120){curNex={t0:tStart,t1:cum,km:0,kinkoKm:0};nexRuns.push(curNex);} // 120秒未満の途切れ(ランプ等の誤分類)は同一走行に連結
         curNex.t1=cum;curNex.km+=dm/1000;curNex.kinkoKm+=dm*fk/1000;}
-      else if(c==='shutoko'&&!fr){if(!curShu||tStart-curShu.t1>120){curShu={t0:tStart,t1:cum,km:0};shuRuns.push(curShu);}curShu.t1=cum;curShu.km+=dm/1000;}
+      else if(c==='shutoko'&&!fr){if(!curShu||tStart-curShu.t1>120){curShu={t0:tStart,t1:cum,km:0,a:gix,b:gix,ctx:SC};shuRuns.push(curShu);}curShu.t1=cum;curShu.km+=dm/1000;curShu.b=gix;SC.pts[gix]=sp.map(p=>[p.lat(),p.lng()]);}
       stepInfo.push({html:instr.replace(/<[^>]+>/g,''),dist:dm,klass,maneuver:(s.navigationInstruction&&s.navigationInstruction.maneuver)||'',i0,i1:gi,sec:ssec});
     });
     legArr.push({km:(l.distanceMeters||0)/1000,sec:ls,nexcoKm:(lnC+lnK)/1000,nexcoKinkoKm:lnK/1000,shutokoKm:lsh/1000});legSteps.push(stepInfo);pointT.push(cum);
@@ -3213,12 +3248,14 @@ function computeRouteLegacy(fellback){
     let dist=0,base=0,traf=0;const legArr=[],legTraf=[],legStepArr=[];
     let flatTotal=0;const flatNames=new Set();const segs=[];const fullPath=[];let cum=0;const timeline=[],events=[],pointT=[0];let prevHw=false;
     const nexRuns=[],shuRuns=[];let curNex=null,curShu=null;
+    const AI=[].concat(...legs.map(l=>(l.steps||[]).map(s=>s.instructions||'')));
+    const K=classifySteps(AI);let ki=0;const SC={instr:AI,K,pts:[]};   // 道路の種類（ルート全体で判定）。SC＝首都高の入口・出口の特定用
     legs.forEach(l=>{
       dist+=l.distance.value;base+=l.duration.value;const tt=(l.duration_in_traffic||l.duration).value;traf+=tt;legTraf.push(tt);
       const legRatio=(l.duration&&l.duration.value)?Math.max(tt/l.duration.value,1):1;
       let lnC=0,lnK=0,ls=0;const stepInfo=[];
       (l.steps||[]).forEach(s=>{
-        const fr=flatRoad(s.instructions),c=stepClassG(s.instructions);
+        const gix=ki,k=K[ki++]||{},fr=k.fr,c=k.c==='flat'?null:k.c;
         const klass=fr?'flat':(c||'normal');
         if(fr){if(!flatNames.has(fr.name)){flatTotal+=fr.yen;flatNames.add(fr.name);}}
         else if(c==='shutoko')ls+=s.distance.value;
@@ -3236,7 +3273,7 @@ function computeRouteLegacy(fellback){
         if(c==='nexco'&&!fr){const fk=kinkoFrac(path);lnK+=s.distance.value*fk;lnC+=s.distance.value*(1-fk);
           if(!curNex||tStart-curNex.t1>120){curNex={t0:tStart,t1:cum,km:0,kinkoKm:0};nexRuns.push(curNex);}
           curNex.t1=cum;curNex.km+=dm/1000;curNex.kinkoKm+=dm*fk/1000;}
-        else if(c==='shutoko'&&!fr){if(!curShu||tStart-curShu.t1>120){curShu={t0:tStart,t1:cum,km:0};shuRuns.push(curShu);}curShu.t1=cum;curShu.km+=dm/1000;}
+        else if(c==='shutoko'&&!fr){if(!curShu||tStart-curShu.t1>120){curShu={t0:tStart,t1:cum,km:0,a:gix,b:gix,ctx:SC};shuRuns.push(curShu);}curShu.t1=cum;curShu.km+=dm/1000;curShu.b=gix;SC.pts[gix]=(path||[]).map(p=>[p.lat(),p.lng()]);}
         stepInfo.push({html:String(s.instructions||'').replace(/<[^>]+>/g,''),dist:dm,klass,maneuver:s.maneuver||''});
       });
       legArr.push({km:l.distance.value/1000,sec:l.duration.value,nexcoKm:(lnC+lnK)/1000,nexcoKinkoKm:lnK/1000,shutokoKm:ls/1000});
@@ -4533,8 +4570,86 @@ function nexcoTollCalc(km,factor,disc,offset){
 function nexcoTollFlat(km,factor){if(!(km>0))return 0;return Math.round((km*24.6*factor+150)*1.1/10)*10;}
 // 大都市近郊区間：割増単価29.52円/km・長距離逓減対象外・休日割引対象外（深夜割引のみ適用）。addTerminal時のみターミナルチャージ計上（地方部が0の近郊単独ルート用）
 function kinkoTollCalc(km,factor,nightRate,addTerminal){if(!(km>0))return 0;const term=addTerminal?150:0;return Math.round((km*29.52*factor+term)*1.1*(1-nightRate)/10)*10;}
-// 首都高：距離別（下限300円〜上限1950円＝約55km超は均一）×車種係数
-function shutokoTollCalc(km,factor){if(!(km>0))return 0;let t=300+(Math.max(km,4.3)-4.3)*32.55;t=Math.min(Math.max(t,300),1950)*factor;return Math.round(t/10)*10;}
+// 首都高（2026年10月1日の料金改定後。首都高ドライバーズサイト「首都高の料金体系」・首都高料金表 2026年10月改訂版の料金早見表と全距離・全車種で一致を確認）
+//  （1kmあたりの料金×料金距離＋150円）×1.10、10円未満は四捨五入。料金距離55km以上は55kmの額（上限）、下限は車種ごと。
+//  1kmあたり＝普通車32.472円（改定前29.52円）×車種係数（軽・二輪0.8／普通1／中型1.2／大型1.65／特大2.75）。
+//  中型車以上は2027年6月30日まで改定前の29.52円のまま（価格転嫁に向けた当面の特別措置）。料金距離は、ルートで首都高を走る距離で近似する
+const SHU_F={kei:0.8,normal:1,mid:1.2,large:1.65,xl:2.75},SHU_MIN={kei:280,normal:300,mid:330,large:400,xl:550};
+const SHU_REV=Date.UTC(2026,8,30,15),SHU_REV_BIG=Date.UTC(2027,5,30,15);   // 2026-10-01 0:00／2027-07-01 0:00（日本時間）
+function shutokoTollCalc(km,veh,when){
+  if(!(km>0))return 0;
+  const t=when instanceof Date?when.getTime():Date.now(),f=SHU_F[veh]||1,big=f>1;
+  const unit=(t<SHU_REV||(big&&t<SHU_REV_BIG))?29.52:32.472;
+  return Math.max(Math.round((150+unit*f*Math.min(km,55))*1.1/10)*10,SHU_MIN[veh]||300);
+}
+// ===== 首都高：入口と出口を特定して、公式の料金距離で計算する =====
+// shutoko-od.json＝首都高料金表（2026年10月改訂版）の「料金・距離表（ETC普通車）」の料金距離（入口×出口。都心流入割引の区間は割引後の距離）と、
+// 出入口の位置（© OpenStreetMap contributors：出口の分岐点・料金所・ランプ）、他の道路との接続部。ルートに首都高があるときだけ読み込む。
+//  入口＝案内文の名前（「用賀 に向かう」「空港西ICを進む」）→ 無ければ首都高に入った地点に最も近い出入口。他の有料道路から続けて入ったときは接続部（※東名高速 など）。
+//  出口＝「〇〇 出口」→ 無ければ最後に通った出口の分岐点 → 無ければ降りた地点に最も近い出入口。他の有料道路へ続けて出たときは接続部。
+//  特定できない・表にない組み合わせのときは、走った距離で近似する（shutokoTollCalc に走行距離を渡す）
+let SHU_OD=null,SHU_ODP=null,SHU_ODNG=0;
+function shuOdLoad(){
+  if(SHU_OD)return Promise.resolve(SHU_OD);if(SHU_ODP)return SHU_ODP;
+  if(Date.now()-SHU_ODNG<60000)return Promise.resolve(null);   // 読めなかったときは1分あけて読み直す
+  SHU_ODP=fetch('shutoko-od.json?v=1').then(r=>r.ok?r.json():null).then(d=>{if(d&&d.ent&&d.km)SHU_OD=shuOdPrep(d);else SHU_ODNG=Date.now();return SHU_OD;})
+    .catch(()=>{SHU_ODNG=Date.now();return null;}).then(d=>{SHU_ODP=null;return d;});
+  return SHU_ODP;
+}
+function shuOdPrep(d){
+  const ei={},xi={},b2e={},b2x={};d.ent.forEach((n,i)=>ei[n]=i);d.ex.forEach((n,i)=>xi[n]=i);
+  Object.keys(d.base).forEach(n=>d.base[n].forEach(b=>{if(n in ei)(b2e[b]=b2e[b]||[]).push(ei[n]);if(n in xi)(b2x[b]=b2x[b]||[]).push(xi[n]);}));   // 出入口の名前→表の入口・出口
+  const names=Object.keys(d.pos).sort((a,b)=>b.length-a.length);
+  return Object.assign(d,{ei,xi,b2e,b2x,names});
+}
+function shuKmOf(d,i,j){const v=parseInt((d.km[i]||'').substr(j*2,2),36);return v>0?v/10:0;}
+const shuDm=(a,b)=>{const r=Math.PI/180,x=(b[1]-a[1])*r*Math.cos((a[0]+b[0])*r/2),y=(b[0]-a[0])*r;return 6371000*Math.hypot(x,y);};
+function shuNear(d,b,pt){let m=Infinity;(d.pos[b]||[]).forEach(p=>{const v=shuDm(p,pt);if(v<m)m=v;});return m;}
+/** 案内文に出てくる出入口の名前（長い名前から。地名の一部〈西新宿の「新宿」など〉や「〇〇JCT」は数えない。出口は「〇〇（IC） 出口」の形だけ） */
+function shuNamesIn(d,txt,exit){
+  const out=[],J='一-龥ァ-ヶー々';let t=' '+txt+' ';
+  d.names.forEach(b=>{
+    const re=new RegExp('(^|[^'+J+'ぁ-ん])'+b.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+(exit?'\\s*(?:IC|ＩＣ)?\\s*出口':'(?![^\\s]*?(?:JCT|ジャンクション))(?![' +J+'])'));
+    if(re.test(t)){out.push(b);t=t.replace(re,'$1 ');}
+  });
+  return out;
+}
+/** 他の道路との接続部（案内文の道路名に合うもの。近い順） */
+function shuConn(d,txt,pt,isEnt){
+  const map=isEnt?d.ei:d.xi,out=[];
+  Object.keys(d.cn).forEach(n=>{const c=d.cn[n];if(!(n in map)||!new RegExp(c[0]).test(txt))return;const m=shuDm([c[1],c[2]],pt);if(m<=15000)out.push([m,map[n]]);});
+  return out.sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+}
+/** 出口：首都高を走った経路が最後に通った「出口の分岐点」（経路から35m以内。降りた地点まで経路で3km以内） */
+function shuPassedExit(d,path){
+  const P=[path[0]];path.forEach(p=>{if(shuDm(P[P.length-1],p)>=25)P.push(p);});P.push(path[path.length-1]);
+  let best=null;
+  Object.keys(d.b2x).forEach(b=>(d.pos[b]||[]).forEach(p=>{
+    for(let i=P.length-1;i>=0;i--){if(best&&i<=best.i)break;if(Math.abs(P[i][0]-p[0])<0.0005&&Math.abs(P[i][1]-p[1])<0.0006&&shuDm(P[i],p)<=35){best={b,i};break;}}
+  }));
+  if(!best)return null;
+  let rest=0;for(let i=best.i;i<P.length-1;i++)rest+=shuDm(P[i],P[i+1]);
+  return rest<=3000?best.b:null;
+}
+/** 首都高の1回の走行（lastShuRuns の要素）→ {km：料金距離, ent, ex}。特定できなければ null */
+function shuOdRun(r){
+  const d=SHU_OD,c=r&&r.ctx;if(!d||!c||r.a==null)return null;
+  const key=r.a+'-'+r.b;c.od=c.od||{};if(key in c.od)return c.od[key];
+  const S=c.instr,n=S.length,toll=i=>i>=0&&i<n&&/有料区間/.test(S[i]),cls=i=>(c.K[i]||{}).c,core=i=>(i>=0&&i<n)?instrCore(S[i]):'';
+  const path=[];for(let i=r.a;i<=r.b;i++)(c.pts[i]||[]).forEach(p=>path.push(p));
+  let res=null;
+  if(path.length>=2){
+    const st=path[0],en=path[path.length-1];
+    const pick=(list,pt,map,maxM)=>{let best=null;list.forEach(b=>{if(!map[b])return;const m=shuNear(d,b,pt);if(m<=maxM&&(!best||m<best.m))best={b,m};});return best&&best.b;};
+    let E=[],X=[];
+    if(toll(r.a-1)&&cls(r.a-1)&&cls(r.a-1)!=='shutoko'){let t='';for(let i=r.a-1,k=0;i>=0&&toll(i)&&k<6;i--,k++)t+=' '+S[i];E=shuConn(d,t,st,true);}   // 他の有料道路から続けて入った
+    if(!E.length){const b=pick(shuNamesIn(d,[core(r.a-2),core(r.a-1),core(r.a),core(r.a+1)].join(' '),false),st,d.b2e,2000)||pick(d.names,st,d.b2e,1500);if(b)E=d.b2e[b];}
+    if(toll(r.b+1)&&cls(r.b+1)&&cls(r.b+1)!=='shutoko'){let t='';for(let i=r.b+1,k=0;i<n&&toll(i)&&k<6;i++,k++)t+=' '+S[i];X=shuConn(d,t,en,false);}   // 他の有料道路へ続けて出た
+    if(!X.length){const b=pick(shuNamesIn(d,[core(r.b-1),core(r.b),core(r.b+1)].join(' '),true),en,d.b2x,2000)||shuPassedExit(d,path)||pick(d.names,en,d.b2x,1200);if(b)X=d.b2x[b];}
+    for(const i of E){for(const j of X){const L=shuKmOf(d,i,j);if(L>0&&L<=r.km*1.3+2){res={km:L,ent:d.ent[i],ex:d.ex[j]};break;}}if(res)break;}   // 走った距離より大幅に長い組み合わせは取り違えとみなす
+  }
+  return c.od[key]=res;
+}
 // 祝日カレンダー（2026-2027。休日割引の判定に使用）
 const JP_HOLIDAYS=new Set(['2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23','2026-10-12','2026-11-03','2026-11-23','2027-01-01','2027-01-11','2027-02-11','2027-02-23','2027-03-21','2027-03-22','2027-04-29','2027-05-03','2027-05-04','2027-05-05','2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11','2027-11-03','2027-11-23']);
 function isHolidayDate(d){const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');return d.getDay()===0||d.getDay()===6||JP_HOLIDAYS.has(k);}
@@ -4669,16 +4784,18 @@ function calcToll(){
   // 首都高：深夜割引20%（入口通過が0〜4時。首都高は最初のETCアンテナ通過時刻で判定）
   let sruns=(lastShuRuns&&lastShuRuns.length)?lastShuRuns.slice():((lastShutokoKm||0)>0.05?[{t0:0,t1:lastDurationSec||0,km:lastShutokoKm}]:[]);
   const ssum=sruns.reduce((a,r)=>a+r.km,0);
-  if(ssum>0&&(lastShutokoKm||0)>0&&Math.abs(ssum-lastShutokoKm)>0.05)sruns=sruns.map(r=>({t0:r.t0,t1:r.t1,km:r.km*lastShutokoKm/ssum}));
-  let shu=0,shuDisc=0;
+  if(ssum>0&&(lastShutokoKm||0)>0&&Math.abs(ssum-lastShutokoKm)>0.05)sruns=sruns.map(r=>Object.assign({},r,{km:r.km*lastShutokoKm/ssum}));
+  let shu=0,shuDisc=0,shuWant=false;const shuOd=[];
   sruns.forEach(r=>{
-    const full=shutokoTollCalc(r.km,SHU[vehType]);
-    const h=clockAt(dep,r.t0).getHours();
+    const od=SHU_OD?shuOdRun(r):null;if(r.ctx&&!SHU_OD)shuWant=true;if(od)shuOd.push(od);   // 入口・出口が分かれば公式の料金距離、分からなければ走った距離
+    const c0=clockAt(dep,r.t0),full=shutokoTollCalc(od?od.km:r.km,vehType,c0);   // 入口を通る時刻の料金（改定日・特別措置の期限で切り替え）
+    const h=c0.getHours();
     const after=(applyD&&h>=0&&h<4)?r10(full*0.8):full;
     shu+=after;shuDisc+=full-after;
   });
+  if(shuWant){const rs=lastShuRuns;shuOdLoad().then(d=>{if(d&&rs===lastShuRuns&&lastDistanceKm!=null)updateCost();});}   // 料金距離の表を読み込んだら計算し直す
   const flat=lastFlatYen>0?Math.round(lastFlatYen*f/10)*10:0;
-  return{toll:nexco+shu+flat,nexco,shu,flat,longDisc,timeDisc,shuDisc,kinko,discName,nightRuns,holRuns,runCount:runs.length};
+  return{toll:nexco+shu+flat,nexco,shu,flat,longDisc,timeDisc,shuDisc,shuOd,kinko,discName,nightRuns,holRuns,runCount:runs.length};
 }
 function fmtDuration(sec){const m=Math.round(sec/60);return m<60?(m+'分'):(Math.floor(m/60)+'時間'+(m%60)+'分');}
 function fuelLabel(f){return{regular:'レギュラー',premium:'ハイオク',diesel:'軽油'}[f];}
@@ -4716,7 +4833,7 @@ function updateCost(){
   const discTxt=dParts.length?`（${dParts.join('／')} 適用済）`:'';
   const flatTxt=(t.flat>0)?` ＋ 均一区間(${lastFlatNames.join('・')})=¥${t.flat.toLocaleString()}`:'';
   const kinkoTxt=(t.kinko>0)?` うち近郊${t.kinko.toFixed(1)}kmは割増29.52円/km・逓減/休日割引対象外。`:'';
-  document.getElementById('tollHint').textContent=`高速距離は自動判定。NEXCO ${nk.toFixed(1)}km=¥${t.nexco.toLocaleString()}${discTxt}${lastShutokoKm>0.1?` ＋ 首都高 ${lastShutokoKm.toFixed(1)}km=¥${t.shu.toLocaleString()}`:''}${flatTxt}。${kinkoTxt}割引は走行(入口→出口)単位で判定：深夜=0〜4時に少しでもかかれば全額30%OFF(毎日・全車種)／休日=土日祝に軽・普通車の地方部30%OFF(3連休・GW/盆/年末年始は適用除外、深夜と重複なし)／首都高=0〜4時流入で20%OFF(距離別・上限¥1950)。長距離逓減(100/200km超)は併用。`;
+  document.getElementById('tollHint').textContent=`高速距離は自動判定。NEXCO ${nk.toFixed(1)}km=¥${t.nexco.toLocaleString()}${discTxt}${lastShutokoKm>0.1?` ＋ 首都高 ${(t.shuOd&&t.shuOd.length)?t.shuOd.map(o=>o.ent.replace(/^※/,'')+'→'+o.ex.replace(/^※/,'')+' 料金距離'+o.km.toFixed(1)+'km').join('・'):lastShutokoKm.toFixed(1)+'km（走行距離で概算）'}=¥${t.shu.toLocaleString()}`:''}${flatTxt}。${kinkoTxt}割引は走行(入口→出口)単位で判定：深夜=0〜4時に少しでもかかれば全額30%OFF(毎日・全車種)／休日=土日祝に軽・普通車の地方部30%OFF(3連休・GW/盆/年末年始は適用除外、深夜と重複なし)／首都高=0〜4時流入で20%OFF(2026年10月改定の距離別料金・55km以上は上限)。長距離逓減(100/200km超)は併用。${(t.shuOd&&t.shuOd.length)?'首都高の料金距離は首都高料金表（2026年10月改訂版）、出入口の位置は © OpenStreetMap contributors。':''}`;
   const lg=document.getElementById('routeLegend');if(lg)lg.style.display='flex';
   document.getElementById('rNote').textContent=`ガソリン ${liters.toFixed(1)}L＋高速概算${other>0?('＋その他¥'+other.toLocaleString()):''}。距離・料金は ${lastEngine}（経路）、時間はGoogle渋滞。`;
   // 折りたたみ中でも現在の設定が一目で分かるチップ
