@@ -5705,6 +5705,18 @@ function h2cLoad(){
   return h2cP;
 }
 const IMG_SKIP=/(^|\s)(gm-control-active|gm-bundled-control|gm-fullscreen-control|gm-svpc|gm-style-mtc|gm-style-iw-a|gm-style-iw-t|gm-style-iw-c)(\s|$)/;
+/** 画像にする前の写し（画面そのものは変えない）の手直し：
+ *  ・Google が地図の目印に付ける負の重なり順（z-index）を正の値にずらす（そのままだと目印の文字「的」などが地図の下に描かれて消える）
+ *  ・大きさの指定がない SVG 画像（Google のロゴ）を、表示中の大きさの PNG にしてから描かせる（そのままだと大きく崩れる） */
+function imgPrepClone(doc,sc){
+  const m=doc.getElementById('map');if(!m)return;
+  m.querySelectorAll('*').forEach(e=>{const z=parseInt(e.style.zIndex,10);if(z<0)e.style.zIndex=String(100000+z);});
+  return Promise.all([...m.querySelectorAll('img')].filter(i=>/^data:image\/svg\+xml/.test(i.src)).map(i=>new Promise(res=>{
+    const r=i.getBoundingClientRect(),w=Math.round(r.width),h=Math.round(r.height);
+    if(!(w>0&&h>0)||(i.naturalWidth===w&&i.naturalHeight===h))return res();
+    const im=new Image();im.onload=()=>{try{const c=document.createElement('canvas');c.width=Math.round(w*sc);c.height=Math.round(h*sc);c.getContext('2d').drawImage(im,0,0,c.width,c.height);i.src=c.toDataURL('image/png');}catch(e){}res();};
+    im.onerror=()=>res();im.src=i.src;})));
+}
 async function exportMapImage(){
   const el=document.getElementById('map');
   if(!el||!map){showStatus('地図の準備ができていません',false);hideStatusLater();return;}
@@ -5712,8 +5724,10 @@ async function exportMapImage(){
   showStatus('地図を画像にしています…',true);
   try{
     await h2cLoad();
-    const cv=await html2canvas(el,{useCORS:true,allowTaint:false,backgroundColor:getComputedStyle(el).backgroundColor||'#ffffff',scale:Math.min(window.devicePixelRatio||1,2),logging:false,
-      ignoreElements:e=>e.tagName==='IFRAME'||IMG_SKIP.test(typeof e.className==='string'?e.className:'')||(e.tagName==='BUTTON'&&/キーボード|ショートカット/.test(e.textContent||''))});
+    const sc=Math.min(window.devicePixelRatio||1,2);
+    const cv=await html2canvas(el,{useCORS:true,allowTaint:false,backgroundColor:getComputedStyle(el).backgroundColor||'#ffffff',scale:sc,logging:false,
+      ignoreElements:e=>e.tagName==='IFRAME'||IMG_SKIP.test(typeof e.className==='string'?e.className:'')||(e.tagName==='BUTTON'&&/キーボード|ショートカット/.test(e.textContent||'')),
+      onclone:doc=>imgPrepClone(doc,sc)});
     const blob=await new Promise((ok,ng)=>cv.toBlob(b=>b?ok(b):ng(new Error('blob')),'image/png'));
     const d=new Date(),z=n=>String(n).padStart(2,'0');
     const name='tabimap_'+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+'_'+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds())+'.png';
