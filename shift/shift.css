@@ -122,6 +122,7 @@ main{flex:1 1 auto;display:flex;flex-direction:column;min-height:300px;padding:1
 .tl-hours{position:relative;flex:none;}
 .tl-hours span{position:absolute;top:0;bottom:0;display:flex;align-items:center;padding-left:5px;font-size:11.5px;color:var(--muted);font-family:var(--mono);border-left:1px solid var(--grid-h);}
 .tl-hours span.mid{color:var(--dim);font-size:10px;border-left-color:var(--grid);}
+.tl-hours span.end{border-left:0;transform:translateX(-100%);padding:0 4px 0 0;}
 .tl-grp{display:block;padding:6px 0;background:var(--panel-2);border-bottom:1px solid var(--line);font-weight:800;font-size:13px;cursor:pointer;user-select:none;}
 .tl-grp .gin{position:sticky;left:10px;display:inline-flex;align-items:center;gap:8px;}
 .tl-grp .gdot{width:10px;height:10px;border-radius:3px;}
@@ -142,7 +143,8 @@ main{flex:1 1 auto;display:flex;flex-direction:column;min-height:300px;padding:1
 .bar.ghost{opacity:.55;outline:2px dashed #fff;outline-offset:-2px;}
 .bar.clash{box-shadow:0 0 0 1px #000,0 0 0 3px var(--warn),0 2px 8px rgba(0,0,0,.45);}
 .bar .cl{position:relative;z-index:2;flex:none;background:#000;color:var(--warn);border-radius:3px;padding:0 3px;font-size:10px;font-weight:800;}
-.bar .t,.bar .tk,.bar .e2{background:inherit;border-radius:3px;padding:0 2px;}
+.bar .t,.bar .tk,.bar .e2,.bar .cl{border-radius:3px;padding:0 2px;}
+.bar .t,.bar .tk,.bar .e2{background:var(--bc);}
 .bar .t{position:relative;z-index:2;font-family:var(--mono);font-variant-numeric:tabular-nums;letter-spacing:-.01em;font-weight:800;}
 .bar .t .s,.bar .t .e{font-weight:800;}
 .bar .t .sep{opacity:.55;margin:0 1px;}
@@ -161,6 +163,14 @@ main{flex:1 1 auto;display:flex;flex-direction:column;min-height:300px;padding:1
 .bar .hdl::after{content:"";position:absolute;top:30%;bottom:30%;left:3px;width:2px;border-radius:1px;background:rgba(0,0,0,.35);opacity:0;}
 .bar:hover .hdl::after{opacity:1;}
 .bar.narrow .t,.bar.narrow .tk,.bar.narrow .e2{display:none;}
+/* 役職のある棒は2行：上＝入り（左）・終わり（右）、下＝役職の名前（棒の幅いっぱい） */
+.bar.two{flex-direction:column;align-items:stretch;justify-content:center;gap:1px;padding:0 5px;}
+.bar.two .ln1{position:relative;z-index:2;display:flex;align-items:center;gap:4px;line-height:1.1;}
+.bar.two .ln1 .e2{margin-left:auto;}
+.bar.two .ln2{position:relative;z-index:2;display:flex;min-width:0;line-height:1.15;}
+.bar.two .t,.bar.two .e2{font-size:10.5px;}
+.bar.two .tk{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%;}
+.bar-out{gap:3px;}
 .bar-out{position:absolute;top:0;bottom:0;display:flex;align-items:center;font-size:11.5px;color:var(--muted);font-family:var(--mono);white-space:nowrap;z-index:1;cursor:pointer;}
 .bar-out:hover b{text-decoration:underline;}
 .bar-out b{color:var(--fg);font-weight:800;}
@@ -201,7 +211,7 @@ table.mx{border-collapse:separate;border-spacing:0;width:max-content;min-width:1
 .mx td.cell .add2{position:absolute;right:7px;top:7px;width:22px;height:20px;z-index:1;border-radius:5px;border:1px solid #3a3a42;background:var(--panel-2);color:var(--muted);
   font-size:13px;line-height:1;display:flex;align-items:center;justify-content:center;opacity:0;cursor:pointer;padding:0;}
 .mx td.cell:hover .add2,.mx td.cell .add2:focus-visible{opacity:1;}
-@media (hover:none){.mx td.cell .add2{opacity:.85;}}
+@media (hover:none){.mx td.cell .add2{position:static;opacity:.8;width:100%;height:26px;margin-top:4px;}}
 .mx td.tot{min-width:70px;padding:6px 8px;text-align:right;font-family:var(--mono);color:var(--muted);font-size:12px;vertical-align:middle;}
 .mx tr.gh td{background:var(--panel-2);font-weight:800;padding:6px 0;border-bottom:1px solid var(--line);cursor:pointer;user-select:none;}
 .mx tr.gh td .inner{position:sticky;left:10px;display:inline-flex;gap:8px;align-items:center;}
@@ -238,6 +248,7 @@ table.mx{border-collapse:separate;border-spacing:0;width:max-content;min-width:1
 .legend .sw.brk{background:repeating-linear-gradient(135deg,rgba(0,0,0,.78) 0 4px,rgba(0,0,0,.5) 4px 8px),#2dd4bf;}
 .legend .sep{width:1px;height:14px;background:var(--line);}
 .legend .hint{color:var(--dim);}
+.legend .lgt{display:none;}
 
 /* ---------- メニュー ---------- */
 .menu{position:fixed;z-index:60;min-width:230px;background:var(--panel-2);border:1px solid #34343b;border-radius:12px;padding:6px;box-shadow:0 16px 40px rgba(0,0,0,.7);}
@@ -311,6 +322,9 @@ textarea.inp{min-height:110px;resize:vertical;font-family:var(--mono);font-size:
 .dchk{display:flex;gap:6px;flex-wrap:wrap;}
 .dchk label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:8px;padding:5px 10px;cursor:pointer;background:var(--panel-2);font-size:13px;}
 .dchk label.fest{border-color:#55555e;}
+.dchk label .dl{font-size:10.5px;font-weight:700;color:var(--muted);}
+.dchk label.fest .dl{color:var(--fg);}
+.dchk label:has(input:checked) .dl{color:#333;}
 .dchk input{accent-color:#fff;margin:0;}
 .dchk label:has(input:checked){background:#fff;color:#000;border-color:#fff;}
 .dchk label:has(input:checked) input{accent-color:#000;}
@@ -391,8 +405,10 @@ table.ed input[type=color]{width:38px;height:32px;padding:2px;border-radius:7px;
   .chk{font-size:12px;min-height:34px;padding-right:4px;}
   .chk input{width:18px;height:18px;}
   .seg.mini button{padding:6px 8px;font-size:11.5px;min-height:32px;}
-  .legend{flex-wrap:nowrap;overflow-x:auto;white-space:nowrap;scrollbar-width:none;gap:10px;font-size:11px;}
-  .legend::-webkit-scrollbar{display:none;}
+  .legend{flex-wrap:nowrap;overflow:hidden;white-space:nowrap;gap:10px;font-size:11px;max-height:24px;position:relative;}
+  .legend.open{flex-wrap:wrap;white-space:normal;max-height:none;row-gap:6px;}
+  .legend .lgt{display:inline-flex;flex:none;order:-1;align-items:center;gap:4px;border:1px solid var(--line);background:var(--panel-2);color:var(--fg);border-radius:6px;padding:2px 8px;font-size:11px;font-weight:700;cursor:pointer;}
+  .legend .it{white-space:nowrap;}
   .legend .hint{display:none;}
   .days{padding:7px 0;}
   .day{min-width:80px;padding:4px 10px 5px;}
@@ -405,6 +421,7 @@ table.ed input[type=color]{width:38px;height:32px;padding:2px;border-radius:7px;
   .dur{white-space:normal;}
   .row.nw{flex-wrap:wrap;}
   /* 名簿・設定の表は、1人（1件）ずつのカードに組み直す */
+  .dlg .ed-wrap{max-height:none;overflow:visible;}
   table.stack thead{display:none;}
   table.stack,table.stack tbody{display:block;}
   table.stack tr{display:grid;gap:6px;padding:8px 6px;border-top:1px solid var(--line-2);align-items:center;}
