@@ -99,15 +99,22 @@
   }
 
   // ---------- EV の判定 ----------
+  // 自動：その日の使用不可の時間帯の中は×、始まる30分前から△、それ以外は○（その日の設定がなければー）。手動で○△×ーにもできる
+  const EV_SOON_MIN = 30;
   function evState(u) {
     const e = S.data && S.data.ev && S.data.ev[u];
     if (!e) return 'na';
-    if (e.mode === 'ok') return 'ok'; if (e.mode === 'ng') return 'ng'; if (e.mode === 'none') return 'na';
+    if (e.mode === 'ok') return 'ok'; if (e.mode === 'soon') return 'soon'; if (e.mode === 'ng') return 'ng'; if (e.mode === 'none') return 'na';
     const t = jst(), slots = e.days ? e.days[t.ymd] : undefined;
     if (!slots) return 'na';   // その日のデータなし
-    return slots.some(s => { const a = toMin(s.from), b = toMin(s.to); return a != null && b != null && t.min >= a && t.min < b; }) ? 'ng' : 'ok';
+    const span = s => [toMin(s.from), toMin(s.to)];
+    if (slots.some(s => { const [a, b] = span(s); return a != null && b != null && t.min >= a && t.min < b; })) return 'ng';
+    const next = (e.days[ymdAdd(t.ymd, 1)] || []).map(s => ({ from: s.from, off: 1440 }));   // 夜遅くは、翌日の早い時間帯も見る
+    const soon = slots.map(s => ({ from: s.from, off: 0 })).concat(next).some(s => { const a = toMin(s.from); if (a == null) return false; const d = a + s.off - t.min; return d > 0 && d <= EV_SOON_MIN; });
+    return soon ? 'soon' : 'ok';
   }
-  const EV_SYM = { ok: '○', ng: '×', na: 'ー' }, EV_TXT = { ok: '使用可', ng: '使用不可', na: 'データなし' };
+  function ymdAdd(ymd, n) { const [y, m, d] = ymd.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); }
+  const EV_SYM = { ok: '○', soon: '△', ng: '×', na: 'ー' }, EV_TXT = { ok: '使用可', soon: 'まもなく使用不可（30分以内）', ng: '使用不可', na: 'データなし' };
   // ---------- G倉庫IN：G倉庫に車両が入れるか（周りに車両がいなければ○） ----------
   const G_NEAR_M = 8, G_STALE_MS = 15 * 60000;
   const G_TXT = { ok: '入れる（周りに車両なし）', ng: '車両あり（G倉庫・外周8m以内に停車・走行中）', na: '夜間（22時〜6時）または車両の位置を取得していない' };
@@ -374,7 +381,7 @@
     EVU.forEach(([u, lab, bld]) => {
       const e = D.ev[u];
       h += '<div class="fs-ev"><div class="fs-ev-h"><b>' + lab + '</b><span>' + bld + '</span><div class="seg fs-mode" data-u="' + u + '">'
-        + [['auto', '自動'], ['ok', '○'], ['ng', '×'], ['none', 'ー']].map(([m, t]) => '<button type="button" data-m="' + m + '" class="' + (e.mode === m ? 'on' : '') + '">' + t + '</button>').join('') + '</div></div>';
+        + [['auto', '自動'], ['ok', '○'], ['soon', '△'], ['ng', '×'], ['none', 'ー']].map(([m, t]) => '<button type="button" data-m="' + m + '" class="' + (e.mode === m ? 'on' : '') + '"' + (m === 'soon' ? ' title="まもなく使用不可"' : '') + '>' + t + '</button>').join('') + '</div></div>';
       if (e.mode === 'auto') {
         h += days.length ? days.map(d => { const has = Object.prototype.hasOwnProperty.call(e.days, d);
           return '<label class="fs-evd"><span>' + dayLabel(d, true) + '</span><input type="text" data-u="' + u + '" data-d="' + d + '" value="' + esc(has ? slotsText(e.days[d]) : '') + '" placeholder="' + (has ? 'なし（終日使用可）' : 'データなし') + '" inputmode="numeric" /><span class="fs-chk"><input type="checkbox" data-u="' + u + '" data-d="' + d + '"' + (has ? ' checked' : '') + ' />設定済み</span></label>'; }).join('')
@@ -383,7 +390,7 @@
       h += '</div>';
     });
     h += '<div class="fs-tabs"><span class="fs-add"><input type="date" id="fsNewDay" aria-label="追加する日" /><button type="button" id="fsAddDay">日を追加</button></span></div>'
-      + '<div class="set-help">使用不可の時間帯を「10:00-11:30, 14:00-15:00」の形で入力。「設定済み」の日は、時間帯の外が○、内が×になります。設定していない日はー（データなし）。'
+      + '<div class="set-help">使用不可の時間帯を「10:00-11:30, 14:00-15:00」の形で入力。「設定済み」の日は、時間帯の外が○、始まる30分前から△、内が×になります。設定していない日はー（データなし）。時間帯が決まるまでは、○△×ーを押して手動で切り替えられます（「自動」に戻すと時間帯で判定）。'
       + (isFull() ? '<br>開錠・施錠時刻と黒帯に流す情報は、上の「高度な設定（情報組込）」で編集します。' : '') + '</div></div>';
     h += '<div class="share-row"><button class="set-save" id="fsSave" type="button">保存</button><button class="set-save ghost" id="fsReset" type="button">変更を取り消す</button></div>'
       + '<div class="set-msg" id="fsMsg">' + (S.updatedAtMs ? '最終更新 ' + new Date(S.updatedAtMs + 9 * 3600000).toISOString().slice(5, 16).replace('T', ' ').replace('-', '/') : '') + '</div>';

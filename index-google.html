@@ -958,8 +958,8 @@
   .lc-ev-u{display:flex;flex-direction:column;align-items:center;gap:2px;line-height:1;}
   .lc-ev-u span{font-size:11px;font-weight:800;letter-spacing:.3px;color:var(--fg);}
   .lc-ev-u b{font-size:17px;font-weight:900;}
-  .lc-ev-u .ev-ok{color:#2f9e44;} .lc-ev-u .ev-ng{color:#e03131;} .lc-ev-u .ev-na{color:var(--muted);}
-  [data-theme="dark"] .lc-ev-u .ev-ok{color:#69db7c;} [data-theme="dark"] .lc-ev-u .ev-ng{color:#ff8787;}
+  .lc-ev-u .ev-ok{color:#2f9e44;} .lc-ev-u .ev-soon{color:#e67700;} .lc-ev-u .ev-ng{color:#e03131;} .lc-ev-u .ev-na{color:var(--muted);}
+  [data-theme="dark"] .lc-ev-u .ev-ok{color:#69db7c;} [data-theme="dark"] .lc-ev-u .ev-soon{color:#ffc078;} [data-theme="dark"] .lc-ev-u .ev-ng{color:#ff8787;}
   /* エレベーター（15秒）⇔ 今日の天気（7秒）：同じ場所に重ねて、フェードアウト→フェードインで入れ替える（幅は広い方に合わせて固定） */
   html.fest #lcEv .lc-rot{display:grid;align-items:center;}
   html.fest #lcEv .lc-rot>div{grid-area:1/1;display:flex;align-items:center;gap:12px;}
@@ -2354,7 +2354,7 @@ function festInstallInit(){
   festInstallUi();
 }
 // 車両の位置の取得・一覧は fest-vehicle-tracking.js（本祭支援ツールのときだけ読み込む）
-const FEST_TRK_V=13;
+const FEST_TRK_V=14;
 function festTrkLoad(){
   if(!FEST||window.festHttp)return;
   const sc=document.createElement('script');sc.src='fest-vehicle-tracking.js?v='+FEST_TRK_V;

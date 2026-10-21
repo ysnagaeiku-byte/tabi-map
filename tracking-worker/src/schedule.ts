@@ -13,7 +13,7 @@ export const FACILITIES = [
   ["ikuta", "生田会館"],
 ] as const;
 export const EV_UNITS = ["9", "10"] as const;
-export const EV_MODES = ["auto", "ok", "ng", "none"] as const; // auto＝時間帯から判定、ok＝○、ng＝×、none＝ー
+export const EV_MODES = ["auto", "ok", "soon", "ng", "none"] as const; // auto＝時間帯から判定（始まる30分前から△）、ok＝○、soon＝△（まもなく使用不可）、ng＝×、none＝ー
 export const MAX_SCHEDULE_BYTES = 64 * 1024;
 export const BAND_SRC = ["lock", "fac", "evt", "act", "info"] as const; // 開錠・施錠／学内施設時間／イベント時間／ステージ出演／インフォメーション
 

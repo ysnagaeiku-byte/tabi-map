@@ -35,6 +35,12 @@ describe("時刻表の形（normalizeSchedule）", () => {
     expect(s.ev["10"]).toEqual({ mode: "auto", days: {} });
   });
 
+  it("EVは手動で△（まもなく使用不可）にもできる", () => {
+    const s = normalizeSchedule({ days: [], ev: { "9": { mode: "soon" }, "10": { mode: "ng" } } });
+    expect(s.ev["9"]).toEqual({ mode: "soon", days: {} });
+    expect(s.ev["10"]).toEqual({ mode: "ng", days: {} });
+  });
+
   it("開錠・施錠が両方空の行は持たない", () => {
     const s = normalizeSchedule({ days: [{ d: "2030-01-05", items: [{ f: "b1", o: "", c: "" }, { f: "b2", o: "8:00", c: "" }] }] });
     expect(s.days[0].items).toEqual([{ f: "b2", o: "8:00", c: "" }]);
