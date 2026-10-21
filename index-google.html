@@ -88,6 +88,9 @@
   /* タブバー/アクション列は横幅いっぱいだが空白部はクリックを地図(InfoWindowの×等)へ透過。子(チップ/ボタン)のみ受ける */
   #tabs,#topActions{pointer-events:none;} #tabs>*,#topActions>*{pointer-events:auto;}
   .toprow{display:flex;align-items:center;gap:8px;padding:10px 12px 0;}
+  #reloadBtn{flex:none;width:22px;height:22px;padding:0;margin-right:-2px;border-radius:50%;border:1px solid var(--line);background:var(--panel);color:var(--muted);display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px var(--shadow);}
+  #reloadBtn svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round;}
+  #reloadBtn:active{color:var(--fg);transform:rotate(60deg);}
   .searchbar{flex:1;display:flex;align-items:center;gap:8px;background:var(--panel);border:1px solid var(--line);border-radius:999px;box-shadow:0 4px 18px var(--shadow);padding:0 4px 0 14px;height:40px;min-width:0;}
   .searchbar .s-ic{font-size:15px;color:var(--muted);flex:none;}
   .searchbar input{flex:1;border:none;background:none;color:var(--fg);font-size:14.5px;outline:none;min-width:0;}
@@ -1159,6 +1162,7 @@
 <div id="map"></div>
 <div id="topbar">
   <div class="toprow">
+    <button type="button" id="reloadBtn" title="ページを再読み込み" aria-label="ページを再読み込み"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.5 12a7.5 7.5 0 1 1-2.2-5.3"/><path d="M19.5 4.5v3.8h-3.8"/></svg></button>
     <div class="searchbar">
       <span class="s-ic"><svg class="svgi" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4.2-4.2"/></svg></span>
       <input id="topSearch" placeholder="場所・施設・住所を検索" autocomplete="off" />
@@ -1803,9 +1807,10 @@ window.initGMap=function(){
   buildTabs(); updateGasNote();
   google.maps.event.addListenerOnce(map,'idle',()=>{restoreState();setPlain();
     if(FEST)festInit();else{showStatus('検索、または下のチップで温泉郷・ルートなどを表示',false);hideStatusLater();try{awakeInit();}catch(e){console.warn('awake',e);}}   // 表示している間はスリープさせない（既定ON）
-    // 防災トグルの復元（地図準備後）。地震情報・緊急地震速報は既定で受信する（メニューで止めた端末は止めたまま）
-    if(localStorage.getItem('tabi_tsunami_on')==='1')setTsunami(true);
+    // 防災トグルの復元（地図準備後）。津波情報・地震情報・緊急地震速報は既定で受信する（メニューで止めた端末は止めたまま）
+    if(localStorage.getItem(TSU_KEY)!=='0')setTsunami(true,true);
     if(localStorage.getItem(QK_KEY)!=='0')setQuake(true,true);
+    if(!FEST&&localStorage.getItem(WXM_KEY)!=='0')toggleWeatherMode(true);   // ドライブ版は天気予報（都道府県を押すと天気）も既定でON
   });
 };
 // キー取得：端末localStorage（個別上書き）→ 配信時注入の共有キー の順。未置換プレースホルダ(__xxx__)は無視。
@@ -1894,7 +1899,7 @@ function buildTabs(){tabsEl.innerHTML='';TAB_ORDER.forEach(key=>{const m=TAB_MET
     b.onclick=()=>{if(window.festSched&&festSched.adv)festSched.adv.open();else{showStatus('読み込み中です。少し待ってからもう一度押してください',false);hideStatusLater();}};tabsEl.appendChild(b);}   // 本部版だけ表示（html.fest-hq）
 }
 function setPlain(){
-  activeTab=null;buildTabs();
+  activeTab=null;buildTabs();try{wxClickSync();}catch(e){}
   if(map)map.setOptions({disableDoubleClickZoom:false}); // ルート以外は通常のダブルクリックズームに戻す
   customPanel.classList.remove('open');document.getElementById('isoPanel').classList.remove('open');routeSheet.classList.remove('open');
   document.getElementById('controls').style.display='none';
@@ -1902,7 +1907,7 @@ function setPlain(){
 }
 function selectTab(key){
   if(key===activeTab){if(key==='onsengo'){onsenLayerOn=false;clearArr(onsengoMarkers);}setPlain();return;} // 再タップで解除（温泉郷はレイヤーOFF）
-  activeTab=key;buildTabs();
+  activeTab=key;buildTabs();try{wxClickSync();}catch(e){}
   const routeMode=(key==='route'),isoMode=(key==='iso');
   if(map)map.setOptions({disableDoubleClickZoom:routeMode}); // ルート中はダブルクリックで地点追加（ズーム誤発火を防止）
   customPanel.classList.toggle('open',key==='custom');
@@ -2278,16 +2283,22 @@ window.festStore=(function(){
   st.get=k=>{try{return area(k).getItem(k);}catch(e){return null;}};
   st.set=(k,v)=>{try{area(k).setItem(k,v);}catch(e){}};
   st.del=k=>{try{area(k).removeItem(k);}catch(e){}};
-  st.hqKey=()=>{try{const k=localStorage.getItem('fest_view_key'),me=JSON.parse(localStorage.getItem('fest_me')||'null');return k&&me&&me.role==='full'?k:'';}catch(e){return '';}};   // 前回、本部版と確かめたキー
+  // 本部版（全権限）と確かめたキーは別に記憶する（fest_hq_key）。権限の確認に一度失敗して記録が消えても、配布版のリンクやキーを開いたときに
+  // 本部版のキーを上書きしない（以前は「前回の確認結果」だけで判定していたため、通信の都合で記録が消えた後に配布版を開くと本部版のキーが消えた）
+  const HQV='fest_hq_key';
+  st.hqKey=()=>{try{const v=localStorage.getItem(HQV);if(v)return v;const k=localStorage.getItem('fest_view_key'),me=JSON.parse(localStorage.getItem('fest_me')||'null');return k&&me&&me.role==='full'?k:'';}catch(e){return '';}};
+  st.rememberHq=k=>{try{if(k&&localStorage.getItem(HQV)!==k)localStorage.setItem(HQV,k);}catch(e){}
+    try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{});}catch(e){}};   // 端末の空き容量が少ないときなどに保存内容を消されにくくする
   st.enter=()=>{if(st.preview)return;try{TAB.forEach(k=>sessionStorage.removeItem(k));sessionStorage.setItem(FLAG,'1');}catch(e){return;}st.preview=true;de.classList.add('fest-preview');};
   st.exit=()=>{try{TAB.forEach(k=>sessionStorage.removeItem(k));sessionStorage.removeItem(FLAG);}catch(e){}st.preview=false;de.classList.remove('fest-preview');};
   // 新しいキーを使う直前に呼ぶ：本部版の端末で別のキーなら、このタブだけにする。本部版のキーそのものなら、このタブの確認を終える
   st.useKey=k=>{const hq=st.hqKey();if(!hq)return;if(k===hq)st.exit();else st.enter();};
   // このタブのキーが本部版（全権限）だった（作り直した本部版のキーなど）：端末に記憶して、このタブだけの表示を終える
-  st.promote=()=>{if(!st.preview)return;const k=st.get('fest_view_key'),me=st.get('fest_me');st.exit();try{if(k)localStorage.setItem('fest_view_key',k);if(me)localStorage.setItem('fest_me',me);localStorage.removeItem('fest_locked');}catch(e){}};
+  st.promote=()=>{if(!st.preview)return;const k=st.get('fest_view_key'),me=st.get('fest_me');st.exit();try{if(k)localStorage.setItem('fest_view_key',k);if(me)localStorage.setItem('fest_me',me);localStorage.removeItem('fest_locked');}catch(e){}st.rememberHq(k);};
   st.back=()=>{st.exit();location.replace(location.pathname+location.search);};   // 本部版に戻る
   try{st.preview=sessionStorage.getItem(FLAG)==='1';}catch(e){}
   if(st.preview)de.classList.add('fest-preview');
+  if(FEST)try{const hq=st.hqKey();if(hq){if(!localStorage.getItem(HQV))localStorage.setItem(HQV,hq);if(!localStorage.getItem('fest_view_key'))localStorage.setItem('fest_view_key',hq);}}catch(e){}   // 本部版の端末でキーが消えていたら戻す
   const m=/[#&]key=([A-Za-z0-9_-]{43})(?![A-Za-z0-9_-])/.exec(location.hash);
   if(FEST&&m)st.useKey(m[1]);   // 配布リンクで開いた
   return st;
@@ -2343,7 +2354,7 @@ function festInstallInit(){
   festInstallUi();
 }
 // 車両の位置の取得・一覧は fest-vehicle-tracking.js（本祭支援ツールのときだけ読み込む）
-const FEST_TRK_V=12;
+const FEST_TRK_V=13;
 function festTrkLoad(){
   if(!FEST||window.festHttp)return;
   const sc=document.createElement('script');sc.src='fest-vehicle-tracking.js?v='+FEST_TRK_V;
@@ -2523,12 +2534,15 @@ async function fillRakuten(){
 
 // ===== 温泉郷 =====
 // 温泉郷の規模（入湯税収入＝観光客数・施設充実度の目安／2023年度・日本温泉協会）に応じてピンの色とサイズを変化
-const ONSEN_SCALE={1:{c:'#74c0fc',sz:1.0,l:'小規模・秘湯'},2:{c:'#4dabf7',sz:1.3,l:'中規模'},3:{c:'#f59f00',sz:1.65,l:'大規模'},4:{c:'#f76707',sz:2.0,l:'特大規模'},5:{c:'#c92a2a',sz:2.4,l:'最大級'}};
+const ONSEN_SCALE={1:{c:'#74c0fc',sz:0.8,l:'小規模・秘湯'},2:{c:'#4dabf7',sz:0.9,l:'中規模'},3:{c:'#f59f00',sz:1.0,l:'大規模'},4:{c:'#f76707',sz:1.12,l:'特大規模'},5:{c:'#c92a2a',sz:1.25,l:'最大級'}};
+// 温泉郷のピン：細身のしずく形（幅14×高さ26。規模に応じて0.8〜1.25倍＝高さ21〜33px）
+const ONSEN_PIN='M7 0C3.13 0 0 3.13 0 7c0 5.25 7 19 7 19s7-13.75 7-19C14 3.13 10.87 0 7 0z';
+function onsenIcon(color,sz){return {path:ONSEN_PIN,fillColor:color,fillOpacity:1,strokeColor:'#ffffff',strokeWeight:1.1,scale:sz,anchor:new google.maps.Point(7,26),labelOrigin:new google.maps.Point(7,7.2)};}
 function onsenScale(o){return ONSEN_SCALE[o.s||2]||ONSEN_SCALE[2];}
 function taxOku(tx){return (tx/100000).toFixed(2)+'億円';}
 function renderOnsenGo(){clearArr(onsengoMarkers);
   [...ONSEN_GO].sort((a,b)=>(a.s||2)-(b.s||2)).forEach(o=>{const sc=onsenScale(o);
-    const m=new google.maps.Marker({position:{lat:o.lat,lng:o.lng},map,icon:pinIcon(sc.c,sc.sz),label:{text:'♨',fontSize:Math.round(9+sc.sz*1.6)+'px',color:'#fff',fontWeight:'700'},title:o.name+'（'+sc.l+'）',zIndex:(o.s||2)});
+    const m=new google.maps.Marker({position:{lat:o.lat,lng:o.lng},map,icon:onsenIcon(sc.c,sc.sz),label:{text:'♨',fontSize:Math.round(4+sc.sz*5.5)+'px',color:'#fff',fontWeight:'700'},title:o.name+'（'+sc.l+'）',zIndex:(o.s||2)});
     m._s=o.s||2;m.addListener('click',()=>openInfo(m,onsengoPopup(o)));onsengoMarkers.push(m);});
   if(!renderOnsenGo._lod){renderOnsenGo._lod=true;if(map)map.addListener('zoom_changed',applyOnsenLod);} // ズームで表示密度を調整（一度だけ登録）
   applyOnsenLod();}
@@ -4385,7 +4399,7 @@ function makeOverzoomMapType(cfg){
     releaseTile(){}
   };
 }
-function updateToolBtn(){const b=document.getElementById('toolBtn');if(b)b.classList.toggle('on',rainOn||lpOn||trafficOn||wxOn||tsunamiOn);}   // 地震情報・緊急地震速報は既定で受信しているので数えない
+function updateToolBtn(){const b=document.getElementById('toolBtn');if(b)b.classList.toggle('on',rainOn||lpOn||trafficOn||(FEST&&wxOn));}   // 既定でONのもの（地震情報・津波情報、ドライブ版の天気予報）は数えない
 function renderToolMenu(){
   const set=(id,on,busy)=>{const el=document.getElementById(id);if(!el)return;el.classList.toggle('on',!!on);el.classList.toggle('busy',!!busy);};
   set('tmRain',rainOn);set('tmLP',lpOn);set('tmTraffic',trafficOn);set('tmWeather',wxOn);set('tmTsunami',tsunamiOn);set('tmQuake',quakeOn);try{set('tmTaxi',taxiOn);}catch(e){}
@@ -4515,11 +4529,12 @@ async function pollTsunami(){
     else{clearTsunamiShapes();} // 全て解除→消去
   }catch(e){/* 取得失敗は静かに次回リトライ */}
 }
-function setTsunami(on){
-  tsunamiOn=on;localStorage.setItem('tabi_tsunami_on',on?'1':'0');
+const TSU_KEY=FEST?'fest_tsunami_on':'tabi_tsunami_on';
+function setTsunami(on,quiet){
+  tsunamiOn=on;try{localStorage.setItem(TSU_KEY,on?'1':'0');}catch(e){}
   if(tsunamiTimer){clearInterval(tsunamiTimer);tsunamiTimer=null;}
-  if(on){renderToolMenu();pollTsunami();tsunamiTimer=setInterval(pollTsunami,300000);p2pEnsure();showStatus('津波情報：受信中',false);hideStatusLater();}
-  else{tsunamiLastId='';clearTsunamiShapes();renderToolMenu();p2pMaybeClose();showStatus('津波情報の受信を停止',false);hideStatusLater();}
+  if(on){renderToolMenu();pollTsunami();tsunamiTimer=setInterval(pollTsunami,300000);p2pEnsure();if(!quiet){showStatus('津波情報：受信中',false);hideStatusLater();}}
+  else{tsunamiLastId='';clearTsunamiShapes();renderToolMenu();p2pMaybeClose();if(!quiet){showStatus('津波情報の受信を停止',false);hideStatusLater();}}
 }
 
 // ===== 地震：都道府県のぬり分け（都道府県ポリゴン topojson をインライン復号）とメニューの切り替え =====
@@ -5677,65 +5692,39 @@ function evacAddToRoute(){ // 避難先をルート欄に強制セット（ル�
 }
 document.getElementById('layerBtn').onclick=()=>{const p=document.getElementById('layerPanel');document.getElementById('settlePanel').classList.remove('open');const o=p.classList.toggle('open');if(o)renderLayerPanel();};
 document.getElementById('settleBtn').onclick=()=>{const p=document.getElementById('settlePanel');document.getElementById('layerPanel').classList.remove('open');const o=p.classList.toggle('open');if(o)renderSettlePanel();};
-// ===== 画像出力：表示中の地図＋選択中レイヤーをStatic Maps APIで画像化し、上下に黒帯（たびマップ/日時・距離/時間/費用）を合成して保存 =====
-function encPath(pts){return google.maps.geometry.encoding.encodePath(pts.map(p=>new google.maps.LatLng(p.lat,p.lng)));}
-function circlePts(lat,lng,km,n){const pts=[],R=6371,d=km/R,latR=lat*Math.PI/180,lngR=lng*Math.PI/180;for(let i=0;i<=n;i++){const b=2*Math.PI*i/n;const la=Math.asin(Math.sin(latR)*Math.cos(d)+Math.cos(latR)*Math.sin(d)*Math.cos(b));const ln=lngR+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(latR),Math.cos(d)-Math.sin(latR)*Math.sin(la));pts.push({lat:la*180/Math.PI,lng:ln*180/Math.PI});}return pts;}
-function simplifyPts(arr,max){if(!arr||arr.length<=max)return arr||[];const step=Math.ceil(arr.length/max);return arr.filter((_,i)=>i%step===0||i===arr.length-1);}
-// 画像出力：CORS対応の Mapbox Static Images API で地図＋選択レイヤーを描画→canvasで上下に黒帯を合成しPNG保存（到達圏と同じMapboxトークン）
+// ===== 画像出力：表示中の地図をそのまま画像にして保存 =====
+// 地図（#map）の中身だけを html2canvas で描き写す。タブ・ボタン・検索バー・時計・凡例・黒帯は地図の外なので写らない。
+// 地図の中の操作ボタン（拡大縮小・全画面・ストリートビュー・キーボード ショートカット）と吹き出しは除き、
+// 表示中のルート・地点・保存ピン・行程・到達圏・距離円・雨雲などはそのまま写す。Google のロゴと「地図データ ©Google」は地図の出典として残す
+const H2C_URL='https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js';
+let h2cP=null;
+function h2cLoad(){
+  if(window.html2canvas)return Promise.resolve();
+  if(!h2cP)h2cP=new Promise((ok,ng)=>{const sc=document.createElement('script');sc.src=H2C_URL;sc.crossOrigin='anonymous';sc.referrerPolicy='no-referrer';
+    sc.onload=()=>ok();sc.onerror=()=>{h2cP=null;ng(new Error('load'));};document.head.appendChild(sc);});
+  return h2cP;
+}
+const IMG_SKIP=/(^|\s)(gm-control-active|gm-bundled-control|gm-fullscreen-control|gm-svpc|gm-style-mtc|gm-style-iw-a|gm-style-iw-t|gm-style-iw-c)(\s|$)/;
 async function exportMapImage(){
-  const tok=cfgKey('mapbox');
-  if(!tok){showStatus('画像出力には Mapbox トークンが必要です。設定 →「到達圏マップ（Mapbox）」に登録してください（到達圏と同じもの）',false);hideStatusLater();return;}
-  if(!(google.maps.geometry&&google.maps.geometry.encoding)){showStatus('geometryライブラリ未ロード',false);hideStatusLater();return;}
-  showStatus('地図画像を生成中…',true);
-  const style=(currentTheme==='dark')?'dark-v11':'light-v11';
-  const W=1000,H=760,BASE='https://api.mapbox.com/styles/v1/mapbox/'+style+'/static/';
-  const ov=[],budget=7000;
-  const enc=pts=>encodeURIComponent(encPath(pts));
-  const curLen=()=>(BASE+ov.join(',')+'/auto/'+W+'x'+H+'@2x').length;
-  const tryAdd=s=>{ov.push(s);if(curLen()>budget){ov.pop();return false;}return true;};
-  bufferLayers.filter(b=>b.visible).forEach(b=>{[5,10,15,20,25,30].forEach(km=>tryAdd('path-1+1a73e8-0.55('+enc(circlePts(b.center.lat,b.center.lng,km,36))+')'));});
-  if(isoShapes.length&&isoVisible)isoShapes.forEach(s=>{if(s.getPaths)s.getPaths().forEach(pa=>{const arr=simplifyPts(pa.getArray().map(ll=>({lat:ll.lat(),lng:ll.lng()})),80);if(arr.length>2)tryAdd('path-1+1a73e8-0.8+1a73e8-0.12('+enc(arr)+')');});else if(s.getRadius){const ct=s.getCenter();tryAdd('path-1+1a73e8-0.8('+enc(circlePts(ct.lat(),ct.lng(),s.getRadius()/1000,36))+')');}});
-  savedRoutes.filter(r=>r.visible&&r.path&&r.path.length).forEach(r=>tryAdd('path-3+'+String(r.color||'#888888').replace('#','')+'-0.85('+enc(simplifyPts(r.path,220))+')'));
-  if(lastFullPath&&lastFullPath.length)ov.push('path-5+1e8e3e-0.9('+enc(simplifyPts(lastFullPath,260))+')'); // メインルート（必ず描画）
-  const roles=(points.length>=2)?computePointRoles():[];
-  points.forEach((p,i)=>{const lbl=roles[i]||'';const col=(lbl==='出発'||lbl==='帰宅')?'2f9e44':(lbl.indexOf('目的')===0?'e03131':'1a73e8');const ch=lbl==='出発'?'s':(lbl==='帰宅'?'g':(lbl.indexOf('目的')===0?'d':(i<10?String(i):'')));tryAdd('pin-l'+(ch?('-'+ch):'')+'+'+col+'('+p.lng.toFixed(5)+','+p.lat.toFixed(5)+')');});
-  savedPins.filter(p=>p.visible!==false).forEach(p=>tryAdd('pin-s+e6197a('+p.lng.toFixed(5)+','+p.lat.toFixed(5)+')'));
-  (lastRests||[]).forEach(r=>tryAdd('pin-s+8a5a2b('+r.lng.toFixed(5)+','+r.lat.toFixed(5)+')'));
-  Object.keys(poiLayers).forEach(cat=>{const L=poiLayers[cat];if(!L.visible)return;L.markers.forEach(m=>{const pos=m.getPosition&&m.getPosition();if(pos)tryAdd('pin-s+f59f00('+pos.lng().toFixed(5)+','+pos.lat().toFixed(5)+')');});});
-  if(onsenLayerOn)onsengoMarkers.forEach(m=>{const pos=m.getPosition&&m.getPosition();if(pos)tryAdd('pin-s+e64980('+pos.lng().toFixed(5)+','+pos.lat().toFixed(5)+')');});
-  let pos,extra='';
-  if(ov.length){pos='auto';extra='&padding=60';}
-  else{const c=map.getCenter();pos=c.lng().toFixed(5)+','+c.lat().toFixed(5)+','+Math.round(map.getZoom());}
-  const url=BASE+(ov.length?ov.join(',')+'/':'')+pos+'/'+W+'x'+H+'@2x?access_token='+encodeURIComponent(tok)+extra;
-  const now=new Date();
-  const img=new Image();img.crossOrigin='anonymous';
-  img.onload=()=>{
-    try{
-      const iw=img.naturalWidth,ih=img.naturalHeight;
-      const cv=document.createElement('canvas');cv.width=iw;cv.height=ih;const x=cv.getContext('2d');
-      x.drawImage(img,0,0,iw,ih);
-      const bh=Math.round(ih*0.064),pad=Math.round(iw*0.024);
-      x.fillStyle='rgba(0,0,0,0.86)';x.fillRect(0,0,iw,bh);x.fillRect(0,ih-bh,iw,bh);
-      x.textBaseline='middle';
-      const iconR=bh*0.24,icx=pad+iconR,icy=bh/2;
-      x.beginPath();x.arc(icx,icy,iconR,0,Math.PI*2);x.fillStyle='#e6197a';x.fill();
-      x.beginPath();x.arc(icx,icy,iconR*0.42,0,Math.PI*2);x.fillStyle='#fff';x.fill();
-      x.fillStyle='#fff';x.textAlign='left';x.font='bold '+Math.round(bh*0.4)+'px -apple-system,\"Hiragino Kaku Gothic ProN\",sans-serif';
-      x.fillText('たびマップ',icx+iconR+pad*0.5,icy);
-      const dt=now.getFullYear()+'/'+String(now.getMonth()+1).padStart(2,'0')+'/'+String(now.getDate()).padStart(2,'0')+' '+String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
-      x.textAlign='right';x.font=Math.round(bh*0.32)+'px -apple-system,sans-serif';x.fillText(dt,iw-pad,icy);
-      const by=ih-bh/2;
-      const distTxt=(lastDistanceKm!=null)?(lastDistanceKm.toFixed(0)+'km ・ '+fmtDuration((lastTrafficSec!=null?lastTrafficSec:lastDurationSec||0)+totalDwellSec())):'';
-      let total='';if(lastDistanceKm!=null){const price=parseFloat(document.getElementById('price').value)||0,eff=parseFloat(document.getElementById('eff').value)||0;const gas=(eff>0&&price>0)?Math.round(lastDistanceKm/eff*price):0;const t=calcToll();const veh=(timesOn?timesRentalCost():gas)+t.toll+(timesOn?TIMES_INSURANCE:(parseFloat(document.getElementById('otherCost').value)||0));total='¥'+veh.toLocaleString();}
-      x.fillStyle='#fff';x.textAlign='left';x.font='bold '+Math.round(bh*0.4)+'px -apple-system,\"Hiragino Kaku Gothic ProN\",sans-serif';if(distTxt)x.fillText(distTxt,pad,by);
-      x.textAlign='right';x.font='bold '+Math.round(bh*0.46)+'px -apple-system,sans-serif';if(total)x.fillText(total,iw-pad,by);
-      cv.toBlob(blob=>{if(!blob)throw new Error('blob');const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='tabimap_'+now.getFullYear()+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'_'+String(now.getHours()).padStart(2,'0')+String(now.getMinutes()).padStart(2,'0')+'.png';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),5000);showStatus('画像を保存しました',false);hideStatusLater();},'image/png');
-    }catch(e){showStatus('画像の合成に失敗しました（Mapboxトークンをご確認ください）',false);hideStatusLater();}
-  };
-  img.onerror=()=>{showStatus('地図画像を取得できませんでした。Mapboxトークンが有効か、URL制限にこのサイトが許可されているかをご確認ください',false);hideStatusLater();};
-  img.src=url;
+  const el=document.getElementById('map');
+  if(!el||!map){showStatus('地図の準備ができていません',false);hideStatusLater();return;}
+  const btn=document.getElementById('imgBtn');if(btn.disabled)return;btn.disabled=true;
+  showStatus('地図を画像にしています…',true);
+  try{
+    await h2cLoad();
+    const cv=await html2canvas(el,{useCORS:true,allowTaint:false,backgroundColor:getComputedStyle(el).backgroundColor||'#ffffff',scale:Math.min(window.devicePixelRatio||1,2),logging:false,
+      ignoreElements:e=>e.tagName==='IFRAME'||IMG_SKIP.test(typeof e.className==='string'?e.className:'')||(e.tagName==='BUTTON'&&/キーボード|ショートカット/.test(e.textContent||''))});
+    const blob=await new Promise((ok,ng)=>cv.toBlob(b=>b?ok(b):ng(new Error('blob')),'image/png'));
+    const d=new Date(),z=n=>String(n).padStart(2,'0');
+    const name='tabimap_'+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+'_'+z(d.getHours())+z(d.getMinutes())+z(d.getSeconds())+'.png';
+    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(a.href),10000);
+    showStatus('表示中の地図を画像で保存しました',false);hideStatusLater();
+  }catch(e){showStatus('地図を画像にできませんでした（通信を確かめて、もう一度お試しください）',false);hideStatusLater();}
+  btn.disabled=false;
 }
 document.getElementById('imgBtn').onclick=exportMapImage;
+document.getElementById('reloadBtn').onclick=()=>location.reload();   // 画面左上の小さなボタン：ページを読み込み直す
 document.getElementById('settleClose').onclick=()=>document.getElementById('settlePanel').classList.remove('open');
 document.getElementById('layerClose').onclick=()=>document.getElementById('layerPanel').classList.remove('open');
 document.getElementById('layerPanel').addEventListener('click',e=>{   // レイヤーパネルの余白（見出し・一覧の空き・パネルの縁）を押すと閉じる
@@ -5939,22 +5928,27 @@ function openWxPref(prefName){
   chips.querySelectorAll('.wx-chip').forEach(b=>b.onclick=()=>{chips.querySelectorAll('.wx-chip').forEach(x=>x.classList.remove('on'));b.classList.add('on');showWeather(+b.dataset.lat,+b.dataset.lng,pref+'・'+b.dataset.nm);});
   showWeather(pts[0][1],pts[0][2],pref+'・'+pts[0][0]);
 }
-function toggleWeatherMode(){
-  if(wxOn){if(wxData)wxData.setMap(null);wxOn=false;renderToolMenu();showStatus('天気予報モード OFF',false);hideStatusLater();return;}
-  if(!map){showStatus('地図の準備ができていません',false);hideStatusLater();return;}
-  showStatus('都道府県データを準備中…',true);
+const WXM_KEY='tabi_wxmode_on';
+const WX_STYLE={fillColor:'#1c7ed6',fillOpacity:0.06,strokeColor:'#1c7ed6',strokeWeight:1,strokeOpacity:0.55,zIndex:1};
+// 都道府県の区切りは、ルート・到達圏のタブを開いている間は押せないようにする（地図を押して地点を置く操作を受け取らない）
+function wxClickSync(){if(wxData)wxData.setStyle(Object.assign({},WX_STYLE,{clickable:!(activeTab==='route'||activeTab==='iso')}));}
+function toggleWeatherMode(quiet){
+  quiet=quiet===true;
+  if(wxOn){if(wxData)wxData.setMap(null);wxOn=false;try{localStorage.setItem(WXM_KEY,'0');}catch(e){}renderToolMenu();showStatus('天気予報モード OFF',false);hideStatusLater();return;}
+  if(!map){if(!quiet){showStatus('地図の準備ができていません',false);hideStatusLater();}return;}
+  if(!quiet)showStatus('都道府県データを準備中…',true);
   ensureQuakeTopo().then(fc=>{
+    if(wxOn)return;
     if(!wxData){
       wxData=new google.maps.Data();
-      wxData.setStyle({fillColor:'#1c7ed6',fillOpacity:0.06,strokeColor:'#1c7ed6',strokeWeight:1,strokeOpacity:0.55,clickable:true,zIndex:1});
       wxData.addGeoJson(fc);
       wxData.addListener('click',ev=>{const id=ev.feature.getProperty('id');const nam=ev.feature.getProperty('nam_ja')||WX_PREF_BY_ID[id]||'';openWxPref(nam);});
       wxData.addListener('mouseover',ev=>wxData.overrideStyle(ev.feature,{fillOpacity:0.2}));
       wxData.addListener('mouseout',()=>wxData.revertStyle());
     }
-    wxData.setMap(map);wxOn=true;renderToolMenu();
-    showStatus('天気予報モード ON：都道府県をタップで代表地点の天気を表示（もう一度でOFF）',false);hideStatusLater();
-  }).catch(()=>{showStatus('都道府県データの取得に失敗しました',false);hideStatusLater();});
+    wxClickSync();wxData.setMap(map);wxOn=true;renderToolMenu();
+    if(!quiet){try{localStorage.setItem(WXM_KEY,'1');}catch(e){}showStatus('天気予報モード ON：都道府県をタップで代表地点の天気を表示（もう一度でOFF）',false);hideStatusLater();}
+  }).catch(()=>{if(!quiet){showStatus('都道府県データの取得に失敗しました',false);hideStatusLater();}});
 }
 
 
