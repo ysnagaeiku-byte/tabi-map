@@ -1,40 +1,62 @@
 // 渉外局 シフト管理（たびマップ 本祭支援ツールに入れる予定の機能を、先に単独のサイトとして試すもの）
-//  - 期間は 11/4〜11/9 の6日間。局（局長・副局長）・GS課・広報課 を分けて、または全体で見られる
-//  - 日別：横＝時刻、縦＝メンバー。棒の左端＝入り、右端＝終わり、斜線＝休憩。名前の左に役職のバッジ
+//  - 期間は 11/4〜11/9 の6日間（準準備日・準備日・本祭3日間・片付け日）。GS課・広報課を分けて、または全体で見られる
+//  - 日別：横＝時刻（6:00〜24:00）、縦＝メンバー。棒＝シフト（色と文字＝役職）、左端＝入り、右端＝終わり、斜線＝休憩
+//    名前の左に立場（課長・副課長・班長）の小さなバッジ。「シフト不可」のような役職は人数に数えない
 //    空いている所をドラッグ（スマホはタップ）で追加、棒をドラッグで移動・別の人へ、端をドラッグで時間を変更
-//  - 6日間：メンバー×日付の一覧。入り〜終わり・休憩・担当を1マスに
+//  - 6日間：メンバー×日付の一覧。入り〜終わり・休憩・役職を1マスに
+//  - データの言葉：roles＝立場（人ごと）、duties＝役職（シフトごとの持ち場。当番表の「素材」の色）
 //  - 名簿とシフトはこの端末（localStorage）にだけ保存。JSONで書き出し・読み込み、Excel用のCSV、印刷
 //    リポジトリは公開なので、実際の名簿はコードに書かない（初回は架空の名前のサンプルを表示）
 (function () {
   'use strict';
 
   const STORE_KEY = 'shift_v1', VIEW_KEY = 'shift_view_v1';
+  const DATA_V = 2;                                  // 2：局をやめ、役職（duties）をシフトごとに。v1 のデータは normalize で移す
   const WD = ['日', '月', '火', '水', '木', '金', '土'];
   const DAY_MAX = 24 * 60;
   const HIST_MAX = 80;
   const KINDS = [['prep', '準備'], ['fest', '本祭'], ['post', '片付け']];
 
   const DEF_DAYS = [
-    { d: '2026-11-04', label: '準備', kind: 'prep' },
-    { d: '2026-11-05', label: '準備', kind: 'prep' },
-    { d: '2026-11-06', label: '前日準備', kind: 'prep' },
-    { d: '2026-11-07', label: '本祭1日目', kind: 'fest' },
-    { d: '2026-11-08', label: '本祭2日目', kind: 'fest' },
-    { d: '2026-11-09', label: '片付け', kind: 'post' },
+    { d: '2026-11-04', label: '準準備日', kind: 'prep' },
+    { d: '2026-11-05', label: '準備日', kind: 'prep' },
+    { d: '2026-11-06', label: '本祭1日目', kind: 'fest' },
+    { d: '2026-11-07', label: '本祭2日目', kind: 'fest' },
+    { d: '2026-11-08', label: '本祭3日目', kind: 'fest' },
+    { d: '2026-11-09', label: '片付け日', kind: 'post' },
   ];
+  const V1_DAYS = ['準備', '準備', '前日準備', '本祭1日目', '本祭2日目', '片付け'];   // v1 の既定（変えていなければ新しい既定に置き換える）
   const DEF_GROUPS = [
-    { id: 'hq', name: '局', color: '#f2f2f2' },
     { id: 'gs', name: 'GS課', color: '#2dd4bf' },
     { id: 'pr', name: '広報課', color: '#a78bfa' },
   ];
-  // 並び順＝役職の上下（上ほど上に表示）。色なし＝バッジを目立たせない
+  // 立場（人ごと）。並び順＝上下（上ほど上に表示）。色なし＝バッジを出さない
   const DEF_ROLES = [
-    { id: 'kyokucho', name: '局長', color: '#f5b301' },
-    { id: 'fukukyokucho', name: '副局長', color: '#ff8a1f' },
     { id: 'kacho', name: '課長', color: '#ff4d4d' },
     { id: 'fukukacho', name: '副課長', color: '#ff6fae' },
     { id: 'hancho', name: '班長', color: '#4f8cff' },
     { id: 'ippan', name: '一般', color: '' },
+  ];
+  // 役職（シフトごと）：渉外局の当番表の「素材」と同じ名前と色。off＝人数に数えない（シフト不可など）
+  const DEF_DUTIES = [
+    { id: 'd01', name: '一体 警備', color: '#b4c7e7' },
+    { id: 'd02', name: '一体 司会', color: '#4472c4' },
+    { id: 'd03', name: '一体 照明', color: '#8fd3f0' },
+    { id: 'd04', name: '5号館 案内警備', color: '#fde4a8' },
+    { id: 'd05', name: '10芝 司会照明', color: '#6aa84f' },
+    { id: 'd06', name: '9号館 警備', color: '#f3f06a' },
+    { id: 'd07', name: '10芝 警備', color: '#e01e1e' },
+    { id: 'd08', name: '10芝 開会式', color: '#990000' },
+    { id: 'd09', name: '場所自由 撮影', color: '#0b5394' },
+    { id: 'd10', name: '10号館 おみくじ', color: '#d9ead3' },
+    { id: 'd11', name: '10号館 パンフ', color: '#a9d08e' },
+    { id: 'd12', name: '2号館 パンフ', color: '#f4928c' },
+    { id: 'd13', name: '5号館 外警備', color: '#ffd966' },
+    { id: 'd14', name: '10号館 控え室 警備', color: '#ffff3c' },
+    { id: 'd15', name: '協賛', color: '#8e7cc3' },
+    { id: 'd16', name: '撮影', color: '#7f7f7f' },
+    { id: 'd17', name: '10号館 控室準備', color: '#e3e3e3' },
+    { id: 'off', name: 'シフト不可', color: '#000000', off: true },
   ];
   const DEF_PRESETS = [
     { id: 'p1', name: '早番', s: 480, e: 780, br: [] },
@@ -44,8 +66,7 @@
     { id: 'p5', name: '午後', s: 780, e: 1020, br: [] },
     { id: 'p6', name: '夕方', s: 1020, e: 1260, br: [] },
   ];
-  const DEF_TASKS = ['本部待機', '車両誘導', '搬入・搬出', '巡回', '受付', '案内所', '撮影', 'SNS', 'パンフ配布'];
-  const DEF_OPT = { from: 480, to: 1260, snap: 15, autoBreak: true };
+  const DEF_OPT = { from: 360, to: 1440, snap: 15, autoBreak: true };   // 日別の表示は 6:00〜24:00
 
   const $ = id => document.getElementById(id);
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -80,12 +101,16 @@
   function validYmd(v) { if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false; const [y, m, d] = v.split('-').map(Number), t = new Date(Date.UTC(y, m - 1, d)); return t.getUTCMonth() === m - 1 && t.getUTCDate() === d; }
   function normalize(src) {
     const d = isObj(src) ? src : {};
-    const o = { v: 1, title: str(d.title, 30) || '渉外局 シフト', sample: !!d.sample };
-    const dayIn = Array.isArray(d.days) ? d.days.filter(x => isObj(x) && validYmd(x.d)).filter((x, i, a) => a.findIndex(y => y.d === x.d) === i) : [];
+    const old = d.v !== DATA_V;                       // 前の版（局あり・担当は自由な文字）のデータ
+    const o = { v: DATA_V, title: str(d.title, 30) || '渉外局 シフト', sample: !!d.sample };
+    let dayIn = Array.isArray(d.days) ? d.days.filter(x => isObj(x) && validYmd(x.d)).filter((x, i, a) => a.findIndex(y => y.d === x.d) === i) : [];
+    if (old && dayIn.length === V1_DAYS.length && dayIn.every((x, i) => x.d === DEF_DAYS[i].d && str(x.label, 12) === V1_DAYS[i])) dayIn = [];
     o.days = (dayIn.length ? dayIn : DEF_DAYS).map(x => ({ d: x.d, label: str(x.label, 12), kind: KINDS.some(k => k[0] === x.kind) ? x.kind : 'prep' }));
     const gIn = Array.isArray(d.groups) ? d.groups.filter(isObj) : [];
     o.groups = DEF_GROUPS.map(g => { const x = gIn.find(y => y.id === g.id) || {}; return { id: g.id, name: str(x.name, 12) || g.name, color: isHex(x.color) ? x.color : g.color }; });
-    const rIn = Array.isArray(d.roles) ? d.roles.filter(r => isObj(r) && r.id != null && str(r.name, 10)) : [];
+    // 立場
+    let rIn = Array.isArray(d.roles) ? d.roles.filter(r => isObj(r) && r.id != null && str(r.name, 10)) : [];
+    if (old) rIn = rIn.filter(r => r.id !== 'kyokucho' && r.id !== 'fukukyokucho');
     const rMap = new Map();
     o.roles = [];
     (rIn.length ? rIn : DEF_ROLES).forEach(r => {
@@ -93,6 +118,16 @@
       const id = okId(r.id) && !o.roles.some(x => x.id === r.id) ? r.id : 'r' + uid();
       rMap.set(key, id); o.roles.push({ id, name: str(r.name, 10), color: isHex(r.color) ? r.color : '' });
     });
+    // 役職
+    const uIn = Array.isArray(d.duties) ? d.duties.filter(u => isObj(u) && u.id != null && str(u.name, 16)) : old ? DEF_DUTIES : [];
+    const uMap = new Map();
+    o.duties = [];
+    uIn.forEach(u => {
+      const key = String(u.id); if (uMap.has(key)) return;
+      const id = okId(u.id) && !o.duties.some(x => x.id === u.id) ? u.id : 'u' + uid();
+      uMap.set(key, id); o.duties.push({ id, name: str(u.name, 16), color: isHex(u.color) ? u.color.toLowerCase() : '#8b8b95', off: !!u.off });
+    });
+    const dutyByName = name => { let u = o.duties.find(x => x.name === name); if (!u) { u = { id: 'u' + uid(), name, color: '#8b8b95', off: false }; o.duties.push(u); } return u.id; };
     const pIn = Array.isArray(d.presets) ? d.presets.filter(isObj) : DEF_PRESETS;
     o.presets = [];
     pIn.forEach(p => {
@@ -101,7 +136,6 @@
       const id = okId(p.id) && !o.presets.some(x => x.id === p.id) ? p.id : 'p' + uid();
       o.presets.push({ id, name, s: ps, e: pe, br: cleanBreaks(p.br, ps, pe) });
     });
-    o.tasks = (Array.isArray(d.tasks) ? d.tasks : DEF_TASKS).map(t => str(t, 20)).filter((t, i, a) => t && a.indexOf(t) === i).slice(0, 60);
     const op = isObj(d.opt) ? d.opt : {};
     o.opt = {
       from: [op.from].map(Number).filter(v => isFinite(v) && v >= 0 && v < DAY_MAX && v % 60 === 0)[0] ?? DEF_OPT.from,
@@ -109,6 +143,7 @@
       snap: [5, 10, 15, 30].includes(+op.snap) ? +op.snap : DEF_OPT.snap,
       autoBreak: op.autoBreak !== false,
     };
+    if (old && o.opt.from === 480 && o.opt.to === 1260) { o.opt.from = DEF_OPT.from; o.opt.to = DEF_OPT.to; }   // v1 の既定 8:00〜21:00 → 6:00〜24:00
     if (o.opt.to <= o.opt.from) { o.opt.from = DEF_OPT.from; o.opt.to = DEF_OPT.to; }
     const gIds = o.groups.map(g => g.id), rIds = o.roles.map(r => r.id), fallbackRole = rIds[rIds.length - 1];
     const mMap = new Map();
@@ -127,12 +162,18 @@
       if (!m || !dIds.has(sh.d) || !isFinite(a) || !isFinite(b) || b <= a) return;
       const id = okId(sh.id) && !seenS.has(sh.id) ? sh.id : 's' + uid();
       seenS.add(id);
-      o.shifts.push({ id, m, d: sh.d, s: a, e: b, br: cleanBreaks(sh.br, a, b), task: str(sh.task, 20), note: str(sh.note, 80) });
+      // 役職：前の版の「担当」（自由な文字）は、同じ名前の役職に（なければ役職を足す）
+      const du = sh.duty != null && uMap.has(String(sh.duty)) ? uMap.get(String(sh.duty)) : old && str(sh.task, 16) ? dutyByName(str(sh.task, 16)) : '';
+      o.shifts.push({ id, m, d: sh.d, s: a, e: b, br: cleanBreaks(sh.br, a, b), duty: du, note: str(sh.note, 80) });
     });
     return o;
   }
   const brMin = sh => sh.br.reduce((t, b) => t + (b.e - b.s), 0);
   const workMin = sh => (sh.e - sh.s) - brMin(sh);
+  // 役職が「人数に数えない」（シフト不可など）のものは、シフト中の人数・延べ時間・入る人に入れない
+  const dutyOf = id => (id && D.duties.find(u => u.id === id)) || null;
+  const isOff = sh => { const u = dutyOf(sh.duty); return !!(u && u.off); };
+  const onMin = sh => isOff(sh) ? 0 : workMin(sh);
 
   // ---------- サンプル（架空の名前） ----------
   function sampleData() {
@@ -142,42 +183,43 @@
     const GIV = ['翔太', '陽菜', '蓮', '結衣', '湊', '葵', '大和', '美咲', '悠真', 'さくら', '陸', '凛', '颯太', '芽依', '樹', '心春', '海斗', '七海', '蒼', '結菜',
       '大輝', '花音', '拓海', '彩花', '健太', '優奈', '直樹', '真央', '亮', '莉子', '航', '紗希', '優斗', '楓', '隼', '千尋', '涼', '美月', '奏太', 'ひなた',
       '俊介', '愛子', '和也', '杏', '雄大', '舞', '光', '茜', '誠', '桃子'];
-    const plan = [['hq', 'kyokucho', 1], ['hq', 'fukukyokucho', 2], ['gs', 'kacho', 1], ['gs', 'fukukacho', 1], ['gs', 'hancho', 2], ['gs', 'ippan', 11],
-      ['pr', 'kacho', 1], ['pr', 'fukukacho', 2], ['pr', 'hancho', 3], ['pr', 'ippan', 26]];
+    const plan = [['gs', 'kacho', 1], ['gs', 'fukukacho', 1], ['gs', 'hancho', 2], ['gs', 'ippan', 13],
+      ['pr', 'kacho', 1], ['pr', 'fukukacho', 2], ['pr', 'hancho', 3], ['pr', 'ippan', 27]];
     const members = [];
     plan.forEach(([g, r, n]) => { for (let k = 0; k < n; k++) { const i = members.length; members.push({ id: 'm' + (i + 1), name: SUR[i] + ' ' + GIV[(i * 7 + 3) % GIV.length], group: g, role: r }); } });
-    const TASK = { hq: ['本部待機'], gs: ['車両誘導', '搬入・搬出', '巡回', '本部待機'], pr: ['受付', '案内所', '撮影', 'SNS', 'パンフ配布'] };
+    // 役職の割り振り（GS課＝警備・照明・控え室、広報課＝司会・パンフ・撮影・協賛など）
+    const DU = { gs: ['d01', 'd04', 'd06', 'd07', 'd13', 'd14', 'd03', 'd05'], pr: ['d11', 'd12', 'd09', 'd16', 'd10', 'd15', 'd02'] };
     const rnd = (i, k) => (((i + 1) * 2654435761 + (k + 1) * 40503 * 97) >>> 0) % 100;
     const shifts = [];
-    const add = (m, d, s, e, br, task) => shifts.push({ id: 's' + (shifts.length + 1), m: m.id, d, s, e, br: br || [], task: task || '' });
+    const add = (m, d, s, e, br, duty) => shifts.push({ id: 's' + (shifts.length + 1), m: m.id, d, s, e, br: br || [], duty: duty || '' });
     const T = (h, m) => h * 60 + (m || 0);
     DEF_DAYS.forEach((day, k) => {
       members.forEach((m, i) => {
-        const r = rnd(i, k), lead = ['kyokucho', 'fukukyokucho', 'kacho', 'fukukacho'].includes(m.role);
-        const task = TASK[m.group][(i + k) % TASK[m.group].length];
-        if (day.kind === 'prep' && k < 2) {             // 平日：授業のあと
-          if (m.group === 'hq') add(m, day.d, T(16), T(21), [], task);
-          else if (m.group === 'gs' && (lead || r < 55)) add(m, day.d, T(16, 30), T(20, 30), [], task);
-          else if (m.group === 'pr' && (lead || r < 35)) add(m, day.d, T(17), T(20), [], task);
-        } else if (day.kind === 'prep') {               // 前日準備
-          if (m.group === 'hq') add(m, day.d, T(8, 30), T(20), [{ s: T(12, 30), e: T(13, 30) }], task);
-          else if (m.group === 'gs' && (lead || r < 85)) add(m, day.d, T(9), T(18), [{ s: T(12), e: T(13) }], task);
-          else if (m.group === 'pr' && (lead || r < 60)) add(m, day.d, T(13), T(19), [], task);
-        } else if (day.kind === 'fest') {               // 本祭
-          if (m.group === 'hq') add(m, day.d, T(7, 30), T(19), [{ s: T(11, 30), e: T(12, 15) }, { s: T(15, 30), e: T(16) }], task);
-          else if (lead) add(m, day.d, m.group === 'gs' ? T(8) : T(9), m.group === 'gs' ? T(18, 30) : T(17, 30), [{ s: T(12), e: T(13) }], task);
-          else if (m.group === 'gs') { if (r < 48) add(m, day.d, T(8), T(13), [], task); else if (r < 92) add(m, day.d, T(12, 30), T(18, 30), [{ s: T(15, 30), e: T(15, 45) }], task); }
-          else if (r < 42) add(m, day.d, T(9), T(13, 30), [], task);
-          else if (r < 84) add(m, day.d, T(13), T(17, 30), [], task);
-          else if (r < 94) add(m, day.d, T(9), T(17, 30), [{ s: T(12, 30), e: T(13, 15) }], task);
-        } else {                                        // 片付け
-          if (m.group === 'hq') add(m, day.d, T(9), T(18), [{ s: T(12), e: T(13) }], task);
-          else if (m.group === 'gs' && (lead || r < 70)) add(m, day.d, T(9), T(17), [{ s: T(12), e: T(12, 45) }], '搬入・搬出');
-          else if (m.group === 'pr' && (lead || r < 40)) add(m, day.d, T(10), T(15), [], '撮影');
+        const r = rnd(i, k), lead = m.role === 'kacho' || m.role === 'fukukacho', L = DU[m.group];
+        const du = L[(i + k) % L.length], du2 = L[(i + k + 3) % L.length];
+        if (k === 0) {                                  // 準準備日（水）：授業のあと
+          if (m.group === 'gs' && (lead || r < 55)) add(m, day.d, T(16, 30), T(20, 30), [], 'd17');
+          else if (m.group === 'pr' && (lead || r < 35)) add(m, day.d, T(17), T(20), [], 'd17');
+          else if (r > 90) add(m, day.d, T(17), T(21), [], 'off');
+        } else if (k === 1) {                           // 準備日（木）
+          if (m.group === 'gs' && (lead || r < 80)) add(m, day.d, T(13), T(21), [{ s: T(17), e: T(17, 45) }], r < 40 ? 'd17' : 'd14');
+          else if (m.group === 'pr' && (lead || r < 60)) add(m, day.d, T(15), T(20, 30), [], r < 50 ? 'd10' : 'd15');
+          else if (r > 85) add(m, day.d, T(9), T(14, 30), [], 'off');
+        } else if (day.kind === 'fest') {               // 本祭（3日間）：午前と午後で役職が変わる人も
+          if (k === 2 && m.group === 'pr' && !lead && r >= 12 && i % 9 === 0) add(m, day.d, T(9), T(10, 30), [], 'd08');   // 1日目の開会式
+          if (lead) add(m, day.d, m.group === 'gs' ? T(7) : T(8, 30), m.group === 'gs' ? T(19) : T(18), [{ s: T(12), e: T(13) }], m.group === 'gs' ? 'd01' : 'd09');
+          else if (r < 12) { add(m, day.d, T(9), T(12), [], du); add(m, day.d, T(12), T(15), [], 'off'); add(m, day.d, T(15), T(18), [], du2); }
+          else if (m.group === 'gs') { if (r < 55) { add(m, day.d, T(7, 30), T(12), [], du); add(m, day.d, T(13), T(16), [], du2); } else add(m, day.d, T(12), T(18, 30), [{ s: T(15, 30), e: T(15, 45) }], du); }
+          else if (r < 50) { add(m, day.d, T(10, 30), T(13, 30), [], du); add(m, day.d, T(14), T(17), [], du2); }
+          else if (r < 90) add(m, day.d, T(13), T(18), [], du);
+          if (k === 4 && m.group === 'gs' && r > 60) add(m, day.d, T(19, 30), T(23), [{ s: T(21), e: T(21, 15) }], 'd07');   // 最終日の夜の警備
+        } else {                                        // 片付け日
+          if (m.group === 'gs' && (lead || r < 70)) add(m, day.d, T(9), T(17), [{ s: T(12), e: T(12, 45) }], 'd17');
+          else if (m.group === 'pr' && (lead || r < 40)) add(m, day.d, T(10), T(15), [], 'd16');
         }
       });
     });
-    return normalize({ sample: true, members, shifts });
+    return normalize({ v: DATA_V, sample: true, members, shifts, duties: DEF_DUTIES });
   }
 
   // ---------- 保存と元に戻す ----------
@@ -185,7 +227,13 @@
   function loadData() {
     let raw = null;
     try { raw = localStorage.getItem(STORE_KEY); } catch (e) {}
-    if (raw) { try { return normalize(JSON.parse(raw)); } catch (e) {} }
+    if (raw) {
+      try {
+        const j = JSON.parse(raw);
+        if (j && j.sample && j.v !== DATA_V) return sampleData();   // 前の版のサンプルは、新しいサンプルに入れ替える
+        return normalize(j);
+      } catch (e) {}
+    }
     return sampleData();
   }
   let saveErrShown = false;
@@ -198,7 +246,7 @@
     try { v = JSON.parse(localStorage.getItem(VIEW_KEY) || '{}') || {}; } catch (e) {}
     return {
       view: v.view === 'week' ? 'week' : 'day', grp: typeof v.grp === 'string' ? v.grp : 'all', day: v.day || '',
-      colorBy: v.colorBy === 'role' ? 'role' : 'group', hideEmpty: !!v.hideEmpty, hourPx: isFinite(v.hourPx) && v.hourPx > 0 ? v.hourPx : null,
+      colorBy: v.vv === 2 && v.colorBy === 'group' ? 'group' : 'duty', vv: 2, hideEmpty: !!v.hideEmpty, hourPx: isFinite(v.hourPx) && v.hourPx > 0 ? v.hourPx : null,
       collapsed: v.collapsed && typeof v.collapsed === 'object' ? v.collapsed : {}, lastPreset: v.lastPreset || '', q: '', hideNote: !!v.hideNote,
     };
   }
@@ -253,17 +301,24 @@
     D.shifts.forEach(s => { if (s.d === day && (!inG || inG.has(s.m))) { a = Math.min(a, Math.floor(s.s / 60) * 60); b = Math.max(b, Math.ceil(s.e / 60) * 60); } });
     return [a, b];
   }
-  const barColor = m => V.colorBy === 'role' ? (role(m.role).color || '#8b8b95') : grp(m.group).color;
+  // 棒の色：役職で色分け＝役職の色（役職なしは課の色）、課で色分け＝課の色。人数に数えない役職（シフト不可）はいつも役職の色
+  function barColor(m, sh) {
+    const u = sh && dutyOf(sh.duty);
+    return u && (V.colorBy === 'duty' || u.off) ? u.color : grp(m.group).color;
+  }
+  // 暗い色の上は白い文字
+  function isDark(hex) { const n = parseInt(String(hex).slice(1), 16); if (!isFinite(n)) return false; return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) < 140; }
+  // 立場のバッジ（小さく）
   function roleBadge(rid, sm) {
     const r = role(rid);
-    const nm = `<span class="f">${esc(r.name)}</span><span class="s">${esc(r.name.length > 2 ? r.name.slice(0, 2) : r.name)}</span>`;   // スマホの名前の欄は2文字（副局長→副局）
+    const nm = `<span class="f">${esc(r.name)}</span><span class="s">${esc(r.name.length > 2 ? r.name.slice(0, 2) : r.name)}</span>`;   // スマホの名前の欄は2文字（副課長→副課）
     return r.color ? `<span class="rb${sm ? ' sm' : ''}" style="background:${r.color};color:#000" title="${esc(r.name)}">${nm}</span>` : `<span class="rb none${sm ? ' sm' : ''}">${nm}</span>`;
   }
-  // 30分ごとの勤務中の人数（休憩中を除く）。1分ごとに数えて、その30分の中で一番少ないとき（n）と多いとき（mx）
+  // 30分ごとのシフト中の人数（休憩中と、シフト不可などの数えない役職を除く）。1分ごとに数えて、その30分の中で一番少ないとき（n）と多いとき（mx）
   //  → 15分の休憩が重なる時間帯も、人が減って見える
   function headcount(day, members, a, b) {
     const ids = new Set(members.map(m => m.id)), cnt = new Int16Array(DAY_MAX + 1), byM = new Map(), out = [];
-    D.shifts.forEach(s => { if (s.d === day && ids.has(s.m)) { if (!byM.has(s.m)) byM.set(s.m, []); byM.get(s.m).push(s); } });
+    D.shifts.forEach(s => { if (s.d === day && ids.has(s.m) && !isOff(s)) { if (!byM.has(s.m)) byM.set(s.m, []); byM.get(s.m).push(s); } });
     byM.forEach(list => {
       const on = new Uint8Array(DAY_MAX + 1);
       list.forEach(s => { for (let t = s.s; t < s.e; t++) on[t] = 1; s.br.forEach(x => { for (let t = x.s; t < x.e; t++) on[t] = 0; }); });
@@ -277,7 +332,7 @@
     return out;
   }
   function daySummary(day, members) {
-    const ids = new Set(members.map(m => m.id)), list = D.shifts.filter(s => s.d === day && ids.has(s.m));
+    const ids = new Set(members.map(m => m.id)), list = D.shifts.filter(s => s.d === day && ids.has(s.m) && !isOff(s));
     return { people: new Set(list.map(s => s.m)).size, work: list.reduce((t, s) => t + workMin(s), 0), count: list.length };
   }
 
@@ -338,9 +393,9 @@
     const peak = hc.reduce((p, x) => x.mx > p.mx ? x : p, { mx: 0, at: a });
     const dd = dayOf(day), scope = V.grp === 'all' ? '全体' : esc(grp(V.grp).name);
     $('daySum').innerHTML = `<span>${dLabel(day)}</span>${dd.label ? `<span class="lbl">${esc(dd.label)}</span>` : ''}` +
-      `<span>出勤 <b>${sum.people}</b>人</span><span>延べ <b>${hh(sum.work)}</b></span>` +
-      (peak.mx ? `<span class="pk">最も多いとき <b>${peak.mx}</b>人（${fmt(peak.at)}）</span>` : '');
-    $('printHead').innerHTML = `<b>${esc(D.title)}</b>　${dLabel(day)} ${esc(dd.label)}　${scope}　出勤 ${sum.people}人・延べ ${hh(sum.work)}`;
+      `<span>シフトに入る人 <b>${sum.people}</b>人</span><span>延べ <b>${hh(sum.work)}</b></span>` +
+      (peak.mx ? `<span class="pk">シフト中が最も多いとき <b>${peak.mx}</b>人（${fmt(peak.at)}）</span>` : '');
+    $('printHead').innerHTML = `<b>${esc(D.title)}</b>　${dLabel(day)} ${esc(dd.label)}　${scope}　シフトに入る人 ${sum.people}人・延べ ${hh(sum.work)}`;
 
     let head = `<div class="tl-head"><div class="tl-name">${dLabel(day)}　${scope}</div><div class="tl-hours" style="width:${W}px">`;
     for (let t = a; t < b; t += 60) {
@@ -362,14 +417,14 @@
       const col = !!V.collapsed[g.id] && !printing;
       pageBreak();
       body += `<div class="tl-grp" data-g="${g.id}" style="width:${nameW + W}px"><div class="gin"><span class="car">${col ? '▸' : '▾'}</span><span class="gdot" style="background:${g.color}"></span>${esc(g.name)}` +
-        `<span class="sub">${D.members.filter(m => m.group === g.id).length}人中 ${gs.people}人出勤・延べ ${hh(gs.work)}</span></div></div>`;
+        `<span class="sub">${D.members.filter(m => m.group === g.id).length}人中 ${gs.people}人がシフトに入る・延べ ${hh(gs.work)}</span></div></div>`;
       onPage++;
       if (col) return;
       gm.forEach(m => { pageBreak(); body += rowHtml(m, day, rowI++); onPage++; });
     });
     if (!body) body = `<div class="tl-empty" style="width:${nameW + W}px">${D.members.length ? '条件に合うメンバーがいません' : 'メンバーがいません。「メンバー」から追加してください'}</div>`;
 
-    let foot = `<div class="tl-foot"><div class="tl-name">勤務中の人数<small>休憩中を除く・30分ごとの最少</small></div><div class="hc" style="width:${W}px">${hcCells(hc, hp, a)}</div></div>`;
+    let foot = `<div class="tl-foot"><div class="tl-name">シフト中の人数<small>休憩中を除く・30分ごとの最少</small></div><div class="hc" style="width:${W}px">${hcCells(hc, hp, a)}</div></div>`;
     if (V.grp === 'all' && groups.length > 1) groups.forEach(g => {
       const gm = ms.filter(m => m.group === g.id);
       if (!gm.length) return;
@@ -381,7 +436,7 @@
     const key = [V.view, day, V.grp].join('|');
     if (!printing && key !== scrollKey) {
       scrollKey = key;
-      const ids = new Set(ms.map(m => m.id)), first = D.shifts.filter(s => s.d === day && ids.has(s.m)).reduce((mn, s) => Math.min(mn, s.s), Infinity);
+      const ids = new Set(ms.map(m => m.id)), first = D.shifts.filter(s => s.d === day && ids.has(s.m) && !isOff(s)).reduce((mn, s) => Math.min(mn, s.s), Infinity);
       const target = showNow ? now.min - 60 : first === Infinity ? a : first - 60;
       tlWrap.scrollLeft = Math.max(0, (target - a) / 60 * hp);
     }
@@ -403,9 +458,9 @@
       `${r.color ? `<span class="rs" style="background:${r.color}"></span>` : ''}${roleBadge(m.role)}<span class="nmw"><span class="nm">${esc(m.name)}</span>${tm ? `<span class="tm">${tm}</span>` : ''}</span>${extra || ''}</div>`;
   }
   function rowHtml(m, day, i) {
-    const list = shiftsOf(m.id, day), w = list.reduce((t, s) => t + workMin(s), 0);
-    // スマホは名前の下に入り〜終わりと休憩の始まり（横にスクロールしなくても分かる）
-    const tm = list.map(s => fmt(s.s) + '–' + fmt(s.e) + (s.br.length ? ' 休' + s.br.map(b => fmt(b.s)).join('・') : '')).join(' / ');
+    const list = shiftsOf(m.id, day), w = list.reduce((t, s) => t + onMin(s), 0);
+    // スマホは名前の下に入り〜終わりと休憩の始まり（横にスクロールしなくても分かる）。シフト不可などは「不可」
+    const tm = list.map(s => fmt(s.s) + '–' + fmt(s.e) + (isOff(s) ? ' ' + dutyOf(s.duty).name : '') + (s.br.length ? ' 休' + s.br.map(b => fmt(b.s)).join('・') : '')).join(' / ');
     return `<div class="tl-row" data-m="${m.id}">${nameCell(m, w ? `<span class="hrs">${hh(w)}</span>` : '', tm)}` +
       `<div class="tl-lane${i % 2 ? ' alt' : ''}" data-m="${m.id}" style="width:${G.W}px">${laneHtml(m.id)}</div></div>`;
   }
@@ -434,10 +489,10 @@
     return list.map((sh, i) => barHtml(sh, m, cl.has(sh.id), list[i - 1], list[i + 1], null, tr.get(sh.id))).join('');
   }
   function shiftTitle(sh, m) {
-    const r = role(m.role);
-    return `${m.name}（${grp(m.group).name}・${r.name}）\n${fmt(sh.s)}〜${fmt(sh.e)}　実働 ${hm(workMin(sh))}` +
-      (sh.br.length ? '\n休憩 ' + sh.br.map(b => fmt(b.s) + '〜' + fmt(b.e)).join('、') : '\n休憩なし') +
-      (sh.task ? '\n担当 ' + sh.task : '') + (sh.note ? '\n' + sh.note : '');
+    const r = role(m.role), u = dutyOf(sh.duty);
+    return `${m.name}（${grp(m.group).name}・${r.name}）\n${u ? '役職 ' + u.name + '\n' : ''}${fmt(sh.s)}〜${fmt(sh.e)}` +
+      (u && u.off ? '（人数に数えません）' : `　シフト中 ${hm(workMin(sh))}` + (sh.br.length ? '\n休憩 ' + sh.br.map(b => fmt(b.s) + '〜' + fmt(b.e)).join('、') : '\n休憩なし')) +
+      (sh.note ? '\n' + sh.note : '');
   }
   function barHtml(sh, m, clash, prev, next, geo, track) {
     const g = geo || G;
@@ -449,8 +504,9 @@
       const lab = bw >= 96 ? '休 ' + fmt(b.s) + '–' + fmt(b.e) : bw >= 50 ? '休' + fmt(b.s) : bw >= 15 ? '休' : '';
       brk += `<div class="brk" style="left:${bx}px;width:${bw}px">${lab ? `<span>${lab}</span>` : ''}</div>`;
     });
+    const u = dutyOf(sh.duty), col = barColor(m, sh);
     let inner = '';
-    if (!narrow) inner = `<span class="t">${fmt(sh.s)}</span>${clash && w >= 140 ? '<span class="cl">重複</span>' : ''}${sh.task && w >= 170 ? `<span class="tk">${esc(sh.task)}</span>` : ''}<span class="e2">${fmt(sh.e)}</span>`;
+    if (!narrow) inner = `<span class="t">${fmt(sh.s)}</span>${clash && w >= 140 ? '<span class="cl">重複</span>' : ''}${u && w >= 118 ? `<span class="tk">${esc(u.name)}</span>` : ''}<span class="e2">${fmt(sh.e)}</span>`;
     let out = '';
     if (narrow && !geo) {
       const label = `<b>${fmt(sh.s)}</b>–<b>${fmt(sh.e)}</b>`, need = 86;
@@ -458,28 +514,28 @@
       if (freeR >= need) out = `<div class="bar-out" data-id="${sh.id}" style="left:${x + w + 5}px">${label}</div>`;
       else if (freeL >= need) out = `<div class="bar-out" data-id="${sh.id}" style="right:${g.W - x + 5}px">${label}</div>`;
     }
-    const cls = 'bar' + (narrow ? ' narrow' : '') + (clash ? ' clash' : '') + (sh.ghost ? ' ghost' : '') + (sh.dragging ? ' drag' : '');
+    const cls = 'bar' + (narrow ? ' narrow' : '') + (clash ? ' clash' : '') + (sh.ghost ? ' ghost' : '') + (sh.dragging ? ' drag' : '') + (isDark(col) ? ' dk' : '') + (u && u.off ? ' off' : '');
     const hdl = !geo && w >= 22 ? '<i class="hdl l"></i><i class="hdl r"></i>' : '';
     const tk = track && track.n > 1 ? `top:calc(4px + (100% - 8px) * ${track.k} / ${track.n});height:calc((100% - 8px) / ${track.n} - 2px);bottom:auto;` : '';
-    return `<div class="${cls}" data-id="${sh.id}" style="left:${x}px;width:${w}px;${tk}background:${barColor(m)}" title="${esc(shiftTitle(sh, m))}${clash ? '\n※ 同じ人の時間が重なっています' : ''}">${brk}${inner}${hdl}</div>${out}`;
+    return `<div class="${cls}" data-id="${sh.id}" style="left:${x}px;width:${w}px;${tk}background:${col}" title="${esc(shiftTitle(sh, m))}${clash ? '\n※ 同じ人の時間が重なっています' : ''}">${brk}${inner}${hdl}</div>${out}`;
   }
 
   // 6日間（メンバー×日付）
   function chipHtml(sh, m, clash) {
-    return `<div class="chip${clash ? ' clash' : ''}" data-id="${sh.id}" style="background:${barColor(m)}" title="${esc(shiftTitle(sh, m))}">` +
+    const u = dutyOf(sh.duty), col = barColor(m, sh);
+    return `<div class="chip${clash ? ' clash' : ''}${isDark(col) ? ' dk' : ''}" data-id="${sh.id}" style="background:${col}" title="${esc(shiftTitle(sh, m))}">` +
       `<span class="t">${fmt(sh.s)}<span class="sep">–</span>${fmt(sh.e)}</span>` +
       (sh.br.length ? `<span class="b"><i>休</i>${sh.br.map(b => fmt(b.s) + '–' + fmt(b.e)).join(' ')}</span>` : '') +
-      (sh.task ? `<span class="k">${esc(sh.task)}</span>` : '') + `</div>`;
+      (u ? `<span class="k">${esc(u.name)}</span>` : '') + `</div>`;
   }
   function renderWeek() {
     const ms = visibleMembers();
     const groups = V.grp === 'all' ? D.groups : D.groups.filter(g => g.id === V.grp);
     const ids = new Set(ms.map(m => m.id));
-    const all = D.shifts.filter(s => ids.has(s.m));
+    const all = D.shifts.filter(s => ids.has(s.m) && !isOff(s));
     $('printHead').innerHTML = `<b>${esc(D.title)}</b>　${dLabel(D.days[0].d)}〜${dLabel(D.days[D.days.length - 1].d)}　${V.grp === 'all' ? '全体' : esc(grp(V.grp).name)}`;
     $('weekSum').innerHTML = `<span>${dLabel(D.days[0].d)}〜${dLabel(D.days[D.days.length - 1].d)}</span>` +
-      `<span>シフト <b>${all.length}</b>件</span><span>延べ <b>${hh(all.reduce((t, s) => t + workMin(s), 0))}</b></span>` +
-      `<span>1日以上入る人 <b>${new Set(all.map(s => s.m)).size}</b>/${ms.length}人</span>`;
+      `<span>シフト <b>${all.length}</b>件</span><span>延べ <b>${hh(all.reduce((t, s) => t + workMin(s), 0))}</b></span>`;
     let h = `<table class="mx"><thead><tr><th class="nm">メンバー</th>`;
     D.days.forEach(x => {
       const s = daySummary(x.d, ms);
@@ -498,25 +554,30 @@
         h += `<tr data-m="${m.id}"><td class="nm">${nameCell(m)}</td>`;
         D.days.forEach(x => {
           const list = shiftsOf(m.id, x.d), cl = clashIds(list);
-          tot += list.reduce((t, s) => t + workMin(s), 0);
+          tot += list.reduce((t, s) => t + onMin(s), 0);
           h += `<td class="cell${list.length ? ' has' : ''}" data-d="${x.d}">${list.map(s => chipHtml(s, m, cl.has(s.id))).join('')}<span class="add">＋</span>` +
             (list.length ? `<button type="button" class="add2" data-add2 aria-label="${esc(m.name)} ${dLabel(x.d)}にもう1件追加" title="もう1件追加">＋</button>` : '') + `</td>`;
         });
         h += `<td class="tot">${tot ? hh(tot) : '—'}</td></tr>`;
       });
     });
-    h += `</tbody><tfoot><tr><td class="nm">出勤の人数</td>`;
+    h += `</tbody><tfoot><tr><td class="nm">シフトに入る人数</td>`;
     D.days.forEach(x => { const s = daySummary(x.d, ms); h += `<td><b>${s.people}</b>人</td>`; });
     h += `<td></td></tr></tfoot></table>`;
     if (!ms.length) h = `<div class="tl-empty">${D.members.length ? '条件に合うメンバーがいません' : 'メンバーがいません。「メンバー」から追加してください'}</div>`;
     $('mxWrap').innerHTML = h;
   }
 
+  // 凡例：立場のバッジ、いま見ている範囲で使っている役職の色、休憩、重なり
   function renderLegend() {
-    const sw = V.colorBy === 'role'
-      ? D.roles.map(r => `<span class="it"><span class="sw" style="background:${r.color || '#8b8b95'}"></span>${esc(r.name)}</span>`).join('')
+    const ids = new Set(visibleMembers().map(m => m.id));
+    const used = new Set(D.shifts.filter(s => ids.has(s.m) && s.duty && (V.view === 'week' || s.d === V.day)).map(s => s.duty));
+    const sw = V.colorBy === 'duty'
+      ? D.duties.filter(u => used.has(u.id)).map(u => `<span class="it"><span class="sw" style="background:${u.color}"></span>${esc(u.name)}</span>`).join('')
       : D.groups.map(g => `<span class="it"><span class="sw" style="background:${g.color}"></span>${esc(g.name)}</span>`).join('');
-    $('legend').innerHTML = `<span class="it">役職：</span>${D.roles.map(r => roleBadge(r.id, true)).join(' ')}<span class="sep"></span>${sw}` +
+    const ranks = D.roles.filter(r => r.color);
+    $('legend').innerHTML = (ranks.length ? `<span class="it">立場：</span>${ranks.map(r => roleBadge(r.id, true)).join(' ')}<span class="sep"></span>` : '') +
+      (sw ? `<span class="it">${V.colorBy === 'duty' ? '役職：' : '課：'}</span>${sw}<span class="sep"></span>` : '') +
       `<span class="it"><span class="sw brk"></span>休憩</span><span class="it"><span class="sw cl"></span>同じ人の時間の重なり</span>` +
       (V.view === 'day' ? `<span class="sep"></span><span class="hint">${matchMedia('(hover:hover)').matches ? '空いている所をドラッグして追加・棒をドラッグして移動（別の人へも）・棒の端で時間を変更・クリックで編集' : '空いている所をタップして追加・棒をタップして編集'}</span>` : '<span class="sep"></span><span class="hint">マスを押すと追加・編集</span>');
   }
@@ -539,7 +600,7 @@
       drag = { kind: hd ? (hd.classList.contains('l') ? 'l' : 'r') : 'move', id: sh.id, orig: clone(sh), cur: clone(sh), x0: e.clientX, y0: e.clientY, t0: minAt(e.clientX), moved: false, lanes: new Set([sh.m]) };
     } else {
       const t = clamp(snapTo(minAt(e.clientX), st), G.a, G.b - st);
-      drag = { kind: 'new', id: '__new', t0: t, cur: { id: '__new', m: lane.dataset.m, d: G.day, s: t, e: t + st, br: [], task: '', note: '' }, x0: e.clientX, y0: e.clientY, moved: false, lanes: new Set([lane.dataset.m]) };
+      drag = { kind: 'new', id: '__new', t0: t, cur: { id: '__new', m: lane.dataset.m, d: G.day, s: t, e: t + st, br: [], duty: V.lastDuty || '', note: '' }, x0: e.clientX, y0: e.clientY, moved: false, lanes: new Set([lane.dataset.m]) };
     }
     e.preventDefault();
     window.addEventListener('pointermove', onDragMove);
@@ -584,7 +645,7 @@
       render();
       // 少し手がぶれただけ（12px未満・30分未満）はクリックと同じ扱い（いつもの長さで下書き）
       if (Math.abs(e.clientX - d.x0) < 12 || c.e - c.s < 30) openShiftEditor(newDraft(c.m, G.day, Math.floor(d.t0 / 30) * 30));
-      else openShiftEditor(withAutoBreak({ m: c.m, d: c.d, s: c.s, e: c.e, br: [] }));
+      else openShiftEditor(withAutoBreak({ m: c.m, d: c.d, s: c.s, e: c.e, br: [], duty: c.duty }));
       return;
     }
     const o = d.orig;
@@ -611,18 +672,18 @@
   // 時間を変えたときの休憩：勤務時間の中に収まるものだけ残す（端にかかるものは消す）
   function keepBreaks(br, s, e) { return cleanBreaks(br, s, e).filter(b => b.s > s && b.e < e); }
 
-  // 新しいシフトの下書き（最後に使った定型の長さで）
+  // 新しいシフトの下書き（最後に使った定型の長さ・最後に選んだ役職で）
   function newDraft(mId, day, t) {
-    const p = D.presets.find(x => x.id === V.lastPreset);
-    if (t == null) return withAutoBreak(p ? { m: mId, d: day, s: p.s, e: p.e, br: clone(p.br) } : { m: mId, d: day, s: 540, e: 1020, br: [] });
+    const p = D.presets.find(x => x.id === V.lastPreset), duty = dutyOf(V.lastDuty) ? V.lastDuty : '';
+    if (t == null) return withAutoBreak(p ? { m: mId, d: day, s: p.s, e: p.e, br: clone(p.br), duty } : { m: mId, d: day, s: 540, e: 1020, br: [], duty });
     const len = p ? p.e - p.s : 240;
     const s = clamp(t, 0, DAY_MAX - D.opt.snap), e = Math.min(DAY_MAX, s + len);
-    return withAutoBreak({ m: mId, d: day, s, e, br: [] });
+    return withAutoBreak({ m: mId, d: day, s, e, br: [], duty });
   }
-  // 6時間を超えるのに休憩がないときは、真ん中に休憩を入れる（8時間を超えたら60分、それ以外は45分）
+  // 6時間を超えるのに休憩がないときは、真ん中に休憩を入れる（8時間を超えたら60分、それ以外は45分）。シフト不可などには入れない
   function withAutoBreak(dr) {
-    if (!D.opt.autoBreak || dr.br.length || dr.e - dr.s <= 360) return dr;
-    dr.br = [suggestBreak(dr)];
+    if (!D.opt.autoBreak || dr.br.length || dr.e - dr.s <= 360 || isOff(dr)) return dr;
+    dr.br = [suggestBreak(dr)]; dr.autoBr = true;
     return dr;
   }
   function suggestBreak(dr) {
@@ -680,10 +741,51 @@
     const errs = [];
     dr.br.forEach((b, i) => {
       if (b.e <= b.s) errs.push([i, `休憩${i + 1}の終わりが始まりより前です`]);
-      else if (b.s < dr.s || b.e > dr.e) errs.push([i, `休憩${i + 1}が勤務時間（${fmt(dr.s)}〜${fmt(dr.e)}）の外です`]);
+      else if (b.s < dr.s || b.e > dr.e) errs.push([i, `休憩${i + 1}がシフトの時間（${fmt(dr.s)}〜${fmt(dr.e)}）の外です`]);
       else if (dr.br.some((x, j) => j !== i && x.s < b.e && b.s < x.e)) errs.push([i, `休憩${i + 1}がほかの休憩と重なっています`]);
     });
     return errs;
+  }
+
+  // 役職を選ぶチップ（色つき）と、その場で新しい役職を足す欄
+  function dutyChips(sel) {
+    return `<button type="button" class="duchip none${!sel ? ' on' : ''}" data-du="" aria-pressed="${!sel}">なし</button>` +
+      D.duties.map(u => `<button type="button" class="duchip${u.id === sel ? ' on' : ''}${isDark(u.color) ? ' dk' : ''}" data-du="${u.id}" aria-pressed="${u.id === sel}" style="--c:${u.color}">${esc(u.name)}${u.off ? '<small>数えない</small>' : ''}</button>`).join('') +
+      `<button type="button" class="duchip add" data-duadd>＋ 新しい役職</button>`;
+  }
+  function dutyPickerHtml(sel, pid) {
+    return `<div class="duties" id="${pid}">${dutyChips(sel)}</div>
+      <div class="duadd" id="${pid}Add" hidden><input class="inp" maxlength="16" placeholder="役職の名前（例：1号館 受付）" aria-label="新しい役職の名前">
+        <input type="color" value="#22c55e" aria-label="新しい役職の色"><label class="chk"><input type="checkbox"> 人数に数えない</label>
+        <button type="button" class="btn small primary" data-duok>足す</button><button type="button" class="btn small ghost" data-ducancel>やめる</button></div>`;
+  }
+  function bindDutyPicker(root, pid, getSel, onPick) {
+    const box = () => root.querySelector('#' + pid), add = () => root.querySelector('#' + pid + 'Add');
+    const redraw = () => { box().innerHTML = dutyChips(getSel()); };
+    const addNew = () => {
+      const f = add(), name = str(f.querySelector('input.inp').value, 16);
+      if (!name) { toast('役職の名前を入れてください'); return; }
+      let u = D.duties.find(x => x.name === name);
+      if (!u) {
+        u = { id: 'u' + uid(), name, color: f.querySelector('input[type=color]').value, off: f.querySelector('input[type=checkbox]').checked };
+        const nu = u;
+        commit(D2 => { D2.duties.push(nu); }, `役職「${name}」を足しました（設定で色や並びを変えられます）`);
+      }
+      f.hidden = true; f.querySelector('input.inp').value = '';
+      onPick(u.id); redraw();
+    };
+    root.addEventListener('click', e => {
+      const c = e.target.closest('.duchip');
+      if (c && box().contains(c)) {
+        if (c.hasAttribute('data-duadd')) { add().hidden = false; add().querySelector('input.inp').focus(); }
+        else { onPick(c.dataset.du); redraw(); }
+        return;
+      }
+      if (e.target.closest('[data-duok]') && add().contains(e.target)) addNew();
+      else if (e.target.closest('[data-ducancel]') && add().contains(e.target)) add().hidden = true;
+    });
+    root.addEventListener('keydown', e => { if (e.key === 'Enter' && add().contains(e.target)) { e.preventDefault(); e.stopPropagation(); addNew(); } }, true);
+    return redraw;
   }
 
   // シフトの追加・編集
@@ -691,11 +793,12 @@
     opt = opt || {};
     const isNew = !src.id || !D.shifts.some(s => s.id === src.id);
     if (!D.members.length) { toast('先に「メンバー」から名簿を作ってください'); return; }
-    const dr = { id: isNew ? null : src.id, m: mem(src.m) ? src.m : sortedMembers()[0].id, d: dayOf(src.d) ? src.d : V.day, s: src.s, e: src.e, br: clone(src.br || []), task: src.task || '', note: src.note || '' };
+    const dr = { id: isNew ? null : src.id, m: mem(src.m) ? src.m : sortedMembers()[0].id, d: dayOf(src.d) ? src.d : V.day, s: src.s, e: src.e, br: clone(src.br || []), duty: dutyOf(src.duty) ? src.duty : '', note: src.note || '', autoBr: !!src.autoBr };
     const copyTo = new Set(), st = D.opt.snap;
     const m0 = mem(dr.m);
     const body = `
       <div class="fld"><label for="edM">メンバー</label><select class="inp" id="edM">${memberOptions(dr.m)}</select></div>
+      <div class="fld"><span class="lb">役職</span>${dutyPickerHtml(dr.duty, 'edU')}</div>
       <div class="fld"><span class="lb">日付</span><div class="dchk" id="edD">${D.days.map(x => `<label class="${x.kind === 'fest' ? 'fest' : ''}"><input type="radio" name="edD" value="${x.d}"${x.d === dr.d ? ' checked' : ''}>${dLabel(x.d)}</label>`).join('')}</div></div>
       <div class="fld"><span class="lb">時間（定型から選ぶか、入り・終わりを選ぶ）</span>
         <div class="presets" id="edP"></div>
@@ -706,11 +809,7 @@
       </div>
       <div class="fld"><span class="lb">休憩</span><div class="brl" id="edBrk"></div>
         <div class="row"><button type="button" class="btn small" id="edAddBr">＋ 休憩を追加</button><span class="msg" id="edBrHint"></span></div></div>
-      <div class="row" style="align-items:flex-start">
-        <div class="fld" style="flex:1;min-width:140px"><label for="edT">担当（持ち場）</label><input class="inp" id="edT" list="edTasks" maxlength="20" value="${esc(dr.task)}" placeholder="例：受付"></div>
-        <div class="fld" style="flex:1.4;min-width:170px"><label for="edN">メモ</label><input class="inp" id="edN" maxlength="80" value="${esc(dr.note)}" placeholder="例：無線を受け取る"></div>
-      </div>
-      <datalist id="edTasks">${D.tasks.map(t => `<option value="${esc(t)}">`).join('')}</datalist>
+      <div class="fld"><label for="edN">メモ</label><input class="inp" id="edN" maxlength="80" value="${esc(dr.note)}" placeholder="例：無線を受け取る"></div>
       <div class="fld"><span class="lb">ほかの日にも同じ時間で作る</span><div class="dchk" id="edCopy"></div></div>
       <div class="msg" id="edMsg"></div>`;
     const foot = `${isNew ? '' : '<button type="button" class="btn danger" id="edDel">削除</button>'}<span class="grow"></span>` +
@@ -726,13 +825,14 @@
       const bad = dr.e <= dr.s, bErr = bad ? [] : breakErrors(dr);
       q('edS').classList.toggle('err', bad); q('edE').classList.toggle('err', bad);
       const work = Math.max(0, dr.e - dr.s - dr.br.reduce((t, b) => t + Math.max(0, Math.min(b.e, dr.e) - Math.max(b.s, dr.s)), 0));
-      q('edDur').innerHTML = bad ? '' : `実働 <b>${hm(work)}</b>（${fmt(dr.s)}〜${fmt(dr.e)} の ${hm(dr.e - dr.s)}・休憩 ${hm(dr.br.reduce((t, b) => t + Math.max(0, b.e - b.s), 0))}）`;
+      q('edDur').innerHTML = bad ? '' : isOff(dr) ? `${esc(dutyOf(dr.duty).name)}：${fmt(dr.s)}〜${fmt(dr.e)}（シフト中の人数には数えません）`
+        : `シフト中 <b>${hm(work)}</b>（${fmt(dr.s)}〜${fmt(dr.e)} の ${hm(dr.e - dr.s)}・休憩 ${hm(dr.br.reduce((t, b) => t + Math.max(0, b.e - b.s), 0))}）`;
       // 1日の中での位置
       const bar = q('edBar'), [ra, rb] = dayRange(dr.d), a = Math.min(ra, Math.floor(dr.s / 60) * 60), b = Math.max(rb, Math.ceil(dr.e / 60) * 60);
       const wpx = bar.clientWidth || 480, hp = wpx / ((b - a) / 60), m = mem(dr.m);
       let tk = '';
       for (let t = a; t < b; t += 60) if ((t / 60) % (hp < 26 ? 3 : hp < 40 ? 2 : 1) === 0) tk += `<span class="tk2" style="left:${(t - a) / 60 * hp}px">${t / 60}</span>`;
-      bar.innerHTML = tk + (bad || !m ? '' : barHtml({ id: 'x', s: dr.s, e: dr.e, br: dr.br.filter(x => x.e > x.s && x.s >= dr.s && x.e <= dr.e), task: '' }, m, false, null, null, { a, b, hp, W: wpx }));
+      bar.innerHTML = tk + (bad || !m ? '' : barHtml({ id: 'x', s: dr.s, e: dr.e, br: dr.br.filter(x => x.e > x.s && x.s >= dr.s && x.e <= dr.e), duty: dr.duty }, m, false, null, null, { a, b, hp, W: wpx }));
       // 休憩
       const errIdx = new Set(bErr.map(x => x[0]));
       q('edBrk').innerHTML = dr.br.length ? dr.br.map((x, i) => `<div class="row nw" data-i="${i}"><span class="lbl">休憩${i + 1}</span>` +
@@ -740,7 +840,7 @@
         `<select class="inp time${errIdx.has(i) ? ' err' : ''}" data-k="e" aria-label="休憩${i + 1}の終わり">${timeOptions(x.e, Math.min(dr.s, x.e), Math.max(dr.e, x.e), st)}</select>` +
         `<span class="dur">${x.e > x.s ? hm(x.e - x.s) : ''}</span><span class="grow" style="flex:1"></span><button type="button" class="btn ghost small icon" data-del aria-label="休憩${i + 1}を消す">×</button></div>`).join('')
         : '<div class="msg">休憩なし</div>';
-      const long = !bad && dr.e - dr.s > 360 && !dr.br.length;
+      const long = !bad && dr.e - dr.s > 360 && !dr.br.length && !isOff(dr);
       q('edBrHint').innerHTML = long ? '<span class="msg warn">6時間を超えています。休憩を入れましょう</span>' : '';
       // ほかの日へ（その日にもう重なるシフトがある日は「重」の印）
       const ovOn = d => D.shifts.filter(s => s.m === dr.m && s.d === d && s.id !== dr.id && s.s < dr.e && dr.s < s.e);
@@ -759,8 +859,9 @@
     function save() {
       if (dr.e <= dr.s || breakErrors(dr).length || done) return;
       done = true;
-      const rec = { m: dr.m, d: dr.d, s: dr.s, e: dr.e, br: cleanBreaks(dr.br, dr.s, dr.e), task: str(q('edT').value, 20), note: str(q('edN').value, 80) };
+      const rec = { m: dr.m, d: dr.d, s: dr.s, e: dr.e, br: cleanBreaks(dr.br, dr.s, dr.e), duty: dutyOf(dr.duty) ? dr.duty : '', note: str(q('edN').value, 80) };
       const p = D.presets.find(x => x.s === rec.s && x.e === rec.e); if (p) V.lastPreset = p.id;
+      if (!isOff(rec)) V.lastDuty = rec.duty;
       const extra = [...copyTo].filter(d => d !== rec.d);
       const name = (mem(rec.m) || {}).name || '';
       commit(D2 => {
@@ -776,20 +877,22 @@
       else if (t.name === 'edD') { dr.d = t.value; copyTo.delete(dr.d); }
       else if (t.id === 'edS') { const len = dr.e - dr.s, ns = +t.value; if (dr.e <= ns) dr.e = Math.min(DAY_MAX, ns + Math.max(len, st)); dr.s = ns; }
       else if (t.id === 'edE') dr.e = +t.value;
-      else if (t.closest('#edBrk')) { const i = +t.closest('[data-i]').dataset.i; dr.br[i][t.dataset.k] = +t.value; }
+      else if (t.closest('#edBrk')) { const i = +t.closest('[data-i]').dataset.i; dr.br[i][t.dataset.k] = +t.value; dr.autoBr = false; }
       else if (t.closest('#edCopy')) { if (t.checked) copyTo.add(t.value); else copyTo.delete(t.value); }
       else return;
       upd();
     });
-    dlg.querySelector('.dlg-b').addEventListener('input', e => { if (e.target.id === 'edT') dr.task = e.target.value; if (e.target.id === 'edN') dr.note = e.target.value; });
+    dlg.querySelector('.dlg-b').addEventListener('input', e => { if (e.target.id === 'edN') dr.note = e.target.value; });
+    // 役職を選ぶ。シフト不可などに変えたら、自動で入れた休憩は外す
+    bindDutyPicker(dlg.querySelector('.dlg-b'), 'edU', () => dr.duty, id => { dr.duty = id; if (isOff(dr) && dr.autoBr) { dr.br = []; dr.autoBr = false; } upd(); });
     dlg.querySelector('.dlg-b').addEventListener('click', e => {
       const pc = e.target.closest('.pchip');
-      if (pc) { const p = D.presets.find(x => x.id === pc.dataset.p); if (p) { dr.s = p.s; dr.e = p.e; dr.br = clone(p.br); if (!dr.br.length) withAutoBreak(dr); upd(); } return; }
-      if (e.target.closest('#edAddBr')) { if (dr.e > dr.s) { dr.br.push(suggestBreak(dr)); dr.br.sort((x, y) => x.s - y.s); upd(); } return; }
+      if (pc) { const p = D.presets.find(x => x.id === pc.dataset.p); if (p) { dr.s = p.s; dr.e = p.e; dr.br = clone(p.br); dr.autoBr = false; if (!dr.br.length) withAutoBreak(dr); upd(); } return; }
+      if (e.target.closest('#edAddBr')) { if (dr.e > dr.s) { dr.br.push(suggestBreak(dr)); dr.br.sort((x, y) => x.s - y.s); dr.autoBr = false; upd(); } return; }
       const del = e.target.closest('[data-del]');
-      if (del) { dr.br.splice(+del.closest('[data-i]').dataset.i, 1); upd(); }
+      if (del) { dr.br.splice(+del.closest('[data-i]').dataset.i, 1); dr.autoBr = false; upd(); }
     });
-    dlg.querySelector('.dlg-b').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); save(); } });
+    dlg.querySelector('.dlg-b').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'edN') { e.preventDefault(); save(); } });
     q('edSave').addEventListener('click', save);
     const del = q('edDel');
     if (del) del.addEventListener('click', () => {
@@ -801,7 +904,7 @@
     upd();
   }
 
-  // メンバー1人（名前・課・役職と、6日間のシフト）
+  // メンバー1人（名前・課・立場と、6日間のシフト）
   function openMember(id) {
     const m = mem(id);
     if (!m) return;
@@ -812,9 +915,9 @@
       return `<div class="row" style="align-items:flex-end">
           <div class="fld" style="flex:2;min-width:150px"><label for="mdN">名前</label><input class="inp" id="mdN" maxlength="30" value="${esc(mm.name)}"></div>
           <div class="fld" style="flex:1;min-width:100px"><label for="mdG">課</label><select class="inp" id="mdG">${D.groups.map(g => `<option value="${g.id}"${g.id === mm.group ? ' selected' : ''}>${esc(g.name)}</option>`).join('')}</select></div>
-          <div class="fld" style="flex:1;min-width:100px"><label for="mdR">役職</label><select class="inp" id="mdR">${D.roles.map(r => `<option value="${r.id}"${r.id === mm.role ? ' selected' : ''}>${esc(r.name)}</option>`).join('')}</select></div>
+          <div class="fld" style="flex:1;min-width:100px"><label for="mdR">立場</label><select class="inp" id="mdR">${D.roles.map(r => `<option value="${r.id}"${r.id === mm.role ? ' selected' : ''}>${esc(r.name)}</option>`).join('')}</select></div>
         </div>
-        <div class="kv"><span>${roleBadge(mm.role)}</span><span>6日間で <b>${all.length}</b>件</span><span>実働 <b>${hm(all.reduce((t, s) => t + workMin(s), 0))}</b></span><span>出る日 <b>${new Set(all.map(s => s.d)).size}</b>日</span></div>
+        <div class="kv"><span>${roleBadge(mm.role)}</span><span>6日間で <b>${all.filter(s => !isOff(s)).length}</b>件</span><span>シフト中 <b>${hm(all.reduce((t, s) => t + onMin(s), 0))}</b></span><span>シフトに入る日 <b>${new Set(all.filter(s => !isOff(s)).map(s => s.d)).size}</b>日</span></div>
         <div class="sl">${D.days.map(x => {
           const list = shiftsOf(id, x.d), cl = clashIds(list);
           return `<div class="dayrow" data-d="${x.d}"><div class="dl">${dLabel(x.d)}<small>${esc(x.label)}</small></div><div class="cs">${list.length ? list.map(s => chipHtml(s, mm, cl.has(s.id))).join('') : '<span class="none">なし</span>'}</div>` +
@@ -830,7 +933,7 @@
       const v = f === 'name' ? str(t.value, 30) : t.value;
       if (!v) { t.value = mem(id).name; return; }
       commit(D2 => { const x = D2.members.find(y => y.id === id); if (x) x[f] = v; }, '名簿を更新しました');
-      // 名前だけなら描き直さない（描き直すと、次に押した＋やシフトが1回目で効かない）。課・役職はバッジのために描き直して、選んでいた欄に戻る
+      // 名前だけなら描き直さない（描き直すと、次に押した＋やシフトが1回目で効かない）。課・立場はバッジのために描き直して、選んでいた欄に戻る
       if (f !== 'name') { b.innerHTML = draw(); const el = b.querySelector('#' + t.id); if (el) el.focus(); }
     });
     b.addEventListener('click', e => {
@@ -856,8 +959,7 @@
     if (!t || /^[-ー－—―]$/.test(t)) return null;
     const exact = D.groups.find(g => g.name === t); if (exact) return exact.id;
     if (/gs/i.test(t)) return 'gs';
-    if (/広報/.test(t)) return 'pr';
-    if (/^(局|局付|局本部|執行部|局三役)$/.test(t)) return 'hq';
+    if (/広報|情宣|出版/.test(t)) return 'pr';
     return null;
   }
   function guessRole(t) {
@@ -874,34 +976,32 @@
       const cells = line.split(/\t|,|、|，/).map(x => x.trim());
       const name = str(cells[0], 30);
       if (!name || /^(名前|氏名|なまえ)$/.test(name)) return;
-      // 「広報課長」のように1マスで課と役職の両方が分かることもある。課は GS・広報 を局より優先
-      let r = null; const gs = [];
-      cells.slice(1).forEach(c => { const rr = guessRole(c), gg = guessGroup(c); if (rr && !r) r = rr; if (gg) gs.push(gg); });
-      let g = gs.find(x => x !== 'hq') || gs[0] || null;
-      if (!g && r && /局/.test(role(r).name)) g = 'hq';     // 局長・副局長で課の欄が空 → 局
+      // 「広報課長」のように1マスで課と立場の両方が分かることもある
+      let r = null, g = null;
+      cells.slice(1).forEach(c => { const rr = guessRole(c), gg = guessGroup(c); if (rr && !r) r = rr; if (gg && !g) g = gg; });
       out.push({ name, group: g || defG, role: r || defR });
     });
     return out;
   }
   function openRoster() {
-    // 開いている間は並びを変えない（課や役職を直しても、その行がどこかへ行かない）。閉じて開き直すと「課 → 役職」の順に
+    // 開いている間は並びを変えない（課や立場を直しても、その行がどこかへ行かない）。閉じて開き直すと「課 → 立場」の順に
     const order = new Map(sortedMembers().map((m, i) => [m.id, i]));
     const rowsInOrder = () => { const ms = sortedMembers(); return ms.filter(m => order.has(m.id)).sort((a, b) => order.get(a.id) - order.get(b.id)).concat(ms.filter(m => !order.has(m.id))); };
     const draw = () => {
       const ms = rowsInOrder();
       const cnt = id => D.shifts.filter(s => s.m === id).length;
-      return `<div class="row"><span class="msg">名前・課・役職を変えるとすぐに保存されます。開き直すと「課 → 役職」の順に並びます。</span></div>
-        <div class="ed-wrap"><table class="ed stack roster"><thead><tr><th style="width:42%">名前</th><th>課</th><th>役職</th><th style="width:56px">シフト</th><th style="width:40px"></th></tr></thead><tbody>
+      return `<div class="row"><span class="msg">名前・課・立場を変えるとすぐに保存されます。開き直すと「課 → 立場」の順に並びます。シフトの役職は、シフトごとに選びます。</span></div>
+        <div class="ed-wrap"><table class="ed stack roster"><thead><tr><th style="width:42%">名前</th><th>課</th><th>立場</th><th style="width:56px">シフト</th><th style="width:40px"></th></tr></thead><tbody>
         ${ms.map(m => `<tr data-m="${m.id}"><td class="c-name"><input class="inp" data-f="name" maxlength="30" value="${esc(m.name)}" aria-label="名前"></td>
           <td class="c-grp"><select class="inp" data-f="group" aria-label="${esc(m.name)}の課">${D.groups.map(g => `<option value="${g.id}"${g.id === m.group ? ' selected' : ''}>${esc(g.name)}</option>`).join('')}</select></td>
-          <td class="c-role"><select class="inp" data-f="role" aria-label="${esc(m.name)}の役職">${D.roles.map(r => `<option value="${r.id}"${r.id === m.role ? ' selected' : ''}>${esc(r.name)}</option>`).join('')}</select></td>
+          <td class="c-role"><select class="inp" data-f="role" aria-label="${esc(m.name)}の立場">${D.roles.map(r => `<option value="${r.id}"${r.id === m.role ? ' selected' : ''}>${esc(r.name)}</option>`).join('')}</select></td>
           <td class="num c-cnt" style="color:var(--muted);text-align:center">${cnt(m.id)}</td><td class="c-rm"><button type="button" class="btn ghost small icon" data-rm aria-label="${esc(m.name)}を外す">×</button></td></tr>`).join('')}
         ${ms.length ? '' : '<tr><td colspan="5" class="msg" style="padding:14px">まだいません</td></tr>'}
         </tbody></table></div>
         <div class="row"><button type="button" class="btn" id="rsAdd">＋ 1人追加</button><span class="msg">全体 ${D.members.length}人（${D.groups.map(g => esc(g.name) + ' ' + D.members.filter(m => m.group === g.id).length).join('・')}）</span></div>
         <details class="fld" id="rsPasteBox"><summary class="sect" style="cursor:pointer">まとめて貼り付け <small>Excel・スプレッドシートからコピーした名簿</small></summary>
-          <div class="msg" style="margin:6px 0">1行に1人。「名前, 課, 役職」の順（タブ・カンマ区切り）。課を省くと「${V.grp !== 'all' ? esc(grp(V.grp).name) : esc(grp('gs').name)}」（局長・副局長は「${esc(grp('hq').name)}」）、役職を省くと「${esc(D.roles[D.roles.length - 1].name)}」。名簿にもういる名前は、足さずに課と役職を直します。</div>
-          <textarea class="inp" id="rsText" placeholder="山田 太郎, GS課, 課長&#10;鈴木 花子, 広報課, 副課長&#10;佐藤 次郎, 広報課&#10;高橋 三郎, , 局長"></textarea>
+          <div class="msg" style="margin:6px 0">1行に1人。「名前, 課, 立場」の順（タブ・カンマ区切り）。課を省くと「${V.grp !== 'all' ? esc(grp(V.grp).name) : esc(grp('gs').name)}」、立場を省くと「${esc(D.roles[D.roles.length - 1].name)}」。名簿にもういる名前は、足さずに課と立場を直します。</div>
+          <textarea class="inp" id="rsText" placeholder="山田 太郎, GS課, 課長&#10;鈴木 花子, 広報課, 副課長&#10;佐藤 次郎, 広報課"></textarea>
           <div class="rsprev" id="rsRows"></div>
           <div class="row" style="margin-top:8px"><span class="msg" id="rsPrev"></span><span style="flex:1"></span>
             <button type="button" class="btn" id="rsAppend">名簿に足す</button><button type="button" class="btn danger" id="rsReplace">名簿を置き換える</button></div>
@@ -920,7 +1020,7 @@
     function preview() {
       const rows = parseRoster(b.querySelector('#rsText').value), have = new Set(D.members.map(m => normName(m.name)));
       b.querySelector('#rsPrev').textContent = rows.length ? `${rows.length}人（${D.groups.map(g => g.name + ' ' + rows.filter(r => r.group === g.id).length).join('・')}）` +
-        (rows.some(r => have.has(normName(r.name))) ? `　うち ${rows.filter(r => have.has(normName(r.name))).length}人はもういる人（足すときは課・役職を直します）` : '') : '';
+        (rows.some(r => have.has(normName(r.name))) ? `　うち ${rows.filter(r => have.has(normName(r.name))).length}人はもういる人（足すときは課・立場を直します）` : '') : '';
       b.querySelector('#rsRows').innerHTML = rows.slice(0, 80).map(r => `<div class="r${have.has(normName(r.name)) ? ' upd' : ''}"><span class="gdot" style="background:${grp(r.group).color}"></span>${esc(grp(r.group).name)}　${roleBadge(r.role, true)}　${esc(r.name)}${have.has(normName(r.name)) ? '（いる人）' : ''}</div>`).join('') + (rows.length > 80 ? `<div class="r">ほか ${rows.length - 80}人</div>` : '');
     }
     b.addEventListener('change', e => {
@@ -956,7 +1056,7 @@
             if (ex) { ex.group = r.group; ex.role = r.role; updated++; }
             else { D2.members.push({ id: 'm' + uid(), name: r.name, group: r.group, role: r.role }); added++; }
           });
-        }, rep ? `${rows.length}人を名簿にしました` : `${added}人を足しました` + (updated ? `（${updated}人は課・役職を直しました）` : ''));
+        }, rep ? `${rows.length}人を名簿にしました` : `${added}人を足しました` + (updated ? `（${updated}人は課・立場を直しました）` : ''));
         b.querySelector('#rsText').value = '';
         redraw();
       }
@@ -974,7 +1074,7 @@
     if (!D.members.length) { toast('先に「メンバー」から名簿を作ってください'); return; }
     const p0 = D.presets.find(x => x.id === V.lastPreset) || D.presets[0];
     const st = D.opt.snap;
-    const dr = { s: p0 ? p0.s : 540, e: p0 ? p0.e : 1020, br: p0 ? clone(p0.br) : [], task: '' };
+    const dr = { s: p0 ? p0.s : 540, e: p0 ? p0.e : 1020, br: p0 ? clone(p0.br) : [], duty: dutyOf(V.lastDuty) ? V.lastDuty : '' };
     const days = new Set([V.day]), pick = new Set();
     let skip = true;
     const body = `
@@ -983,7 +1083,7 @@
         <div class="row nw" style="margin-top:4px"><span class="msg">入り</span><select class="inp time" id="bkS"></select><span>〜</span><span class="msg">終わり</span><select class="inp time" id="bkE"></select></div>
         <div class="row nw"><label class="chk"><input type="checkbox" id="bkBr"> 休憩</label><select class="inp time" id="bkBs"></select><span>〜</span><select class="inp time" id="bkBe"></select></div>
         <div class="dur" id="bkDur"></div></div>
-      <div class="fld"><label for="bkT">担当（持ち場）</label><input class="inp" id="bkT" list="bkTasks" maxlength="20" placeholder="空でも可"><datalist id="bkTasks">${D.tasks.map(t => `<option value="${esc(t)}">`).join('')}</datalist></div>
+      <div class="fld"><span class="lb">役職</span>${dutyPickerHtml(dr.duty, 'bkU')}</div>
       <div class="fld"><span class="lb">メンバー</span><div class="mlist" id="bkM"></div></div>
       <label class="chk"><input type="checkbox" id="bkSkip" checked> その日にもうシフトがある人は飛ばす</label>`;
     openDlg({ title: 'まとめて追加', body, wide: true, foot: `<span class="msg grow" id="bkSum"></span><button type="button" class="btn" data-close>キャンセル</button><button type="button" class="btn primary" id="bkGo">追加する</button>` });
@@ -1010,7 +1110,8 @@
       q('bkBs').innerHTML = timeOptions(b0.s, dr.s, dr.e, st); q('bkBe').innerHTML = timeOptions(b0.e, dr.s, dr.e, st);
       q('bkBs').disabled = q('bkBe').disabled = !hasBr;
       const bad = dr.e <= dr.s || breakErrors(dr).length > 0;
-      q('bkDur').innerHTML = bad ? '<span class="msg err">時間を確かめてください（終わりは入りより後、休憩は勤務時間の中）</span>' : `実働 <b>${hm(dr.e - dr.s - brMin(dr))}</b>${dr.br.length ? '' : dr.e - dr.s > 360 ? '　<span class="msg warn">6時間を超えています。休憩を入れましょう</span>' : ''}`;
+      q('bkDur').innerHTML = bad ? '<span class="msg err">時間を確かめてください（終わりは入りより後、休憩はシフトの時間の中）</span>'
+        : isOff(dr) ? `${esc(dutyOf(dr.duty).name)}（シフト中の人数には数えません）` : `シフト中 <b>${hm(dr.e - dr.s - brMin(dr))}</b>${dr.br.length ? '' : dr.e - dr.s > 360 ? '　<span class="msg warn">6時間を超えています。休憩を入れましょう</span>' : ''}`;
       const targets = plan();
       q('bkSum').textContent = `${pick.size}人 × ${days.size}日` + (skip ? `（飛ばす分を除いて ${targets.length}件）` : ` = ${targets.length}件`);
       q('bkGo').disabled = bad || !targets.length;
@@ -1033,7 +1134,7 @@
       else return;
       upd();
     });
-    b.addEventListener('input', e => { if (e.target.id === 'bkT') dr.task = e.target.value; });
+    bindDutyPicker(b, 'bkU', () => dr.duty, id => { dr.duty = id; upd(); });
     b.addEventListener('click', e => {
       const pc = e.target.closest('.pchip');
       if (pc) { const p = D.presets.find(x => x.id === pc.dataset.p); if (p) { dr.s = p.s; dr.e = p.e; dr.br = clone(p.br); if (!dr.br.length) withAutoBreak(dr); V.lastPreset = p.id; upd(); } return; }
@@ -1043,7 +1144,8 @@
     q('bkGo').addEventListener('click', () => {
       const targets = plan();
       if (!targets.length || dr.e <= dr.s || breakErrors(dr).length) return;
-      const rec = { s: dr.s, e: dr.e, br: cleanBreaks(dr.br, dr.s, dr.e), task: str(dr.task, 20), note: '' };
+      const rec = { s: dr.s, e: dr.e, br: cleanBreaks(dr.br, dr.s, dr.e), duty: dutyOf(dr.duty) ? dr.duty : '', note: '' };
+      if (!isOff(rec)) V.lastDuty = rec.duty;
       commit(D2 => { targets.forEach(t => D2.shifts.push(Object.assign({ id: uid(), m: t.m, d: t.d }, clone(rec)))); }, `${targets.length}件のシフトを追加しました`);
       closeDlg();
     });
@@ -1101,7 +1203,7 @@
 
   // 設定
   function openSettings() {
-    const w = clone({ title: D.title, days: D.days, roles: D.roles, groups: D.groups, presets: D.presets, tasks: D.tasks, opt: D.opt });
+    const w = clone({ title: D.title, days: D.days, roles: D.roles, groups: D.groups, presets: D.presets, duties: D.duties, opt: D.opt });
     const st = () => w.opt.snap;
     const hourOpts = (sel, a, b) => { let h = ''; for (let t = a; t <= b; t += 60) h += `<option value="${t}"${t === sel ? ' selected' : ''}>${fmt(t)}</option>`; return h; };
     const draw = () => `
@@ -1115,18 +1217,27 @@
           <span class="msg">（シフトがはみ出す日は自動で広げます）</span></div>
         <div class="row"><span class="msg">時間の刻み</span><select class="inp" id="stSnap">${[5, 10, 15, 30].map(v => `<option value="${v}"${v === w.opt.snap ? ' selected' : ''}>${v}分</option>`).join('')}</select>
           <label class="chk"><input type="checkbox" id="stAuto"${w.opt.autoBreak ? ' checked' : ''}> 新しく作るとき（ドラッグ・クリック・定型）、6時間を超えていれば休憩を自動で入れる</label></div></div>
-      <div class="fld"><span class="sect">役職 <small>上ほど上に並びます。色なし＝目立たせない</small></span>
+      <div class="fld"><span class="sect">役職（シフトの持ち場） <small>シフトごとに選ぶ色。「人数に数えない」はシフト不可など</small></span>
+        <div class="ed-wrap"><table class="ed stack duties2"><tbody>${w.duties.map((u, j) => `<tr data-j="${j}">
+          <td class="c-sw" style="width:28px"><span class="dusw" style="background:${u.color}"></span></td>
+          <td class="c-name"><input class="inp" data-f="uname" maxlength="16" value="${esc(u.name)}" aria-label="役職の名前"></td>
+          <td class="c-ctl" style="width:290px"><div class="pair"><input type="color" data-f="ucolor" value="${u.color}" aria-label="${esc(u.name)}の色">
+            <label class="chk"><input type="checkbox" data-f="uoff"${u.off ? ' checked' : ''}> 人数に数えない</label><span style="flex:1"></span>
+            <button type="button" class="btn ghost small icon" data-uup aria-label="上へ"${j ? '' : ' disabled'}>↑</button><button type="button" class="btn ghost small icon" data-udown aria-label="下へ"${j < w.duties.length - 1 ? '' : ' disabled'}>↓</button><button type="button" class="btn ghost small icon" data-udel aria-label="${esc(u.name)}を消す">×</button></div></td></tr>`).join('')}
+          ${w.duties.length ? '' : '<tr><td class="msg" style="padding:12px">まだありません</td></tr>'}</tbody></table></div>
+        <div class="row"><button type="button" class="btn small" id="stAddDuty">＋ 役職を追加</button><button type="button" class="btn small ghost" id="stDefDuty">当番表の役職を足し直す</button></div></div>
+      <div class="fld"><span class="sect">立場 <small>課長・副課長など。名前の左の小さな印。上ほど上に並びます。色なし＝印を出さない</small></span>
         <div class="ed-wrap"><table class="ed stack roles"><tbody>${w.roles.map((r, i) => `<tr data-i="${i}">
           <td style="width:64px">${roleBadgeOf(r)}</td>
-          <td class="c-name"><input class="inp" data-f="rname" maxlength="10" value="${esc(r.name)}" aria-label="役職の名前"></td>
+          <td class="c-name"><input class="inp" data-f="rname" maxlength="10" value="${esc(r.name)}" aria-label="立場の名前"></td>
           <td class="c-ctl" style="width:250px"><div class="pair"><input type="color" data-f="rcolor" value="${r.color || r._c || '#8b8b95'}" aria-label="${esc(r.name)}の色"${r.color ? '' : ' disabled'}>
             <label class="chk"><input type="checkbox" data-f="rhas"${r.color ? ' checked' : ''}> 色を付ける</label><span style="flex:1"></span>
             <button type="button" class="btn ghost small icon" data-up aria-label="上へ"${i ? '' : ' disabled'}>↑</button><button type="button" class="btn ghost small icon" data-down aria-label="下へ"${i < w.roles.length - 1 ? '' : ' disabled'}>↓</button><button type="button" class="btn ghost small icon" data-rdel aria-label="消す"${w.roles.length > 1 ? '' : ' disabled'}>×</button></div></td></tr>`).join('')}</tbody></table></div>
-        <div class="row"><button type="button" class="btn small" id="stAddRole">＋ 役職を追加</button></div></div>
+        <div class="row"><button type="button" class="btn small" id="stAddRole">＋ 立場を追加</button></div></div>
       <div class="fld"><span class="sect">課</span>
         <div class="ed-wrap"><table class="ed"><tbody>${w.groups.map((g, i) => `<tr data-i="${i}"><td><input class="inp" data-f="gname" maxlength="12" value="${esc(g.name)}" aria-label="課の名前"></td>
           <td style="width:50px"><input type="color" data-f="gcolor" value="${g.color}" aria-label="色"></td></tr>`).join('')}</tbody></table></div></div>
-      <div class="fld"><span class="sect">定型の時間 <small>追加・まとめて追加で一発で選べます</small></span>
+      <div class="fld"><span class="sect">定型の時間 <small>シフトの追加・まとめて追加で一度に選べます</small></span>
         <div class="ed-wrap"><table class="ed stack presets"><thead><tr><th>名前</th><th>入り</th><th>終わり</th><th>休憩</th><th></th></tr></thead><tbody>${w.presets.map((p, i) => `<tr data-i="${i}">
           <td class="c-name"><input class="inp" data-f="pname" maxlength="10" value="${esc(p.name)}" aria-label="定型の名前"></td>
           <td><select class="inp time" data-f="ps" aria-label="${esc(p.name)}の入り">${timeOptions(p.s, 0, DAY_MAX - st(), st())}</select></td>
@@ -1135,7 +1246,7 @@
             <select class="inp time" data-f="pbe" aria-label="${esc(p.name)}の休憩の終わり"${p.br[0] ? '' : ' disabled'}>${p.br[0] ? timeOptions(p.br[0].e, p.br[0].s + st(), p.e - st(), st()) : '<option>—</option>'}</select></div></td>
           <td class="c-del" style="width:40px"><button type="button" class="btn ghost small icon" data-pdel aria-label="${esc(p.name)}を消す">×</button></td></tr>`).join('')}</tbody></table></div>
         <div class="row"><button type="button" class="btn small" id="stAddPreset">＋ 定型を追加</button><span class="msg err" id="stPErr"></span></div></div>
-      <div class="fld"><label for="stTasks" class="sect">担当（持ち場）の候補 <small>1行に1つ</small></label><textarea class="inp" id="stTasks" style="min-height:90px">${esc(w.tasks.join('\n'))}</textarea></div>`;
+`;
     function roleBadgeOf(r) { return r.color ? `<span class="rb sm" style="background:${r.color};color:#000">${esc(r.name)}</span>` : `<span class="rb none sm">${esc(r.name)}</span>`; }
     openDlg({ title: '設定', wide: true, body: draw(), foot: `<span class="grow"></span><button type="button" class="btn" data-close>キャンセル</button><button type="button" class="btn primary" id="stSave">保存する</button>` });
     const b = dlg.querySelector('.dlg-b');
@@ -1143,9 +1254,10 @@
     const presetErr = () => { const p = w.presets.find(x => x.br.some(y => y.e <= y.s || y.s <= x.s || y.e >= x.e)); return p ? `「${p.name}」の休憩を、入り〜終わりの内側にしてください` : ''; };
     const redraw = () => { const sc = b.scrollTop; b.innerHTML = draw(); b.scrollTop = sc; b.querySelector('#stPErr').textContent = presetErr(); };
     b.addEventListener('input', e => {
-      const t = e.target, i = +(t.closest('[data-i]') || {}).dataset?.i, f = t.dataset.f;
+      const t = e.target, i = +(t.closest('[data-i]') || {}).dataset?.i, j = +(t.closest('[data-j]') || {}).dataset?.j, f = t.dataset.f;
       if (t.id === 'stTitle') w.title = t.value;
-      else if (t.id === 'stTasks') w.tasks = t.value.split(/\r?\n/);
+      else if (f === 'uname') w.duties[j].name = t.value;
+      else if (f === 'ucolor') { w.duties[j].color = t.value; const sw = t.closest('tr').querySelector('.dusw'); if (sw) sw.style.background = t.value; }
       else if (f === 'dlabel') w.days[i].label = t.value;
       else if (f === 'rname') w.roles[i].name = t.value;
       else if (f === 'gname') w.groups[i].name = t.value;
@@ -1154,8 +1266,9 @@
       else if (f === 'gcolor') w.groups[i].color = t.value;
     });
     b.addEventListener('change', e => {
-      const t = e.target, i = +(t.closest('[data-i]') || {}).dataset?.i, f = t.dataset.f;
+      const t = e.target, i = +(t.closest('[data-i]') || {}).dataset?.i, j = +(t.closest('[data-j]') || {}).dataset?.j, f = t.dataset.f;
       if (f === 'dkind') w.days[i].kind = t.value;
+      else if (f === 'uoff') w.duties[j].off = t.checked;
       else if (f === 'rhas') { const r = w.roles[i]; if (!t.checked) { r._c = r.color || r._c; r.color = ''; } else r.color = r._c || '#8b8b95'; redraw(); }
       else if (f === 'rcolor') { w.roles[i]._c = t.value; redraw(); }
       else if (f === 'ps' || f === 'pe') { const p = w.presets[i]; p[f === 'ps' ? 's' : 'e'] = +t.value; if (p.e <= p.s) p.e = Math.min(DAY_MAX, p.s + 60); p.br = keepBreaks(p.br, p.s, p.e); redraw(); }
@@ -1167,8 +1280,22 @@
       else if (t.id === 'stAuto') w.opt.autoBreak = t.checked;
     });
     b.addEventListener('click', e => {
-      const tr = e.target.closest('[data-i]'), i = tr ? +tr.dataset.i : -1;
-      if (e.target.closest('[data-up]') && i > 0) { const r = w.roles.splice(i, 1)[0]; w.roles.splice(i - 1, 0, r); redraw(); }
+      const tr = e.target.closest('[data-i]'), i = tr ? +tr.dataset.i : -1, tj = e.target.closest('[data-j]'), j = tj ? +tj.dataset.j : -1;
+      const used = id => D.shifts.filter(x => x.duty === id).length;
+      if (e.target.closest('[data-uup]') && j > 0) { const u = w.duties.splice(j, 1)[0]; w.duties.splice(j - 1, 0, u); redraw(); }
+      else if (e.target.closest('[data-udown]') && j >= 0 && j < w.duties.length - 1) { const u = w.duties.splice(j, 1)[0]; w.duties.splice(j + 1, 0, u); redraw(); }
+      else if (e.target.closest('[data-udel]') && j >= 0) {
+        const u = w.duties[j], n = used(u.id);
+        if (n && !confirm(`「${u.name}」のシフト ${n}件は役職なしになります。消しますか？（保存するまでは戻せます）`)) return;
+        w.duties.splice(j, 1); redraw();
+      }
+      else if (e.target.id === 'stAddDuty') { w.duties.push({ id: 'u' + uid(), name: '新しい役職', color: '#22c55e', off: false }); redraw(); const ins = b.querySelectorAll('[data-f=uname]'); const last = ins[ins.length - 1]; if (last) { last.focus(); last.select(); } }
+      else if (e.target.id === 'stDefDuty') {
+        const add = DEF_DUTIES.filter(x => !w.duties.some(u => u.id === x.id || u.name === x.name));
+        if (!add.length) { toast('当番表の役職はすべて入っています'); return; }
+        w.duties.push(...clone(add)); redraw(); toast(`${add.length}件を足しました（保存すると使えます）`);
+      }
+      else if (e.target.closest('[data-up]') && i > 0) { const r = w.roles.splice(i, 1)[0]; w.roles.splice(i - 1, 0, r); redraw(); }
       else if (e.target.closest('[data-down]') && i < w.roles.length - 1) { const r = w.roles.splice(i, 1)[0]; w.roles.splice(i + 1, 0, r); redraw(); }
       else if (e.target.closest('[data-rdel]') && w.roles.length > 1) {
         const r = w.roles[i], n = D.members.filter(m => m.role === r.id).length;
@@ -1176,18 +1303,20 @@
         w.roles.splice(i, 1); redraw();
       }
       else if (e.target.closest('[data-pdel]')) { w.presets.splice(i, 1); redraw(); }
-      else if (e.target.id === 'stAddRole') { w.roles.splice(Math.max(0, w.roles.length - 1), 0, { id: 'r' + uid(), name: '新しい役職', color: '#22c55e' }); redraw(); }
+      else if (e.target.id === 'stAddRole') { w.roles.splice(Math.max(0, w.roles.length - 1), 0, { id: 'r' + uid(), name: '新しい立場', color: '#22c55e' }); redraw(); }
       else if (e.target.id === 'stAddPreset') { w.presets.push({ id: 'p' + uid(), name: '新しい定型', s: 540, e: 1020, br: [{ s: 720, e: 765 }] }); redraw(); }
     });
     $('stSave').addEventListener('click', () => {
       if (w.opt.to <= w.opt.from) { toast('表示の終わりは始まりより後にしてください'); return; }
-      if (w.roles.some(r => !str(r.name, 10)) || w.presets.some(p => !str(p.name, 10))) { toast('役職と定型の名前を入れてください'); return; }
+      if (w.roles.some(r => !str(r.name, 10)) || w.presets.some(p => !str(p.name, 10)) || w.duties.some(u => !str(u.name, 16))) { toast('役職・立場・定型の名前を入れてください'); return; }
       if (presetErr()) { toast(presetErr()); b.querySelector('#stPErr').textContent = presetErr(); return; }
       const keep = new Set(w.roles.map(r => r.id)), fb = w.roles[w.roles.length - 1].id;
       commit(D2 => {
         D2.title = w.title; D2.days = w.days; D2.groups = w.groups; D2.presets = w.presets; D2.opt = w.opt;
         D2.roles = w.roles.map(r => ({ id: r.id, name: r.name, color: r.color }));
-        D2.tasks = w.tasks;
+        D2.duties = w.duties.map(u => ({ id: u.id, name: u.name, color: u.color, off: !!u.off }));
+        const keepU = new Set(D2.duties.map(u => u.id));
+        D2.shifts.forEach(x => { if (x.duty && !keepU.has(x.duty)) x.duty = ''; });
         D2.members.forEach(m => { if (!keep.has(m.role)) m.role = fb; });
       }, '設定を保存しました');
       closeDlg();
@@ -1206,10 +1335,11 @@
     const q = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
     const tx = v => /^[=+\-@]/.test(v || '') ? "'" + v : v;   // 入力した文字が = + - @ で始まると、Excel が式として読むので ' を前に
     const order = new Map(sortedMembers().map((m, i) => [m.id, i])), di = new Map(D.days.map((x, i) => [x.d, i]));
-    const rows = [['日付', '曜日', '日の名前', '課', '役職', '名前', '入り', '終わり', '休憩', '休憩(分)', '実働(分)', '実働(時間)', '担当', 'メモ']];
+    const rows = [['日付', '曜日', '日の名前', '課', '立場', '名前', '役職', '入り', '終わり', '休憩', '休憩(分)', 'シフト中(分)', 'シフト中(時間)', 'メモ']];
     D.shifts.slice().sort((a, b) => di.get(a.d) - di.get(b.d) || order.get(a.m) - order.get(b.m) || a.s - b.s).forEach(s => {
       const m = mem(s.m), x = dayOf(s.d), p = dParts(s.d);
-      rows.push([s.d, WD[p.w], tx(x.label), tx(grp(m.group).name), tx(role(m.role).name), tx(m.name), fmt2(s.s), fmt2(s.e), s.br.map(b => fmt2(b.s) + '-' + fmt2(b.e)).join(' / '), brMin(s), workMin(s), (workMin(s) / 60).toFixed(2), tx(s.task), tx(s.note)]);
+      const u = dutyOf(s.duty);   // シフト不可などの数えない役職は、シフト中の時間を0に
+      rows.push([s.d, WD[p.w], tx(x.label), tx(grp(m.group).name), tx(role(m.role).name), tx(m.name), tx(u ? u.name : ''), fmt2(s.s), fmt2(s.e), s.br.map(b => fmt2(b.s) + '-' + fmt2(b.e)).join(' / '), brMin(s), onMin(s), (onMin(s) / 60).toFixed(2), tx(s.note)]);
     });
     download(`shift-${stamp()}.csv`, '﻿' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
     toast('CSVを書き出しました（Excelで開けます）');
@@ -1255,7 +1385,14 @@
             const id = usedM.has(m.id) ? 'm' + uid() : m.id; usedM.add(id); idMap.set(m.id, id);
             D2.members.push({ id, name: m.name, group: mode, role: lr ? lr.id : D2.roles[D2.roles.length - 1].id, note: m.note });
           });
-          fs.forEach(s => { const id = usedS.has(s.id) ? 's' + uid() : s.id; usedS.add(id); D2.shifts.push(Object.assign(clone(s), { id, m: idMap.get(s.m) })); });
+          // 役職は名前で合わせる（この端末にない役職は足す）
+          const dutyFor = fid => {
+            const fu = fid && n.duties.find(u => u.id === fid); if (!fu) return '';
+            let lu = D2.duties.find(u => u.name === fu.name);
+            if (!lu) { lu = { id: D2.duties.some(u => u.id === fu.id) ? 'u' + uid() : fu.id, name: fu.name, color: fu.color, off: !!fu.off }; D2.duties.push(lu); }
+            return lu.id;
+          };
+          fs.forEach(s => { const id = usedS.has(s.id) ? 's' + uid() : s.id; usedS.add(id); D2.shifts.push(Object.assign(clone(s), { id, m: idMap.get(s.m), duty: dutyFor(s.duty) })); });
           D2.sample = false;
         }, `${g.name}を入れ替えました（${fm.length}人・シフト${fs.length}件）`);
       }
