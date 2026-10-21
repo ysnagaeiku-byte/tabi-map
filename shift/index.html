@@ -8,7 +8,7 @@
 <title>渉外局 シフト管理（本祭支援ツール 試作）</title>
 <link rel="icon" href="../icon-senshu-192.png" />
 <link rel="apple-touch-icon" href="../apple-touch-icon-senshu.png" />
-<link rel="stylesheet" href="shift.css?v=1" />
+<link rel="stylesheet" href="shift.css?v=2" />
 </head>
 <body>
 <!-- たびマップ 本祭支援ツールに入れる予定の「シフト作成・管理」を、先に単独のサイトとして試すもの。
@@ -37,7 +37,8 @@
       <button type="button" role="tab" data-view="week">6日間</button>
     </div>
     <div class="seg grp" id="grpSeg" role="tablist" aria-label="課"></div>
-    <label class="search"><span aria-hidden="true">⌕</span><input type="search" id="q" placeholder="名前で絞る" autocomplete="off" /></label>
+    <button type="button" class="btn icon icon-only" id="btnSearch" aria-label="名前で探す" aria-expanded="false">⌕</button>
+    <label class="search"><span aria-hidden="true">⌕</span><input type="search" id="q" placeholder="名前で絞る" autocomplete="off" aria-label="名前で絞る" /></label>
   </div>
   <nav class="days" id="dayTabs" aria-label="日付"></nav>
 </header>
@@ -48,6 +49,7 @@
 </div>
 
 <main id="main">
+  <div class="print-only" id="printHead"></div>
   <section id="dayView" class="view" aria-label="日別のタイムライン">
     <div class="tl-tools">
       <div class="tl-sum" id="daySum"></div>
@@ -80,6 +82,6 @@
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <input type="file" id="fileIn" accept="application/json,.json" hidden />
 
-<script src="shift.js?v=1"></script>
+<script src="shift.js?v=2"></script>
 </body>
 </html>

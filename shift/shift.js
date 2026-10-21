@@ -67,29 +67,42 @@
   const snapTo = (v, st) => Math.round(v / st) * st;
 
   // ---------- データの形（読み込んだものはここで整える） ----------
+  // 読み込んだファイルは信用しない：id は英数字・-・_ だけ（HTML や CSS のセレクタにそのまま入るため）。合わないものは振り直して参照もつけ替える
+  const okId = v => typeof v === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(v);
+  const isObj = v => !!v && typeof v === 'object';
   function cleanBreaks(br, s, e) {
-    const out = (Array.isArray(br) ? br : []).map(b => ({ s: Math.max(s, Math.round(+b.s)), e: Math.min(e, Math.round(+b.e)) }))
+    const out = (Array.isArray(br) ? br : []).filter(isObj).map(b => ({ s: Math.max(s, Math.round(+b.s)), e: Math.min(e, Math.round(+b.e)) }))
       .filter(b => isFinite(b.s) && isFinite(b.e) && b.e > b.s).sort((x, y) => x.s - y.s);
     const m = [];
     out.forEach(b => { const l = m[m.length - 1]; if (l && b.s <= l.e) l.e = Math.max(l.e, b.e); else m.push(b); });
     return m;
   }
+  function validYmd(v) { if (typeof v !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return false; const [y, m, d] = v.split('-').map(Number), t = new Date(Date.UTC(y, m - 1, d)); return t.getUTCMonth() === m - 1 && t.getUTCDate() === d; }
   function normalize(src) {
-    const d = src && typeof src === 'object' ? src : {};
+    const d = isObj(src) ? src : {};
     const o = { v: 1, title: str(d.title, 30) || '渉外局 シフト', sample: !!d.sample };
-    const dayIn = Array.isArray(d.days) ? d.days.filter(x => x && /^\d{4}-\d{2}-\d{2}$/.test(x.d)) : [];
+    const dayIn = Array.isArray(d.days) ? d.days.filter(x => isObj(x) && validYmd(x.d)).filter((x, i, a) => a.findIndex(y => y.d === x.d) === i) : [];
     o.days = (dayIn.length ? dayIn : DEF_DAYS).map(x => ({ d: x.d, label: str(x.label, 12), kind: KINDS.some(k => k[0] === x.kind) ? x.kind : 'prep' }));
-    const gIn = Array.isArray(d.groups) ? d.groups : [];
-    o.groups = DEF_GROUPS.map(g => { const x = gIn.find(y => y && y.id === g.id) || {}; return { id: g.id, name: str(x.name, 12) || g.name, color: isHex(x.color) ? x.color : g.color }; });
-    const rIn = Array.isArray(d.roles) ? d.roles.filter(r => r && r.id && str(r.name, 10)) : [];
-    o.roles = (rIn.length ? rIn : DEF_ROLES).map(r => ({ id: str(r.id, 24), name: str(r.name, 10), color: isHex(r.color) ? r.color : '' }));
-    o.roles = o.roles.filter((r, i) => o.roles.findIndex(x => x.id === r.id) === i);
-    const pIn = Array.isArray(d.presets) ? d.presets : DEF_PRESETS;
-    o.presets = pIn.map(p => ({ id: str(p.id, 24) || uid(), name: str(p.name, 10), s: Math.round(+p.s), e: Math.round(+p.e), br: [] }))
-      .filter(p => p.name && isFinite(p.s) && isFinite(p.e) && p.s >= 0 && p.e <= DAY_MAX && p.e > p.s);
-    o.presets.forEach((p, i) => { p.br = cleanBreaks((pIn.find(x => x && x.id === p.id) || pIn[i] || {}).br, p.s, p.e); });
+    const gIn = Array.isArray(d.groups) ? d.groups.filter(isObj) : [];
+    o.groups = DEF_GROUPS.map(g => { const x = gIn.find(y => y.id === g.id) || {}; return { id: g.id, name: str(x.name, 12) || g.name, color: isHex(x.color) ? x.color : g.color }; });
+    const rIn = Array.isArray(d.roles) ? d.roles.filter(r => isObj(r) && r.id != null && str(r.name, 10)) : [];
+    const rMap = new Map();
+    o.roles = [];
+    (rIn.length ? rIn : DEF_ROLES).forEach(r => {
+      const key = String(r.id); if (rMap.has(key)) return;
+      const id = okId(r.id) && !o.roles.some(x => x.id === r.id) ? r.id : 'r' + uid();
+      rMap.set(key, id); o.roles.push({ id, name: str(r.name, 10), color: isHex(r.color) ? r.color : '' });
+    });
+    const pIn = Array.isArray(d.presets) ? d.presets.filter(isObj) : DEF_PRESETS;
+    o.presets = [];
+    pIn.forEach(p => {
+      const ps = Math.round(+p.s), pe = Math.round(+p.e), name = str(p.name, 10);
+      if (!name || !isFinite(ps) || !isFinite(pe) || ps < 0 || pe > DAY_MAX || pe <= ps) return;
+      const id = okId(p.id) && !o.presets.some(x => x.id === p.id) ? p.id : 'p' + uid();
+      o.presets.push({ id, name, s: ps, e: pe, br: cleanBreaks(p.br, ps, pe) });
+    });
     o.tasks = (Array.isArray(d.tasks) ? d.tasks : DEF_TASKS).map(t => str(t, 20)).filter((t, i, a) => t && a.indexOf(t) === i).slice(0, 60);
-    const op = d.opt && typeof d.opt === 'object' ? d.opt : {};
+    const op = isObj(d.opt) ? d.opt : {};
     o.opt = {
       from: [op.from].map(Number).filter(v => isFinite(v) && v >= 0 && v < DAY_MAX && v % 60 === 0)[0] ?? DEF_OPT.from,
       to: [op.to].map(Number).filter(v => isFinite(v) && v > 0 && v <= DAY_MAX && v % 60 === 0)[0] ?? DEF_OPT.to,
@@ -98,16 +111,24 @@
     };
     if (o.opt.to <= o.opt.from) { o.opt.from = DEF_OPT.from; o.opt.to = DEF_OPT.to; }
     const gIds = o.groups.map(g => g.id), rIds = o.roles.map(r => r.id), fallbackRole = rIds[rIds.length - 1];
-    const seenM = new Set();
-    o.members = (Array.isArray(d.members) ? d.members : []).filter(m => m && m.id && !seenM.has(m.id) && seenM.add(m.id)).map(m => ({
-      id: str(m.id, 40), name: str(m.name, 30) || '（名前なし）',
-      group: gIds.includes(m.group) ? m.group : 'gs', role: rIds.includes(m.role) ? m.role : fallbackRole, note: str(m.note, 60),
-    }));
-    const mIds = new Set(o.members.map(m => m.id)), dIds = new Set(o.days.map(x => x.d)), seenS = new Set();
-    o.shifts = (Array.isArray(d.shifts) ? d.shifts : []).filter(s => s && s.id && !seenS.has(s.id) && seenS.add(s.id)).map(s => {
-      const a = clamp(Math.round(+s.s), 0, DAY_MAX), b = clamp(Math.round(+s.e), 0, DAY_MAX);
-      return { id: str(s.id, 40), m: s.m, d: s.d, s: a, e: b, br: cleanBreaks(s.br, a, b), task: str(s.task, 20), note: str(s.note, 80) };
-    }).filter(s => mIds.has(s.m) && dIds.has(s.d) && isFinite(s.s) && isFinite(s.e) && s.e > s.s);
+    const mMap = new Map();
+    o.members = [];
+    (Array.isArray(d.members) ? d.members : []).filter(m => isObj(m) && m.id != null).forEach(m => {
+      const key = String(m.id); if (mMap.has(key)) return;
+      const id = okId(m.id) && !o.members.some(x => x.id === m.id) ? m.id : 'm' + uid();
+      mMap.set(key, id);
+      const rr = rMap.get(String(m.role));
+      o.members.push({ id, name: str(m.name, 30) || '（名前なし）', group: gIds.includes(m.group) ? m.group : 'gs', role: rr && rIds.includes(rr) ? rr : fallbackRole, note: str(m.note, 60) });
+    });
+    const dIds = new Set(o.days.map(x => x.d)), seenS = new Set();
+    o.shifts = [];
+    (Array.isArray(d.shifts) ? d.shifts : []).filter(isObj).forEach(sh => {
+      const m = mMap.get(String(sh.m)), a = clamp(Math.round(+sh.s), 0, DAY_MAX), b = clamp(Math.round(+sh.e), 0, DAY_MAX);
+      if (!m || !dIds.has(sh.d) || !isFinite(a) || !isFinite(b) || b <= a) return;
+      const id = okId(sh.id) && !seenS.has(sh.id) ? sh.id : 's' + uid();
+      seenS.add(id);
+      o.shifts.push({ id, m, d: sh.d, s: a, e: b, br: cleanBreaks(sh.br, a, b), task: str(sh.task, 20), note: str(sh.note, 80) });
+    });
     return o;
   }
   const brMin = sh => sh.br.reduce((t, b) => t + (b.e - b.s), 0);
@@ -160,7 +181,7 @@
   }
 
   // ---------- 保存と元に戻す ----------
-  let D, V, undoS = [], redoS = [], noteHidden = false;
+  let D, V, undoS = [], redoS = [];
   function loadData() {
     let raw = null;
     try { raw = localStorage.getItem(STORE_KEY); } catch (e) {}
@@ -178,7 +199,7 @@
     return {
       view: v.view === 'week' ? 'week' : 'day', grp: typeof v.grp === 'string' ? v.grp : 'all', day: v.day || '',
       colorBy: v.colorBy === 'role' ? 'role' : 'group', hideEmpty: !!v.hideEmpty, hourPx: isFinite(v.hourPx) && v.hourPx > 0 ? v.hourPx : null,
-      collapsed: v.collapsed && typeof v.collapsed === 'object' ? v.collapsed : {}, lastPreset: v.lastPreset || '', q: '',
+      collapsed: v.collapsed && typeof v.collapsed === 'object' ? v.collapsed : {}, lastPreset: v.lastPreset || '', q: '', hideNote: !!v.hideNote,
     };
   }
   function saveView() { try { const o = Object.assign({}, V); delete o.q; localStorage.setItem(VIEW_KEY, JSON.stringify(o)); } catch (e) {} }
@@ -225,9 +246,11 @@
     for (let i = 0; i < l.length; i++) for (let j = i + 1; j < l.length && l[j].s < l[i].e; j++) { out.add(l[i].id); out.add(l[j].id); }
     return out;
   }
-  function dayRange(day) {
+  // 表示する時間の幅：設定の幅に、その日のシフト（課で絞っているときはその課の分）が収まるように広げる
+  function dayRange(day, gid) {
     let a = D.opt.from, b = D.opt.to;
-    D.shifts.forEach(s => { if (s.d === day) { a = Math.min(a, Math.floor(s.s / 60) * 60); b = Math.max(b, Math.ceil(s.e / 60) * 60); } });
+    const inG = gid && gid !== 'all' ? new Set(D.members.filter(m => m.group === gid).map(m => m.id)) : null;
+    D.shifts.forEach(s => { if (s.d === day && (!inG || inG.has(s.m))) { a = Math.min(a, Math.floor(s.s / 60) * 60); b = Math.max(b, Math.ceil(s.e / 60) * 60); } });
     return [a, b];
   }
   const barColor = m => V.colorBy === 'role' ? (role(m.role).color || '#8b8b95') : grp(m.group).color;
@@ -236,13 +259,20 @@
     const nm = `<span class="f">${esc(r.name)}</span><span class="s">${esc(r.name.length > 2 ? r.name.slice(0, 2) : r.name)}</span>`;   // スマホの名前の欄は2文字（副局長→副局）
     return r.color ? `<span class="rb${sm ? ' sm' : ''}" style="background:${r.color};color:#000" title="${esc(r.name)}">${nm}</span>` : `<span class="rb none${sm ? ' sm' : ''}">${nm}</span>`;
   }
-  // 30分ごとの勤務中の人数（休憩中を除く）
+  // 30分ごとの勤務中の人数（休憩中を除く）。1分ごとに数えて、その30分の中で一番少ないとき（n）と多いとき（mx）
+  //  → 15分の休憩が重なる時間帯も、人が減って見える
   function headcount(day, members, a, b) {
-    const ids = new Set(members.map(m => m.id)), list = D.shifts.filter(s => s.d === day && ids.has(s.m)), out = [];
+    const ids = new Set(members.map(m => m.id)), cnt = new Int16Array(DAY_MAX + 1), byM = new Map(), out = [];
+    D.shifts.forEach(s => { if (s.d === day && ids.has(s.m)) { if (!byM.has(s.m)) byM.set(s.m, []); byM.get(s.m).push(s); } });
+    byM.forEach(list => {
+      const on = new Uint8Array(DAY_MAX + 1);
+      list.forEach(s => { for (let t = s.s; t < s.e; t++) on[t] = 1; s.br.forEach(x => { for (let t = x.s; t < x.e; t++) on[t] = 0; }); });
+      for (let t = 0; t < DAY_MAX; t++) cnt[t] += on[t];
+    });
     for (let t = a; t < b; t += 30) {
-      const mid = t + 15, who = new Set();
-      list.forEach(s => { if (s.s <= mid && mid < s.e && !s.br.some(x => x.s <= mid && mid < x.e)) who.add(s.m); });
-      out.push({ t, n: who.size });
+      let n = Infinity, mx = 0, at = t;
+      for (let u = t; u < Math.min(b, t + 30); u++) { if (cnt[u] < n) n = cnt[u]; if (cnt[u] > mx) { mx = cnt[u]; at = u; } }
+      out.push({ t, n: n === Infinity ? 0 : n, mx, at });
     }
     return out;
   }
@@ -265,7 +295,7 @@
     $('appTitle').textContent = D.title;
     $('appSub').textContent = dLabel(f.d) + '〜' + dLabel(l.d) + '・' + D.members.length + '人';
     document.title = D.title + '（本祭支援ツール 試作）';
-    $('sampleNote').hidden = !D.sample || noteHidden;
+    $('sampleNote').hidden = !D.sample || V.hideNote;
     $('viewSeg').querySelectorAll('button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.view === V.view)));
     $('colorSeg').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.c === V.colorBy));
     $('optHideEmpty').checked = V.hideEmpty;
@@ -292,62 +322,79 @@
   }
 
   // 日別（タイムライン）
+  let printing = false, scrollKey = '';
+  const PRINT_W = 1040, PRINT_ROWS = 15;          // 印刷：A4横に収まる幅と、1ページの行数（ページごとに時刻の見出しを付け直す）
   function renderDay() {
-    const day = V.day, [a, b] = dayRange(day), hours = (b - a) / 60;
-    const nameW = cssNum('--name-w') || 176;
-    const avail = Math.max(200, tlWrap.clientWidth - nameW - 2);
-    const hp = V.hourPx ? clamp(V.hourPx, 20, 320) : Math.max(narrowScreen() ? 46 : 38, Math.min(170, Math.floor(avail / hours * 10) / 10));
+    const day = V.day, [a, b] = dayRange(day, V.grp), hours = (b - a) / 60;
+    const nameW = cssNum('--name-w') || 200;
+    const avail = printing ? PRINT_W - nameW : Math.max(200, tlWrap.clientWidth - nameW - 2);
+    const hp = printing ? Math.floor(avail / hours * 10) / 10
+      : V.hourPx ? clamp(V.hourPx, 20, 320) : Math.max(narrowScreen() ? 46 : 38, Math.min(170, Math.floor(avail / hours * 10) / 10));
     const W = Math.round(hours * hp);
     G = { a, b, hp, W, day, nameW };
     tl.style.setProperty('--hp', hp + 'px');
     const ms = visibleMembers();
     const sum = daySummary(day, ms), hc = headcount(day, ms, a, b);
-    const peak = hc.reduce((p, x) => x.n > p.n ? x : p, { n: 0, t: a });
-    const dd = dayOf(day);
+    const peak = hc.reduce((p, x) => x.mx > p.mx ? x : p, { mx: 0, at: a });
+    const dd = dayOf(day), scope = V.grp === 'all' ? '全体' : esc(grp(V.grp).name);
     $('daySum').innerHTML = `<span>${dLabel(day)}</span>${dd.label ? `<span class="lbl">${esc(dd.label)}</span>` : ''}` +
       `<span>出勤 <b>${sum.people}</b>人</span><span>延べ <b>${hh(sum.work)}</b></span>` +
-      (peak.n ? `<span class="pk">最も多い時間 <b>${peak.n}</b>人（${fmt(peak.t)}〜）</span>` : '');
+      (peak.mx ? `<span class="pk">最も多いとき <b>${peak.mx}</b>人（${fmt(peak.at)}）</span>` : '');
+    $('printHead').innerHTML = `<b>${esc(D.title)}</b>　${dLabel(day)} ${esc(dd.label)}　${scope}　出勤 ${sum.people}人・延べ ${hh(sum.work)}`;
 
-    let h = `<div class="tl-head"><div class="tl-name">${dLabel(day)}　${V.grp === 'all' ? '全体' : esc(grp(V.grp).name)}</div><div class="tl-hours" style="width:${W}px">`;
+    let head = `<div class="tl-head"><div class="tl-name">${dLabel(day)}　${scope}</div><div class="tl-hours" style="width:${W}px">`;
     for (let t = a; t < b; t += 60) {
-      h += `<span style="left:${(t - a) / 60 * hp}px">${fmt(t)}</span>`;
-      if (hp >= 96) h += `<span class="mid" style="left:${(t + 30 - a) / 60 * hp}px">:30</span>`;
+      head += `<span style="left:${(t - a) / 60 * hp}px">${fmt(t)}</span>`;
+      if (hp >= 96) head += `<span class="mid" style="left:${(t + 30 - a) / 60 * hp}px">:30</span>`;
     }
-    const now = jstNow(), showNow = now.ymd === day && now.min >= a && now.min <= b;
-    if (showNow) h += `<span class="nowtag" style="left:${(now.min - a) / 60 * hp}px">${fmt(now.min)}</span>`;
-    h += `</div></div>`;
+    const now = jstNow(), showNow = !printing && now.ymd === day && now.min >= a && now.min <= b;
+    const headNow = head + (showNow ? `<span class="nowtag" style="left:${(now.min - a) / 60 * hp}px">${fmt(now.min)}</span>` : '') + `</div></div>`;
+    head += `</div></div>`;
 
     const groups = V.grp === 'all' ? D.groups : D.groups.filter(g => g.id === V.grp);
-    let body = '', rowI = 0;
+    let body = '', rowI = 0, onPage = 0;
+    const pageBreak = () => { if (printing && onPage >= PRINT_ROWS) { body += head.replace('class="tl-head"', 'class="tl-head pb"'); onPage = 0; } };
     groups.forEach(g => {
       let gm = ms.filter(m => m.group === g.id);
       if (!gm.length) return;
       const gs = daySummary(day, gm);
       if (V.hideEmpty) gm = gm.filter(m => D.shifts.some(s => s.m === m.id && s.d === day));
-      const col = !!V.collapsed[g.id];
+      const col = !!V.collapsed[g.id] && !printing;
+      pageBreak();
       body += `<div class="tl-grp" data-g="${g.id}" style="width:${nameW + W}px"><div class="gin"><span class="car">${col ? '▸' : '▾'}</span><span class="gdot" style="background:${g.color}"></span>${esc(g.name)}` +
         `<span class="sub">${D.members.filter(m => m.group === g.id).length}人中 ${gs.people}人出勤・延べ ${hh(gs.work)}</span></div></div>`;
+      onPage++;
       if (col) return;
-      gm.forEach(m => { body += rowHtml(m, day, rowI++); });
+      gm.forEach(m => { pageBreak(); body += rowHtml(m, day, rowI++); onPage++; });
     });
     if (!body) body = `<div class="tl-empty" style="width:${nameW + W}px">${D.members.length ? '条件に合うメンバーがいません' : 'メンバーがいません。「メンバー」から追加してください'}</div>`;
 
-    let foot = `<div class="tl-foot"><div class="tl-name">勤務中の人数<small>30分ごと・休憩中を除く</small></div><div class="hc" style="width:${W}px">${hcCells(hc, hp, a)}</div></div>`;
+    let foot = `<div class="tl-foot"><div class="tl-name">勤務中の人数<small>休憩中を除く・30分ごとの最少</small></div><div class="hc" style="width:${W}px">${hcCells(hc, hp, a)}</div></div>`;
     if (V.grp === 'all' && groups.length > 1) groups.forEach(g => {
       const gm = ms.filter(m => m.group === g.id);
       if (!gm.length) return;
       foot += `<div class="tl-foot sub2"><div class="tl-name"><span><span class="gdot" style="display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;background:${g.color}"></span>${esc(g.name)}</span></div><div class="hc" style="width:${W}px">${hcCells(headcount(day, gm, a, b), hp, a)}</div></div>`;
     });
     const ov = showNow ? `<div class="tl-ov" style="left:${nameW}px;width:${W}px"><div class="tl-now" style="left:${(now.min - a) / 60 * hp}px"></div></div>` : '';
-    tl.innerHTML = h + body + foot + ov;
+    tl.innerHTML = headNow + body + foot + ov;
+    // 日・課・表示を変えたときだけ、その日の最初のシフト（今日なら今の時刻）の少し前まで横に送る
+    const key = [V.view, day, V.grp].join('|');
+    if (!printing && key !== scrollKey) {
+      scrollKey = key;
+      const ids = new Set(ms.map(m => m.id)), first = D.shifts.filter(s => s.d === day && ids.has(s.m)).reduce((mn, s) => Math.min(mn, s.s), Infinity);
+      const target = showNow ? now.min - 60 : first === Infinity ? a : first - 60;
+      tlWrap.scrollLeft = Math.max(0, (target - a) / 60 * hp);
+    }
   }
   function hcCells(hc, hp, a) {
     const max = Math.max(1, ...hc.map(x => x.n));
     return hc.map(x => {
       const l = (x.t - a) / 60 * hp + 1, w = hp / 2 - 2;
-      if (!x.n) return `<i class="z" style="left:${l}px;width:${w}px">${hp >= 40 ? '0' : ''}</i>`;
+      const tip = `${fmt(x.t)}〜${fmt(x.t + 30)}　${x.n === x.mx ? x.n + '人' : '少ないとき ' + x.n + '人・多いとき ' + x.mx + '人'}`;
+      const dip = x.mx > x.n ? ' dip' : '';
+      if (!x.n) return `<i class="z${dip}" style="left:${l}px;width:${w}px" title="${tip}">${hp >= 40 ? '0' : ''}</i>`;
       const al = 0.22 + 0.7 * x.n / max;
-      return `<i style="left:${l}px;width:${w}px;background:rgba(255,255,255,${al.toFixed(2)});color:${al > 0.5 ? '#000' : '#fff'}">${hp >= 26 ? x.n : ''}</i>`;
+      return `<i class="${dip.trim()}" style="left:${l}px;width:${w}px;background:rgba(255,255,255,${al.toFixed(2)});color:${al > 0.5 ? '#000' : '#fff'}" title="${tip}">${hp >= 26 ? x.n : ''}</i>`;
     }).join('');
   }
   function nameCell(m, extra, tm) {
@@ -357,9 +404,24 @@
   }
   function rowHtml(m, day, i) {
     const list = shiftsOf(m.id, day), w = list.reduce((t, s) => t + workMin(s), 0);
-    const tm = list.map(s => fmt(s.s) + '–' + fmt(s.e)).join(' ');   // スマホは名前の下に入り〜終わり（横にスクロールしなくても分かる）
+    // スマホは名前の下に入り〜終わりと休憩の始まり（横にスクロールしなくても分かる）
+    const tm = list.map(s => fmt(s.s) + '–' + fmt(s.e) + (s.br.length ? ' 休' + s.br.map(b => fmt(b.s)).join('・') : '')).join(' / ');
     return `<div class="tl-row" data-m="${m.id}">${nameCell(m, w ? `<span class="hrs">${hh(w)}</span>` : '', tm)}` +
       `<div class="tl-lane${i % 2 ? ' alt' : ''}" data-m="${m.id}" style="width:${G.W}px">${laneHtml(m.id)}</div></div>`;
+  }
+  // 同じ人の時間が重なったら、重なった棒どうしを上下に分けて両方の端が見えるように
+  function tracks(list) {
+    const out = new Map();
+    let cluster = [], end = -1;
+    const flush = () => {
+      const ends = [];
+      cluster.forEach(sh => { let k = ends.findIndex(e => e <= sh.s); if (k < 0) { k = ends.length; ends.push(0); } ends[k] = sh.e; out.set(sh.id, { k, n: 0 }); });
+      cluster.forEach(sh => { out.get(sh.id).n = ends.length; });
+      cluster = [];
+    };
+    list.forEach(sh => { if (cluster.length && sh.s >= end) flush(); cluster.push(sh); end = Math.max(end, sh.e); });
+    if (cluster.length) flush();
+    return out;
   }
   function laneHtml(mId) {
     let list = D.shifts.filter(s => s.m === mId && s.d === G.day);
@@ -367,9 +429,9 @@
       list = list.filter(s => s.id !== drag.id);
       if (drag.cur.m === mId) list.push(Object.assign({ ghost: drag.kind === 'new', dragging: true }, drag.cur));
     }
-    list.sort((x, y) => x.s - y.s);
-    const cl = clashIds(list), m = mem(mId);
-    return list.map((sh, i) => barHtml(sh, m, cl.has(sh.id), list[i - 1], list[i + 1])).join('');
+    list.sort((x, y) => x.s - y.s || x.e - y.e);
+    const cl = clashIds(list), m = mem(mId), tr = tracks(list);
+    return list.map((sh, i) => barHtml(sh, m, cl.has(sh.id), list[i - 1], list[i + 1], null, tr.get(sh.id))).join('');
   }
   function shiftTitle(sh, m) {
     const r = role(m.role);
@@ -377,28 +439,29 @@
       (sh.br.length ? '\n休憩 ' + sh.br.map(b => fmt(b.s) + '〜' + fmt(b.e)).join('、') : '\n休憩なし') +
       (sh.task ? '\n担当 ' + sh.task : '') + (sh.note ? '\n' + sh.note : '');
   }
-  function barHtml(sh, m, clash, prev, next, geo) {
+  function barHtml(sh, m, clash, prev, next, geo, track) {
     const g = geo || G;
     const x = (sh.s - g.a) / 60 * g.hp, w = Math.max(4, (sh.e - sh.s) / 60 * g.hp);
     const narrow = w < 92;
     let brk = '';
     sh.br.forEach(b => {
       const bx = (b.s - sh.s) / 60 * g.hp, bw = (b.e - b.s) / 60 * g.hp;
-      const lab = bw >= 92 ? '休 ' + fmt(b.s) + '–' + fmt(b.e) : bw >= 15 ? '休' : '';
+      const lab = bw >= 96 ? '休 ' + fmt(b.s) + '–' + fmt(b.e) : bw >= 50 ? '休' + fmt(b.s) : bw >= 15 ? '休' : '';
       brk += `<div class="brk" style="left:${bx}px;width:${bw}px">${lab ? `<span>${lab}</span>` : ''}</div>`;
     });
     let inner = '';
-    if (!narrow) inner = `<span class="t">${fmt(sh.s)}</span>${sh.task && w >= 170 ? `<span class="tk">${esc(sh.task)}</span>` : ''}<span class="e2">${fmt(sh.e)}</span>`;
+    if (!narrow) inner = `<span class="t">${fmt(sh.s)}</span>${clash && w >= 140 ? '<span class="cl">重複</span>' : ''}${sh.task && w >= 170 ? `<span class="tk">${esc(sh.task)}</span>` : ''}<span class="e2">${fmt(sh.e)}</span>`;
     let out = '';
     if (narrow && !geo) {
       const label = `<b>${fmt(sh.s)}</b>–<b>${fmt(sh.e)}</b>`, need = 86;
       const freeR = ((next ? next.s : g.b) - sh.e) / 60 * g.hp, freeL = (sh.s - (prev ? prev.e : g.a)) / 60 * g.hp;
-      if (freeR >= need) out = `<div class="bar-out" style="left:${x + w + 5}px">${label}</div>`;
-      else if (freeL >= need) out = `<div class="bar-out" style="right:${g.W - x + 5}px">${label}</div>`;
+      if (freeR >= need) out = `<div class="bar-out" data-id="${sh.id}" style="left:${x + w + 5}px">${label}</div>`;
+      else if (freeL >= need) out = `<div class="bar-out" data-id="${sh.id}" style="right:${g.W - x + 5}px">${label}</div>`;
     }
     const cls = 'bar' + (narrow ? ' narrow' : '') + (clash ? ' clash' : '') + (sh.ghost ? ' ghost' : '') + (sh.dragging ? ' drag' : '');
     const hdl = !geo && w >= 22 ? '<i class="hdl l"></i><i class="hdl r"></i>' : '';
-    return `<div class="${cls}" data-id="${sh.id}" style="left:${x}px;width:${w}px;background:${barColor(m)}" title="${esc(shiftTitle(sh, m))}${clash ? '\n※ 同じ人の時間が重なっています' : ''}">${brk}${inner}${hdl}</div>${out}`;
+    const tk = track && track.n > 1 ? `top:calc(4px + (100% - 8px) * ${track.k} / ${track.n});height:calc((100% - 8px) / ${track.n} - 2px);bottom:auto;` : '';
+    return `<div class="${cls}" data-id="${sh.id}" style="left:${x}px;width:${w}px;${tk}background:${barColor(m)}" title="${esc(shiftTitle(sh, m))}${clash ? '\n※ 同じ人の時間が重なっています' : ''}">${brk}${inner}${hdl}</div>${out}`;
   }
 
   // 6日間（メンバー×日付）
@@ -413,6 +476,7 @@
     const groups = V.grp === 'all' ? D.groups : D.groups.filter(g => g.id === V.grp);
     const ids = new Set(ms.map(m => m.id));
     const all = D.shifts.filter(s => ids.has(s.m));
+    $('printHead').innerHTML = `<b>${esc(D.title)}</b>　${dLabel(D.days[0].d)}〜${dLabel(D.days[D.days.length - 1].d)}　${V.grp === 'all' ? '全体' : esc(grp(V.grp).name)}`;
     $('weekSum').innerHTML = `<span>${dLabel(D.days[0].d)}〜${dLabel(D.days[D.days.length - 1].d)}</span>` +
       `<span>シフト <b>${all.length}</b>件</span><span>延べ <b>${hh(all.reduce((t, s) => t + workMin(s), 0))}</b></span>` +
       `<span>1日以上入る人 <b>${new Set(all.map(s => s.m)).size}</b>/${ms.length}人</span>`;
@@ -435,7 +499,8 @@
         D.days.forEach(x => {
           const list = shiftsOf(m.id, x.d), cl = clashIds(list);
           tot += list.reduce((t, s) => t + workMin(s), 0);
-          h += `<td class="cell${list.length ? ' has' : ''}" data-d="${x.d}">${list.map(s => chipHtml(s, m, cl.has(s.id))).join('')}<span class="add">＋</span></td>`;
+          h += `<td class="cell${list.length ? ' has' : ''}" data-d="${x.d}">${list.map(s => chipHtml(s, m, cl.has(s.id))).join('')}<span class="add">＋</span>` +
+            (list.length ? `<button type="button" class="add2" data-add2 aria-label="${esc(m.name)} ${dLabel(x.d)}にもう1件追加" title="もう1件追加">＋</button>` : '') + `</td>`;
         });
         h += `<td class="tot">${tot ? hh(tot) : '—'}</td></tr>`;
       });
@@ -452,7 +517,7 @@
       ? D.roles.map(r => `<span class="it"><span class="sw" style="background:${r.color || '#8b8b95'}"></span>${esc(r.name)}</span>`).join('')
       : D.groups.map(g => `<span class="it"><span class="sw" style="background:${g.color}"></span>${esc(g.name)}</span>`).join('');
     $('legend').innerHTML = `<span class="it">役職：</span>${D.roles.map(r => roleBadge(r.id, true)).join(' ')}<span class="sep"></span>${sw}` +
-      `<span class="it"><span class="sw brk"></span>休憩</span><span class="it"><span class="sw" style="background:transparent;box-shadow:0 0 0 2px var(--danger)"></span>時間の重なり</span>` +
+      `<span class="it"><span class="sw brk"></span>休憩</span><span class="it"><span class="sw cl"></span>同じ人の時間の重なり</span>` +
       (V.view === 'day' ? `<span class="sep"></span><span class="hint">${matchMedia('(hover:hover)').matches ? '空いている所をドラッグして追加・棒をドラッグして移動（別の人へも）・棒の端で時間を変更・クリックで編集' : '空いている所をタップして追加・棒をタップして編集'}</span>` : '<span class="sep"></span><span class="hint">マスを押すと追加・編集</span>');
   }
 
@@ -465,7 +530,7 @@
   tl.addEventListener('pointerdown', e => {
     if (e.button !== 0 || e.pointerType === 'touch' || !G) return;
     const lane = e.target.closest('.tl-lane');
-    if (!lane) return;
+    if (!lane || e.target.closest('.bar-out')) return;     // 短い棒の横の時刻は、押すとその棒の編集（click で）
     const bar = e.target.closest('.bar'), st = D.opt.snap;
     if (bar) {
       const sh = D.shifts.find(s => s.id === bar.dataset.id);
@@ -473,7 +538,7 @@
       const hd = e.target.closest('.hdl');
       drag = { kind: hd ? (hd.classList.contains('l') ? 'l' : 'r') : 'move', id: sh.id, orig: clone(sh), cur: clone(sh), x0: e.clientX, y0: e.clientY, t0: minAt(e.clientX), moved: false, lanes: new Set([sh.m]) };
     } else {
-      const t = clamp(snapTo(minAt(e.clientX), st), G.a, G.b);
+      const t = clamp(snapTo(minAt(e.clientX), st), G.a, G.b - st);
       drag = { kind: 'new', id: '__new', t0: t, cur: { id: '__new', m: lane.dataset.m, d: G.day, s: t, e: t + st, br: [], task: '', note: '' }, x0: e.clientX, y0: e.clientY, moved: false, lanes: new Set([lane.dataset.m]) };
     }
     e.preventDefault();
@@ -499,9 +564,9 @@
       const ln = laneAt(e.clientX, e.clientY);
       if (ln && ln.dataset.m) c.m = ln.dataset.m;
     } else if (drag.kind === 'l') {
-      c.s = clamp(o.s + snapTo(t - drag.t0, st), G.a, o.e - st); c.br = cleanBreaks(o.br, c.s, c.e);
+      c.s = clamp(o.s + snapTo(t - drag.t0, st), G.a, o.e - st); c.br = keepBreaks(o.br, c.s, c.e);
     } else {
-      c.e = clamp(o.e + snapTo(t - drag.t0, st), o.s + st, G.b); c.br = cleanBreaks(o.br, c.s, c.e);
+      c.e = clamp(o.e + snapTo(t - drag.t0, st), o.s + st, G.b); c.br = keepBreaks(o.br, c.s, c.e);
     }
     drag.lanes.add(c.m);
     paintLanes(drag.lanes);
@@ -517,7 +582,9 @@
     const c = d.cur;
     if (d.kind === 'new') {
       render();
-      openShiftEditor(withAutoBreak({ m: c.m, d: c.d, s: c.s, e: c.e, br: [] }));
+      // 少し手がぶれただけ（12px未満・30分未満）はクリックと同じ扱い（いつもの長さで下書き）
+      if (Math.abs(e.clientX - d.x0) < 12 || c.e - c.s < 30) openShiftEditor(newDraft(c.m, G.day, Math.floor(d.t0 / 30) * 30));
+      else openShiftEditor(withAutoBreak({ m: c.m, d: c.d, s: c.s, e: c.e, br: [] }));
       return;
     }
     const o = d.orig;
@@ -532,7 +599,7 @@
     if (grpEl) { V.collapsed[grpEl.dataset.g] = !V.collapsed[grpEl.dataset.g]; render(); return; }
     const nm = e.target.closest('.tl-name[data-m]');
     if (nm) { openMember(nm.dataset.m); return; }
-    const bar = e.target.closest('.bar');
+    const bar = e.target.closest('.bar, .bar-out');
     if (bar) { const sh = D.shifts.find(s => s.id === bar.dataset.id); if (sh) openShiftEditor(sh); return; }
     const lane = e.target.closest('.tl-lane');
     if (lane) {
@@ -540,6 +607,9 @@
       openShiftEditor(newDraft(lane.dataset.m, G.day, t));
     }
   });
+
+  // 時間を変えたときの休憩：勤務時間の中に収まるものだけ残す（端にかかるものは消す）
+  function keepBreaks(br, s, e) { return cleanBreaks(br, s, e).filter(b => b.s > s && b.e < e); }
 
   // 新しいシフトの下書き（最後に使った定型の長さで）
   function newDraft(mId, day, t) {
@@ -566,23 +636,27 @@
 
   // ---------- ダイアログ ----------
   const dlg = $('dlg');
-  let dlgDownOnBackdrop = false, dlgRefresh = null;
+  let dlgDownOnBackdrop = false, dlgRefresh = null, dlgOpenedAt = 0;
   function openDlg(o) {
     dlg.className = 'dlg' + (o.wide ? ' wide' : '');
+    parkToast();
     dlg.innerHTML = `<div class="dlg-h"><h2>${o.title}</h2><button type="button" class="btn ghost icon x" data-close aria-label="閉じる">×</button></div>` +
       `<div class="dlg-b">${o.body}</div>${o.foot ? `<div class="dlg-f">${o.foot}</div>` : ''}`;
     dlg._onClose = o.onClose || null;
     dlgRefresh = o.refresh || null;
+    dlgOpenedAt = performance.now();
     if (!dlg.open) dlg.showModal();
+    placeToast();
     const b = dlg.querySelector('.dlg-b'); if (b) b.scrollTop = 0;
     return dlg;
   }
   function closeDlg() { if (dlg.open) dlg.close(); }
   function refreshOpenDlg() { if (dlg.open && dlgRefresh) dlgRefresh(); }
-  dlg.addEventListener('close', () => { const f = dlg._onClose; dlg._onClose = null; dlgRefresh = null; dlg.innerHTML = ''; if (f) f(); });
-  dlg.addEventListener('pointerdown', e => { dlgDownOnBackdrop = e.target === dlg; });
+  dlg.addEventListener('close', () => { const f = dlg._onClose; dlg._onClose = null; dlgRefresh = null; parkToast(); dlg.innerHTML = ''; if (f) f(); });
+  // 外側を押したら閉じる。ただし開いた直後（ダブルクリックの2回目）は閉じない
+  dlg.addEventListener('pointerdown', e => { dlgDownOnBackdrop = e.target === dlg && performance.now() - dlgOpenedAt > 400; });
   dlg.addEventListener('click', e => {
-    if (e.target === dlg && dlgDownOnBackdrop) { closeDlg(); return; }
+    if (e.target === dlg && dlgDownOnBackdrop && e.detail <= 1) { closeDlg(); return; }
     if (e.target.closest('[data-close]')) closeDlg();
   });
 
@@ -668,14 +742,17 @@
         : '<div class="msg">休憩なし</div>';
       const long = !bad && dr.e - dr.s > 360 && !dr.br.length;
       q('edBrHint').innerHTML = long ? '<span class="msg warn">6時間を超えています。休憩を入れましょう</span>' : '';
-      // ほかの日へ
-      q('edCopy').innerHTML = D.days.filter(x => x.d !== dr.d).map(x => `<label class="${x.kind === 'fest' ? 'fest' : ''}"><input type="checkbox" value="${x.d}"${copyTo.has(x.d) ? ' checked' : ''}>${dLabel(x.d)}</label>`).join('');
+      // ほかの日へ（その日にもう重なるシフトがある日は「重」の印）
+      const ovOn = d => D.shifts.filter(s => s.m === dr.m && s.d === d && s.id !== dr.id && s.s < dr.e && dr.s < s.e);
+      q('edCopy').innerHTML = D.days.filter(x => x.d !== dr.d).map(x => `<label class="${x.kind === 'fest' ? 'fest' : ''}"><input type="checkbox" value="${x.d}"${copyTo.has(x.d) ? ' checked' : ''}>${dLabel(x.d)}${!bad && ovOn(x.d).length ? '<span class="ov" title="この日はもう時間の重なるシフトがあります">重</span>' : ''}</label>`).join('');
       // 注意
-      const others = D.shifts.filter(s => s.m === dr.m && s.d === dr.d && s.id !== dr.id && s.s < dr.e && dr.s < s.e);
+      const others = ovOn(dr.d);
       const msgs = [];
       if (bad) msgs.push(['err', '終わりは入りより後にしてください']);
       bErr.forEach(x => msgs.push(['err', x[1]]));
       if (others.length) msgs.push(['warn', `この日の ${others.map(s => fmt(s.s) + '〜' + fmt(s.e)).join('、')} と時間が重なっています（保存はできます）`]);
+      const ovDays = [...copyTo].filter(d => d !== dr.d && ovOn(d).length);
+      if (!bad && ovDays.length) msgs.push(['warn', `コピー先の ${ovDays.map(dLabel).join('・')} にも、時間の重なるシフトがあります`]);
       q('edMsg').innerHTML = msgs.map(x => `<div class="msg ${x[0]}">${x[1]}</div>`).join('');
       q('edSave').disabled = bad || bErr.length > 0;
     }
@@ -700,7 +777,7 @@
       else if (t.id === 'edS') { const len = dr.e - dr.s, ns = +t.value; if (dr.e <= ns) dr.e = Math.min(DAY_MAX, ns + Math.max(len, st)); dr.s = ns; }
       else if (t.id === 'edE') dr.e = +t.value;
       else if (t.closest('#edBrk')) { const i = +t.closest('[data-i]').dataset.i; dr.br[i][t.dataset.k] = +t.value; }
-      else if (t.closest('#edCopy')) { if (t.checked) copyTo.add(t.value); else copyTo.delete(t.value); return; }
+      else if (t.closest('#edCopy')) { if (t.checked) copyTo.add(t.value); else copyTo.delete(t.value); }
       else return;
       upd();
     });
@@ -753,7 +830,8 @@
       const v = f === 'name' ? str(t.value, 30) : t.value;
       if (!v) { t.value = mem(id).name; return; }
       commit(D2 => { const x = D2.members.find(y => y.id === id); if (x) x[f] = v; }, '名簿を更新しました');
-      b.innerHTML = draw();
+      // 名前だけなら描き直さない（描き直すと、次に押した＋やシフトが1回目で効かない）。課・役職はバッジのために描き直して、選んでいた欄に戻る
+      if (f !== 'name') { b.innerHTML = draw(); const el = b.querySelector('#' + t.id); if (el) el.focus(); }
     });
     b.addEventListener('click', e => {
       const chip = e.target.closest('.chip');
@@ -772,13 +850,14 @@
   }
 
   // 名簿（全員）
+  // 貼り付けた1マスから課を当てる。「渉外局」のような局の名前そのものは課として扱わない
   function guessGroup(t) {
     t = (t || '').trim();
-    if (!t) return null;
+    if (!t || /^[-ー－—―]$/.test(t)) return null;
     const exact = D.groups.find(g => g.name === t); if (exact) return exact.id;
     if (/gs/i.test(t)) return 'gs';
     if (/広報/.test(t)) return 'pr';
-    if (/局/.test(t)) return 'hq';
+    if (/^(局|局付|局本部|執行部|局三役)$/.test(t)) return 'hq';
     return null;
   }
   function guessRole(t) {
@@ -788,60 +867,77 @@
     const hit = D.roles.slice().sort((a, b) => b.name.length - a.name.length).find(r => t.includes(r.name));
     return hit ? hit.id : null;
   }
+  const normName = n => String(n || '').replace(/[\s\u3000]/g, '');
   function parseRoster(text) {
     const out = [], defG = V.grp !== 'all' ? V.grp : 'gs', defR = D.roles[D.roles.length - 1].id;
     text.split(/\r?\n/).forEach(line => {
-      const cells = line.split(/\t|,|、|，/).map(x => x.trim()).filter(Boolean);
-      if (!cells.length || /^(名前|氏名)$/.test(cells[0])) return;
-      let g = null, r = null; const rest = [];
-      cells.slice(1).forEach(c => { const gg = !g && guessGroup(c), rr = !r && guessRole(c); if (rr && (!gg || /長/.test(c))) r = rr; else if (gg) g = gg; else rest.push(c); });
-      out.push({ name: str(cells[0], 30), group: g || defG, role: r || defR });
+      const cells = line.split(/\t|,|、|，/).map(x => x.trim());
+      const name = str(cells[0], 30);
+      if (!name || /^(名前|氏名|なまえ)$/.test(name)) return;
+      // 「広報課長」のように1マスで課と役職の両方が分かることもある。課は GS・広報 を局より優先
+      let r = null; const gs = [];
+      cells.slice(1).forEach(c => { const rr = guessRole(c), gg = guessGroup(c); if (rr && !r) r = rr; if (gg) gs.push(gg); });
+      let g = gs.find(x => x !== 'hq') || gs[0] || null;
+      if (!g && r && /局/.test(role(r).name)) g = 'hq';     // 局長・副局長で課の欄が空 → 局
+      out.push({ name, group: g || defG, role: r || defR });
     });
-    return out.filter(x => x.name);
+    return out;
   }
   function openRoster() {
+    // 開いている間は並びを変えない（課や役職を直しても、その行がどこかへ行かない）。閉じて開き直すと「課 → 役職」の順に
+    const order = new Map(sortedMembers().map((m, i) => [m.id, i]));
+    const rowsInOrder = () => { const ms = sortedMembers(); return ms.filter(m => order.has(m.id)).sort((a, b) => order.get(a.id) - order.get(b.id)).concat(ms.filter(m => !order.has(m.id))); };
     const draw = () => {
-      const ms = sortedMembers();
+      const ms = rowsInOrder();
       const cnt = id => D.shifts.filter(s => s.m === id).length;
-      return `<div class="row"><span class="msg">名前・課・役職を変えるとすぐに保存されます。並びは「課 → 役職」の順です。</span></div>
-        <div class="ed-wrap"><table class="ed"><thead><tr><th style="width:42%">名前</th><th>課</th><th>役職</th><th style="width:56px">シフト</th><th style="width:40px"></th></tr></thead><tbody>
-        ${ms.map(m => `<tr data-m="${m.id}"><td><input class="inp" data-f="name" maxlength="30" value="${esc(m.name)}" aria-label="名前"></td>
-          <td><select class="inp" data-f="group" aria-label="課">${D.groups.map(g => `<option value="${g.id}"${g.id === m.group ? ' selected' : ''}>${esc(g.name)}</option>`).join('')}</select></td>
-          <td><select class="inp" data-f="role" aria-label="役職">${D.roles.map(r => `<option value="${r.id}"${r.id === m.role ? ' selected' : ''}>${esc(r.name)}</option>`).join('')}</select></td>
-          <td class="num" style="color:var(--muted);text-align:center">${cnt(m.id)}</td><td><button type="button" class="btn ghost small icon" data-rm aria-label="${esc(m.name)}を外す">×</button></td></tr>`).join('')}
+      return `<div class="row"><span class="msg">名前・課・役職を変えるとすぐに保存されます。開き直すと「課 → 役職」の順に並びます。</span></div>
+        <div class="ed-wrap"><table class="ed stack roster"><thead><tr><th style="width:42%">名前</th><th>課</th><th>役職</th><th style="width:56px">シフト</th><th style="width:40px"></th></tr></thead><tbody>
+        ${ms.map(m => `<tr data-m="${m.id}"><td class="c-name"><input class="inp" data-f="name" maxlength="30" value="${esc(m.name)}" aria-label="名前"></td>
+          <td class="c-grp"><select class="inp" data-f="group" aria-label="${esc(m.name)}の課">${D.groups.map(g => `<option value="${g.id}"${g.id === m.group ? ' selected' : ''}>${esc(g.name)}</option>`).join('')}</select></td>
+          <td class="c-role"><select class="inp" data-f="role" aria-label="${esc(m.name)}の役職">${D.roles.map(r => `<option value="${r.id}"${r.id === m.role ? ' selected' : ''}>${esc(r.name)}</option>`).join('')}</select></td>
+          <td class="num c-cnt" style="color:var(--muted);text-align:center">${cnt(m.id)}</td><td class="c-rm"><button type="button" class="btn ghost small icon" data-rm aria-label="${esc(m.name)}を外す">×</button></td></tr>`).join('')}
         ${ms.length ? '' : '<tr><td colspan="5" class="msg" style="padding:14px">まだいません</td></tr>'}
         </tbody></table></div>
         <div class="row"><button type="button" class="btn" id="rsAdd">＋ 1人追加</button><span class="msg">全体 ${D.members.length}人（${D.groups.map(g => esc(g.name) + ' ' + D.members.filter(m => m.group === g.id).length).join('・')}）</span></div>
         <details class="fld" id="rsPasteBox"><summary class="sect" style="cursor:pointer">まとめて貼り付け <small>Excel・スプレッドシートからコピーした名簿</small></summary>
-          <div class="msg" style="margin:6px 0">1行に1人。「名前, 課, 役職」の順（タブ・カンマ区切り）。課や役職を省くと「${V.grp !== 'all' ? esc(grp(V.grp).name) : esc(grp('gs').name)}」「${esc(D.roles[D.roles.length - 1].name)}」になります。</div>
-          <textarea class="inp" id="rsText" placeholder="山田 太郎, GS課, 課長&#10;鈴木 花子, 広報課, 副課長&#10;佐藤 次郎, 広報課"></textarea>
+          <div class="msg" style="margin:6px 0">1行に1人。「名前, 課, 役職」の順（タブ・カンマ区切り）。課を省くと「${V.grp !== 'all' ? esc(grp(V.grp).name) : esc(grp('gs').name)}」（局長・副局長は「${esc(grp('hq').name)}」）、役職を省くと「${esc(D.roles[D.roles.length - 1].name)}」。名簿にもういる名前は、足さずに課と役職を直します。</div>
+          <textarea class="inp" id="rsText" placeholder="山田 太郎, GS課, 課長&#10;鈴木 花子, 広報課, 副課長&#10;佐藤 次郎, 広報課&#10;高橋 三郎, , 局長"></textarea>
+          <div class="rsprev" id="rsRows"></div>
           <div class="row" style="margin-top:8px"><span class="msg" id="rsPrev"></span><span style="flex:1"></span>
             <button type="button" class="btn" id="rsAppend">名簿に足す</button><button type="button" class="btn danger" id="rsReplace">名簿を置き換える</button></div>
         </details>`;
     };
     openDlg({ title: 'メンバー（名簿）', wide: true, body: draw(), foot: `${D.sample ? '<button type="button" class="btn danger" id="rsClearSample">サンプルを全部消す</button>' : ''}<span class="grow"></span><button type="button" class="btn primary" data-close>閉じる</button>`,
-      refresh: () => { const b = dlg.querySelector('.dlg-b'), open = b.querySelector('#rsPasteBox')?.open, txt = b.querySelector('#rsText')?.value || ''; b.innerHTML = draw(); if (open) { b.querySelector('#rsPasteBox').open = true; b.querySelector('#rsText').value = txt; } } });
+      refresh: () => {
+        const b = dlg.querySelector('.dlg-b'), open = b.querySelector('#rsPasteBox')?.open, txt = b.querySelector('#rsText')?.value || '', sc = b.scrollTop;
+        const ae = document.activeElement, keep = ae && ae.closest && ae.closest('tr[data-m]') ? [ae.closest('tr[data-m]').dataset.m, ae.dataset.f] : null;
+        b.innerHTML = draw(); b.scrollTop = sc;
+        if (open) { b.querySelector('#rsPasteBox').open = true; b.querySelector('#rsText').value = txt; preview(); }
+        if (keep) { const el = b.querySelector(`tr[data-m="${keep[0]}"] [data-f="${keep[1]}"]`); if (el) el.focus(); }
+      } });
     const b = dlg.querySelector('.dlg-b');
     const redraw = () => refreshOpenDlg();
+    function preview() {
+      const rows = parseRoster(b.querySelector('#rsText').value), have = new Set(D.members.map(m => normName(m.name)));
+      b.querySelector('#rsPrev').textContent = rows.length ? `${rows.length}人（${D.groups.map(g => g.name + ' ' + rows.filter(r => r.group === g.id).length).join('・')}）` +
+        (rows.some(r => have.has(normName(r.name))) ? `　うち ${rows.filter(r => have.has(normName(r.name))).length}人はもういる人（足すときは課・役職を直します）` : '') : '';
+      b.querySelector('#rsRows').innerHTML = rows.slice(0, 80).map(r => `<div class="r${have.has(normName(r.name)) ? ' upd' : ''}"><span class="gdot" style="background:${grp(r.group).color}"></span>${esc(grp(r.group).name)}　${roleBadge(r.role, true)}　${esc(r.name)}${have.has(normName(r.name)) ? '（いる人）' : ''}</div>`).join('') + (rows.length > 80 ? `<div class="r">ほか ${rows.length - 80}人</div>` : '');
+    }
     b.addEventListener('change', e => {
       const t = e.target, tr = t.closest('tr[data-m]');
       if (!tr || !t.dataset.f) return;
       const v = t.dataset.f === 'name' ? str(t.value, 30) : t.value;
       if (!v) { redraw(); return; }
       commit(D2 => { const x = D2.members.find(y => y.id === tr.dataset.m); if (x) x[t.dataset.f] = v; });
-      if (t.dataset.f !== 'name') redraw();
+      if (t.dataset.f !== 'name') { redraw(); const row = b.querySelector(`tr[data-m="${tr.dataset.m}"]`); if (row) row.classList.add('hi'); }
     });
     b.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.f === 'name') e.target.blur(); });
-    b.addEventListener('input', e => {
-      if (e.target.id !== 'rsText') return;
-      const rows = parseRoster(e.target.value);
-      b.querySelector('#rsPrev').textContent = rows.length ? `${rows.length}人（${D.groups.map(g => g.name + ' ' + rows.filter(r => r.group === g.id).length).join('・')}）` : '';
-    });
+    b.addEventListener('input', e => { if (e.target.id === 'rsText') preview(); });
     b.addEventListener('click', e => {
       const rm = e.target.closest('[data-rm]');
       if (rm) { removeMembers([rm.closest('tr').dataset.m]); return; }
       if (e.target.id === 'rsAdd') {
-        const nid = uid();
+        const nid = 'm' + uid();
         commit(D2 => { D2.members.push({ id: nid, name: '新しいメンバー', group: V.grp !== 'all' ? V.grp : 'gs', role: D2.roles[D2.roles.length - 1].id }); });
         redraw();
         const inp = b.querySelector(`tr[data-m="${nid}"] input`); if (inp) { inp.focus(); inp.select(); inp.scrollIntoView({ block: 'center' }); }
@@ -852,10 +948,15 @@
         if (!rows.length) { toast('貼り付けた名簿を読み取れませんでした'); return; }
         const rep = e.target.id === 'rsReplace';
         if (rep && !confirm(`名簿を${rows.length}人に置き換えますか？\nいまの名簿とシフト（${D.shifts.length}件）は消えます。（「元に戻す」で戻せます）`)) return;
+        let added = 0, updated = 0;
         commit(D2 => {
           if (rep) { D2.members = []; D2.shifts = []; D2.sample = false; }
-          rows.forEach(r => D2.members.push({ id: uid(), name: r.name, group: r.group, role: r.role }));
-        }, `${rows.length}人を${rep ? '名簿にしました' : '名簿に足しました'}`);
+          rows.forEach(r => {
+            const ex = D2.members.find(m => normName(m.name) === normName(r.name));
+            if (ex) { ex.group = r.group; ex.role = r.role; updated++; }
+            else { D2.members.push({ id: 'm' + uid(), name: r.name, group: r.group, role: r.role }); added++; }
+          });
+        }, rep ? `${rows.length}人を名簿にしました` : `${added}人を足しました` + (updated ? `（${updated}人は課・役職を直しました）` : ''));
         b.querySelector('#rsText').value = '';
         redraw();
       }
@@ -957,16 +1058,37 @@
     const body = `<div class="msg">${dLabel(V.day)} の <b>${esc(scopeName())}</b> のシフト ${src.length}件を、選んだ日にコピーします。</div>
       <div class="fld"><span class="lb">コピー先</span><div class="dchk" id="cpD">${D.days.filter(x => x.d !== V.day).map(x => `<label class="${x.kind === 'fest' ? 'fest' : ''}"><input type="checkbox" value="${x.d}">${dLabel(x.d)}</label>`).join('')}</div></div>
       <div class="fld"><span class="lb">コピー先にもうシフトがあるとき</span>
-        <label class="chk"><input type="radio" name="cpM" value="add" checked> そのまま残して足す</label>
-        <label class="chk"><input type="radio" name="cpM" value="rep"> 消してから入れる（${esc(scopeName())}の分だけ）</label></div>`;
+        <label class="chk"><input type="radio" name="cpM" value="rep" checked> 消してから入れる（${esc(scopeName())}の分だけ）</label>
+        <label class="chk"><input type="radio" name="cpM" value="add"> そのまま残して足す（まったく同じシフトは足さない）</label></div>
+      <div class="msg" id="cpMsg"></div>`;
     openDlg({ title: 'この日を別の日にコピー', body, foot: `<span class="grow"></span><button type="button" class="btn" data-close>キャンセル</button><button type="button" class="btn primary" id="cpGo"${src.length ? '' : ' disabled'}>コピーする</button>` });
-    $('cpGo').addEventListener('click', () => {
+    // 足すときに、コピー先の同じ人と時間が重なる件数・まったく同じで飛ばす件数
+    const plan = () => {
       const to = [...dlg.querySelectorAll('#cpD input:checked')].map(x => x.value), rep = dlg.querySelector('input[name=cpM]:checked').value === 'rep';
-      if (!to.length) { toast('コピー先の日を選んでください'); return; }
+      let add = 0, same = 0, ov = 0;
+      to.forEach(d => src.forEach(s => {
+        const there = rep ? [] : D.shifts.filter(x => x.d === d && x.m === s.m);
+        if (there.some(x => x.s === s.s && x.e === s.e)) same++;
+        else { add++; if (there.some(x => x.s < s.e && s.s < x.e)) ov++; }
+      }));
+      return { to, rep, add, same, ov };
+    };
+    const upd = () => {
+      const p = plan();
+      dlg.querySelector('#cpMsg').innerHTML = !p.to.length ? '' : (p.rep ? `${p.to.length}日の ${esc(scopeName())} のシフトを消して、${p.add}件を入れます` :
+        `${p.add}件を足します` + (p.same ? `（同じシフト ${p.same}件は飛ばします）` : '') + (p.ov ? `<div class="msg warn">うち ${p.ov}件は、同じ人のシフトと時間が重なります</div>` : ''));
+    };
+    dlg.querySelector('.dlg-b').addEventListener('change', upd);
+    $('cpGo').addEventListener('click', () => {
+      const p = plan();
+      if (!p.to.length) { toast('コピー先の日を選んでください'); return; }
       commit(D2 => {
-        if (rep) D2.shifts = D2.shifts.filter(s => !(to.includes(s.d) && ids.has(s.m)));
-        to.forEach(d => src.forEach(s => D2.shifts.push(Object.assign(clone(s), { id: uid(), d }))));
-      }, `${dLabel(V.day)}（${scopeName()}）を ${to.map(dLabel).join('・')} にコピーしました`);
+        if (p.rep) D2.shifts = D2.shifts.filter(s => !(p.to.includes(s.d) && ids.has(s.m)));
+        p.to.forEach(d => src.forEach(s => {
+          if (!p.rep && D2.shifts.some(x => x.d === d && x.m === s.m && x.s === s.s && x.e === s.e)) return;
+          D2.shifts.push(Object.assign(clone(s), { id: 's' + uid(), d }));
+        }));
+      }, `${dLabel(V.day)}（${scopeName()}）を ${p.to.map(dLabel).join('・')} にコピーしました` + (p.ov ? `（${p.ov}件は時間が重なっています）` : ''));
       closeDlg();
     });
   }
@@ -985,39 +1107,41 @@
     const draw = () => `
       <div class="fld"><label for="stTitle">表示名</label><input class="inp" id="stTitle" maxlength="30" value="${esc(w.title)}"></div>
       <div class="fld"><span class="sect">日付と区分 <small>本祭の日は白く目立たせます</small></span>
-        <div class="ed-wrap"><table class="ed"><tbody>${w.days.map((x, i) => `<tr data-i="${i}"><td style="width:90px;font-weight:800">${dLabel(x.d)}</td>
+        <div class="ed-wrap"><table class="ed stack days2"><tbody>${w.days.map((x, i) => `<tr data-i="${i}"><td style="width:90px;font-weight:800">${dLabel(x.d)}</td>
           <td><input class="inp" data-f="dlabel" maxlength="12" value="${esc(x.label)}" aria-label="${dLabel(x.d)}の名前"></td>
           <td style="width:120px"><select class="inp" data-f="dkind" aria-label="${dLabel(x.d)}の区分">${KINDS.map(k => `<option value="${k[0]}"${k[0] === x.kind ? ' selected' : ''}>${k[1]}</option>`).join('')}</select></td></tr>`).join('')}</tbody></table></div></div>
       <div class="fld"><span class="sect">表示と入力</span>
         <div class="row"><span class="msg">日別の表示</span><select class="inp time" id="stFrom">${hourOpts(w.opt.from, 0, 23 * 60)}</select><span>〜</span><select class="inp time" id="stTo">${hourOpts(w.opt.to, 60, DAY_MAX)}</select>
           <span class="msg">（シフトがはみ出す日は自動で広げます）</span></div>
         <div class="row"><span class="msg">時間の刻み</span><select class="inp" id="stSnap">${[5, 10, 15, 30].map(v => `<option value="${v}"${v === w.opt.snap ? ' selected' : ''}>${v}分</option>`).join('')}</select>
-          <label class="chk"><input type="checkbox" id="stAuto"${w.opt.autoBreak ? ' checked' : ''}> 6時間を超えるシフトを作ると休憩を自動で入れる</label></div></div>
+          <label class="chk"><input type="checkbox" id="stAuto"${w.opt.autoBreak ? ' checked' : ''}> 新しく作るとき（ドラッグ・クリック・定型）、6時間を超えていれば休憩を自動で入れる</label></div></div>
       <div class="fld"><span class="sect">役職 <small>上ほど上に並びます。色なし＝目立たせない</small></span>
-        <div class="ed-wrap"><table class="ed"><tbody>${w.roles.map((r, i) => `<tr data-i="${i}">
+        <div class="ed-wrap"><table class="ed stack roles"><tbody>${w.roles.map((r, i) => `<tr data-i="${i}">
           <td style="width:64px">${roleBadgeOf(r)}</td>
-          <td><input class="inp" data-f="rname" maxlength="10" value="${esc(r.name)}" aria-label="役職の名前"></td>
-          <td style="width:50px"><input type="color" data-f="rcolor" value="${r.color || '#8b8b95'}" aria-label="色"${r.color ? '' : ' disabled'}></td>
-          <td style="width:84px"><label class="chk"><input type="checkbox" data-f="rhas"${r.color ? ' checked' : ''}> 色</label></td>
-          <td style="width:92px;white-space:nowrap"><button type="button" class="btn ghost small icon" data-up aria-label="上へ"${i ? '' : ' disabled'}>↑</button><button type="button" class="btn ghost small icon" data-down aria-label="下へ"${i < w.roles.length - 1 ? '' : ' disabled'}>↓</button><button type="button" class="btn ghost small icon" data-rdel aria-label="消す"${w.roles.length > 1 ? '' : ' disabled'}>×</button></td></tr>`).join('')}</tbody></table></div>
+          <td class="c-name"><input class="inp" data-f="rname" maxlength="10" value="${esc(r.name)}" aria-label="役職の名前"></td>
+          <td class="c-ctl" style="width:250px"><div class="pair"><input type="color" data-f="rcolor" value="${r.color || r._c || '#8b8b95'}" aria-label="${esc(r.name)}の色"${r.color ? '' : ' disabled'}>
+            <label class="chk"><input type="checkbox" data-f="rhas"${r.color ? ' checked' : ''}> 色を付ける</label><span style="flex:1"></span>
+            <button type="button" class="btn ghost small icon" data-up aria-label="上へ"${i ? '' : ' disabled'}>↑</button><button type="button" class="btn ghost small icon" data-down aria-label="下へ"${i < w.roles.length - 1 ? '' : ' disabled'}>↓</button><button type="button" class="btn ghost small icon" data-rdel aria-label="消す"${w.roles.length > 1 ? '' : ' disabled'}>×</button></div></td></tr>`).join('')}</tbody></table></div>
         <div class="row"><button type="button" class="btn small" id="stAddRole">＋ 役職を追加</button></div></div>
       <div class="fld"><span class="sect">課</span>
         <div class="ed-wrap"><table class="ed"><tbody>${w.groups.map((g, i) => `<tr data-i="${i}"><td><input class="inp" data-f="gname" maxlength="12" value="${esc(g.name)}" aria-label="課の名前"></td>
           <td style="width:50px"><input type="color" data-f="gcolor" value="${g.color}" aria-label="色"></td></tr>`).join('')}</tbody></table></div></div>
       <div class="fld"><span class="sect">定型の時間 <small>追加・まとめて追加で一発で選べます</small></span>
-        <div class="ed-wrap"><table class="ed"><thead><tr><th>名前</th><th>入り</th><th>終わり</th><th>休憩</th><th></th></tr></thead><tbody>${w.presets.map((p, i) => `<tr data-i="${i}">
-          <td><input class="inp" data-f="pname" maxlength="10" value="${esc(p.name)}" aria-label="名前"></td>
-          <td><select class="inp time" data-f="ps">${timeOptions(p.s, 0, DAY_MAX - st(), st())}</select></td>
-          <td><select class="inp time" data-f="pe">${timeOptions(p.e, st(), DAY_MAX, st())}</select></td>
-          <td style="white-space:nowrap"><select class="inp time" data-f="pbs" aria-label="休憩の始まり"><option value="">なし</option>${timeOptions(p.br[0] ? p.br[0].s : null, p.s, p.e, st())}</select>
-            <select class="inp time" data-f="pbe" aria-label="休憩の終わり"${p.br[0] ? '' : ' disabled'}>${p.br[0] ? timeOptions(p.br[0].e, p.s, p.e, st()) : '<option>—</option>'}</select></td>
-          <td><button type="button" class="btn ghost small icon" data-pdel aria-label="消す">×</button></td></tr>`).join('')}</tbody></table></div>
+        <div class="ed-wrap"><table class="ed stack presets"><thead><tr><th>名前</th><th>入り</th><th>終わり</th><th>休憩</th><th></th></tr></thead><tbody>${w.presets.map((p, i) => `<tr data-i="${i}">
+          <td class="c-name"><input class="inp" data-f="pname" maxlength="10" value="${esc(p.name)}" aria-label="定型の名前"></td>
+          <td><select class="inp time" data-f="ps" aria-label="${esc(p.name)}の入り">${timeOptions(p.s, 0, DAY_MAX - st(), st())}</select></td>
+          <td><select class="inp time" data-f="pe" aria-label="${esc(p.name)}の終わり">${timeOptions(p.e, st(), DAY_MAX, st())}</select></td>
+          <td class="c-br"><div class="pair"><span class="msg">休</span><select class="inp time" data-f="pbs" aria-label="${esc(p.name)}の休憩の始まり"><option value="">なし</option>${timeOptions(p.br[0] ? p.br[0].s : null, p.s + st(), p.e - 2 * st(), st())}</select><span>〜</span>
+            <select class="inp time" data-f="pbe" aria-label="${esc(p.name)}の休憩の終わり"${p.br[0] ? '' : ' disabled'}>${p.br[0] ? timeOptions(p.br[0].e, p.br[0].s + st(), p.e - st(), st()) : '<option>—</option>'}</select></div></td>
+          <td class="c-del" style="width:40px"><button type="button" class="btn ghost small icon" data-pdel aria-label="${esc(p.name)}を消す">×</button></td></tr>`).join('')}</tbody></table></div>
         <div class="row"><button type="button" class="btn small" id="stAddPreset">＋ 定型を追加</button><span class="msg err" id="stPErr"></span></div></div>
       <div class="fld"><label for="stTasks" class="sect">担当（持ち場）の候補 <small>1行に1つ</small></label><textarea class="inp" id="stTasks" style="min-height:90px">${esc(w.tasks.join('\n'))}</textarea></div>`;
     function roleBadgeOf(r) { return r.color ? `<span class="rb sm" style="background:${r.color};color:#000">${esc(r.name)}</span>` : `<span class="rb none sm">${esc(r.name)}</span>`; }
     openDlg({ title: '設定', wide: true, body: draw(), foot: `<span class="grow"></span><button type="button" class="btn" data-close>キャンセル</button><button type="button" class="btn primary" id="stSave">保存する</button>` });
     const b = dlg.querySelector('.dlg-b');
-    const redraw = () => { const sc = b.scrollTop; b.innerHTML = draw(); b.scrollTop = sc; };
+    // 定型の休憩は勤務時間の内側に（端にかからない）
+    const presetErr = () => { const p = w.presets.find(x => x.br.some(y => y.e <= y.s || y.s <= x.s || y.e >= x.e)); return p ? `「${p.name}」の休憩を、入り〜終わりの内側にしてください` : ''; };
+    const redraw = () => { const sc = b.scrollTop; b.innerHTML = draw(); b.scrollTop = sc; b.querySelector('#stPErr').textContent = presetErr(); };
     b.addEventListener('input', e => {
       const t = e.target, i = +(t.closest('[data-i]') || {}).dataset?.i, f = t.dataset.f;
       if (t.id === 'stTitle') w.title = t.value;
@@ -1032,10 +1156,10 @@
     b.addEventListener('change', e => {
       const t = e.target, i = +(t.closest('[data-i]') || {}).dataset?.i, f = t.dataset.f;
       if (f === 'dkind') w.days[i].kind = t.value;
-      else if (f === 'rhas') { w.roles[i].color = t.checked ? (w.roles[i]._c || '#8b8b95') : ''; redraw(); }
+      else if (f === 'rhas') { const r = w.roles[i]; if (!t.checked) { r._c = r.color || r._c; r.color = ''; } else r.color = r._c || '#8b8b95'; redraw(); }
       else if (f === 'rcolor') { w.roles[i]._c = t.value; redraw(); }
-      else if (f === 'ps' || f === 'pe') { const p = w.presets[i]; p[f === 'ps' ? 's' : 'e'] = +t.value; if (p.e <= p.s) p.e = Math.min(DAY_MAX, p.s + 60); p.br = cleanBreaks(p.br, p.s, p.e); redraw(); }
-      else if (f === 'pbs') { const p = w.presets[i]; if (t.value === '') p.br = []; else { const s = +t.value; p.br = [{ s, e: Math.min(p.e, Math.max(s + st(), p.br[0] ? p.br[0].e : s + 45)) }]; } redraw(); }
+      else if (f === 'ps' || f === 'pe') { const p = w.presets[i]; p[f === 'ps' ? 's' : 'e'] = +t.value; if (p.e <= p.s) p.e = Math.min(DAY_MAX, p.s + 60); p.br = keepBreaks(p.br, p.s, p.e); redraw(); }
+      else if (f === 'pbs') { const p = w.presets[i]; if (t.value === '') p.br = []; else { const s = +t.value, old = p.br[0]; p.br = [{ s, e: Math.min(p.e - st(), old && old.e > s ? old.e : s + 45) }]; } redraw(); }
       else if (f === 'pbe') { const p = w.presets[i]; if (p.br[0]) p.br[0].e = +t.value; redraw(); }
       else if (t.id === 'stFrom') w.opt.from = +t.value;
       else if (t.id === 'stTo') w.opt.to = +t.value;
@@ -1058,6 +1182,7 @@
     $('stSave').addEventListener('click', () => {
       if (w.opt.to <= w.opt.from) { toast('表示の終わりは始まりより後にしてください'); return; }
       if (w.roles.some(r => !str(r.name, 10)) || w.presets.some(p => !str(p.name, 10))) { toast('役職と定型の名前を入れてください'); return; }
+      if (presetErr()) { toast(presetErr()); b.querySelector('#stPErr').textContent = presetErr(); return; }
       const keep = new Set(w.roles.map(r => r.id)), fb = w.roles[w.roles.length - 1].id;
       commit(D2 => {
         D2.title = w.title; D2.days = w.days; D2.groups = w.groups; D2.presets = w.presets; D2.opt = w.opt;
@@ -1079,11 +1204,12 @@
   function exportJson() { download(`shift-${stamp()}.json`, JSON.stringify(Object.assign({ app: 'tabi-map-shift' }, D), null, 1), 'application/json'); toast('JSONを書き出しました（ほかの端末で「読み込み」できます）'); }
   function exportCsv() {
     const q = v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+    const tx = v => /^[=+\-@]/.test(v || '') ? "'" + v : v;   // 入力した文字が = + - @ で始まると、Excel が式として読むので ' を前に
     const order = new Map(sortedMembers().map((m, i) => [m.id, i])), di = new Map(D.days.map((x, i) => [x.d, i]));
     const rows = [['日付', '曜日', '日の名前', '課', '役職', '名前', '入り', '終わり', '休憩', '休憩(分)', '実働(分)', '実働(時間)', '担当', 'メモ']];
     D.shifts.slice().sort((a, b) => di.get(a.d) - di.get(b.d) || order.get(a.m) - order.get(b.m) || a.s - b.s).forEach(s => {
       const m = mem(s.m), x = dayOf(s.d), p = dParts(s.d);
-      rows.push([s.d, WD[p.w], x.label, grp(m.group).name, role(m.role).name, m.name, fmt2(s.s), fmt2(s.e), s.br.map(b => fmt2(b.s) + '-' + fmt2(b.e)).join(' / '), brMin(s), workMin(s), (workMin(s) / 60).toFixed(2), s.task, s.note]);
+      rows.push([s.d, WD[p.w], tx(x.label), tx(grp(m.group).name), tx(role(m.role).name), tx(m.name), fmt2(s.s), fmt2(s.e), s.br.map(b => fmt2(b.s) + '-' + fmt2(b.e)).join(' / '), brMin(s), workMin(s), (workMin(s) / 60).toFixed(2), tx(s.task), tx(s.note)]);
     });
     download(`shift-${stamp()}.csv`, '﻿' + rows.map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
     toast('CSVを書き出しました（Excelで開けます）');
@@ -1093,14 +1219,49 @@
     if (!f) return;
     const rd = new FileReader();
     rd.onload = () => {
-      let j; try { j = JSON.parse(rd.result); } catch (err) { toast('JSONとして読めませんでした', { err: true }); return; }
-      if (!j || !Array.isArray(j.members) || !Array.isArray(j.shifts)) { toast('シフトのファイルではないようです', { err: true }); return; }
-      const n = normalize(j);
-      if (!confirm(`読み込むと、いまの名簿とシフトは置き換わります。\n読み込む内容：${n.members.length}人・シフト${n.shifts.length}件（「元に戻す」で戻せます）`)) return;
-      commit(D2 => { Object.keys(D2).forEach(k => delete D2[k]); Object.assign(D2, n, { sample: false }); }, `${n.members.length}人・シフト${n.shifts.length}件を読み込みました`);
+      let n;
+      try {
+        const j = JSON.parse(rd.result);
+        if (!j || !Array.isArray(j.members) || !Array.isArray(j.shifts)) throw new Error('shape');
+        n = normalize(j);
+      } catch (err) { toast('シフトのファイルとして読めませんでした（このツールで書き出したJSONを選んでください）', { err: true, ms: 5000 }); return; }
+      openImport(n, f.name);
     };
     rd.readAsText(f);
   });
+  // 読み込み：全部を置き換えるか、1つの課だけを入れ替えるか（GS課と広報課を別々の端末で作って、1台にまとめるとき）
+  function openImport(n, fname) {
+    const cnt = gid => { const ids = new Set(n.members.filter(m => m.group === gid).map(m => m.id)); return [ids.size, n.shifts.filter(s => ids.has(s.m)).length]; };
+    const def = V.grp !== 'all' ? V.grp : 'all';
+    const body = `<div class="msg">「${esc(fname)}」：${n.members.length}人・シフト${n.shifts.length}件</div>
+      <div class="fld"><span class="lb">取り込み方</span>
+        <label class="chk"><input type="radio" name="imM" value="all"${def === 'all' ? ' checked' : ''}> 全部を置き換える（名簿・シフト・設定。いまのものは消えます）</label>
+        ${D.groups.map(g => { const [a, b] = cnt(g.id); return `<label class="chk"><input type="radio" name="imM" value="${g.id}"${def === g.id ? ' checked' : ''}> ${esc(g.name)}だけ入れ替える（ファイルの${a}人・${b}件。ほかの課と設定はこの端末のまま）</label>`; }).join('')}
+      </div><div class="msg">「元に戻す」で読み込む前に戻せます。</div>`;
+    openDlg({ title: 'JSONを読み込む', body, foot: `<span class="grow"></span><button type="button" class="btn" data-close>キャンセル</button><button type="button" class="btn primary" id="imGo">読み込む</button>` });
+    $('imGo').addEventListener('click', () => {
+      const mode = dlg.querySelector('input[name=imM]:checked').value;
+      if (mode === 'all') {
+        commit(D2 => { Object.keys(D2).forEach(k => delete D2[k]); Object.assign(D2, clone(n), { sample: false }); }, `${n.members.length}人・シフト${n.shifts.length}件を読み込みました`);
+      } else {
+        const g = grp(mode), fm = n.members.filter(m => m.group === mode), fIds = new Set(fm.map(m => m.id));
+        const fs = n.shifts.filter(s => fIds.has(s.m));
+        commit(D2 => {
+          const old = new Set(D2.members.filter(m => m.group === mode).map(m => m.id));
+          D2.members = D2.members.filter(m => !old.has(m.id)); D2.shifts = D2.shifts.filter(s => !old.has(s.m));
+          const usedM = new Set(D2.members.map(m => m.id)), usedS = new Set(D2.shifts.map(s => s.id)), idMap = new Map();
+          fm.forEach(m => {
+            const fr = n.roles.find(r => r.id === m.role), lr = fr && (D2.roles.find(r => r.name === fr.name) || D2.roles.find(r => r.id === fr.id));
+            const id = usedM.has(m.id) ? 'm' + uid() : m.id; usedM.add(id); idMap.set(m.id, id);
+            D2.members.push({ id, name: m.name, group: mode, role: lr ? lr.id : D2.roles[D2.roles.length - 1].id, note: m.note });
+          });
+          fs.forEach(s => { const id = usedS.has(s.id) ? 's' + uid() : s.id; usedS.add(id); D2.shifts.push(Object.assign(clone(s), { id, m: idMap.get(s.m) })); });
+          D2.sample = false;
+        }, `${g.name}を入れ替えました（${fm.length}人・シフト${fs.length}件）`);
+      }
+      closeDlg();
+    });
+  }
 
   // ---------- メニュー ----------
   const menu = $('menu');
@@ -1134,16 +1295,22 @@
     else if (a === 'csv') exportCsv();
     else if (a === 'print') window.print();
     else if (a === 'settings') openSettings();
-    else if (a === 'sample') { if (confirm('サンプル（架空の50人）を読み込みますか？\nいまの名簿とシフトは置き換わります。（「元に戻す」で戻せます）')) { const s = sampleData(); commit(D2 => { Object.keys(D2).forEach(k => delete D2[k]); Object.assign(D2, s); }, 'サンプルを読み込みました'); } }
+    else if (a === 'sample') { if (confirm('サンプル（架空の50人）を読み込みますか？\nいまの名簿とシフトは置き換わります（設定はそのまま）。（「元に戻す」で戻せます）')) { const sd = sampleData(); V.hideNote = false; commit(D2 => { D2.members = sd.members; D2.shifts = sd.shifts; D2.sample = true; }, 'サンプルを読み込みました'); } }
     else if (a === 'reset') { if (confirm('名簿とシフトをすべて消しますか？（設定は残ります。「元に戻す」で戻せます）')) commit(D2 => { D2.members = []; D2.shifts = []; D2.sample = false; }, 'すべて消しました'); }
   });
   document.addEventListener('pointerdown', e => { if (!menu.hidden && !menu.contains(e.target) && e.target.id !== 'btnMenu') closeMenu(); });
 
   // ---------- お知らせ ----------
   let toastT = null;
+  function parkToast() { const t = $('toast'); if (t.parentNode !== document.body) document.body.appendChild(t); }
+  function placeToast() {
+    const t = $('toast'), host = dlg.open ? dlg : document.body;
+    if (t.parentNode !== host) host.appendChild(t);
+  }
   function toast(msg, o) {
     o = o || {};
     const t = $('toast');
+    placeToast();
     t.className = 'toast' + (o.err ? ' err' : '');
     t.innerHTML = `<span>${esc(msg)}</span>${o.undo ? '<button type="button" class="btn small" id="toastUndo">元に戻す</button>' : ''}`;
     t.hidden = false;
@@ -1159,6 +1326,20 @@
     $('colorSeg').addEventListener('click', e => { const b = e.target.closest('[data-c]'); if (b) { V.colorBy = b.dataset.c; render(); } });
     $('optHideEmpty').addEventListener('change', e => { V.hideEmpty = e.target.checked; render(); });
     $('q').addEventListener('input', e => { V.q = e.target.value; render(); });
+    // スマホ：虫めがねで検索欄を出す・しまう（しまうときは絞り込みも外す）
+    $('btnSearch').addEventListener('click', () => {
+      const open = !document.body.classList.contains('search-open');
+      document.body.classList.toggle('search-open', open);
+      $('btnSearch').setAttribute('aria-expanded', String(open));
+      if (open) $('q').focus(); else if (V.q) { V.q = ''; $('q').value = ''; render(); }
+    });
+    // 印刷：日別は用紙の幅で描き直す（終わったら画面の幅に戻す）
+    const beforePrint = () => { if (printing) return; printing = true; if (V.view === 'day') renderDay(); };
+    const afterPrint = () => { if (!printing) return; printing = false; render(); };
+    window.addEventListener('beforeprint', beforePrint);
+    window.addEventListener('afterprint', afterPrint);
+    const mqp = window.matchMedia && window.matchMedia('print');
+    if (mqp && mqp.addEventListener) mqp.addEventListener('change', e => { if (e.matches) beforePrint(); else afterPrint(); });
     $('zoomIn').addEventListener('click', () => { V.hourPx = clamp(Math.round((G ? G.hp : 60) * 1.25), 20, 320); render(); });
     $('zoomOut').addEventListener('click', () => { V.hourPx = clamp(Math.round((G ? G.hp : 60) / 1.25), 20, 320); render(); });
     $('zoomFit').addEventListener('click', () => { V.hourPx = null; render(); });
@@ -1173,7 +1354,7 @@
     $('btnUndo').addEventListener('click', undo);
     $('btnRedo').addEventListener('click', redo);
     $('btnClearSample').addEventListener('click', clearSample);
-    $('btnHideNote').addEventListener('click', () => { noteHidden = true; render(); });
+    $('btnHideNote').addEventListener('click', () => { V.hideNote = true; render(); });
     $('weekView').addEventListener('click', e => {
       const th = e.target.closest('th[data-d]');
       if (th) { V.day = th.dataset.d; V.view = 'day'; render(); return; }
@@ -1184,7 +1365,10 @@
       const chip = e.target.closest('.chip');
       if (chip) { const sh = D.shifts.find(s => s.id === chip.dataset.id); if (sh) openShiftEditor(sh); return; }
       const cell = e.target.closest('td.cell');
-      if (cell) openShiftEditor(newDraft(cell.closest('tr').dataset.m, cell.dataset.d));
+      if (!cell) return;
+      const mId = cell.closest('tr').dataset.m, list = shiftsOf(mId, cell.dataset.d);
+      if (!e.target.closest('[data-add2]') && list.length === 1) openShiftEditor(list[0]);
+      else if (e.target.closest('[data-add2]') || !list.length) openShiftEditor(newDraft(mId, cell.dataset.d));
     });
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape' && !menu.hidden) { closeMenu(); return; }
@@ -1203,11 +1387,12 @@
       try { D = normalize(JSON.parse(e.newValue)); undoS = []; redoS = []; render(); refreshOpenDlg(); toast('ほかのタブでの変更を反映しました'); } catch (err) {}
     });
     // 今の時刻の線（1分ごと）
-    setInterval(() => { if (!drag && !dlg.open && V.view === 'day' && dayOf(jstNow().ymd)) render(); }, 60000);
+    setInterval(() => { if (!drag && !printing && !dlg.open && V.view === 'day' && dayOf(jstNow().ymd)) render(); }, 60000);
   }
 
   D = loadData();
   V = loadView();
+  if (dayOf(jstNow().ymd)) V.day = jstNow().ymd;   // 期間中は、開いたら今日（前に見ていた日ではなく）
   bind();
   render();
   if (!localStorageHas()) save();
