@@ -17,6 +17,7 @@ self.addEventListener('fetch', e => {
   const url = new URL(req.url);
   if (url.origin !== location.origin) return;        // 地図/API等はそのままネットワーク
   if (/\/(api|ingest)\//.test(url.pathname)) return;  // 位置のAPIは同じオリジンでも保存しない
+  if (/\/shift\//.test(url.pathname)) return;        // シフト管理（shift/）は別のページ：地図のキャッシュに混ぜず、いつもネットワークから
   if (req.mode === 'navigate') {                      // ページ遷移：ネット優先・失敗時はキャッシュのシェル
     e.respondWith(
       fetch(req).then(r => { if (url.pathname.endsWith('index-google.html')) { const cp = r.clone(); caches.open(CACHE).then(c => c.put('./index-google.html', cp)); } return r; })

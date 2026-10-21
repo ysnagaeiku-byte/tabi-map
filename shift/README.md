@@ -5,7 +5,7 @@
 
 - 対象：渉外局（約50人）。局（局長・副局長）・GS課（約15人）・広報課（約30人）
 - 期間：2026年11月4日(水)〜9日(月)の6日間（本祭の期間と、その前後）
-- 開き方：`shift/index.html` をブラウザで開く（サーバーは不要。ローカルでも動きます）
+- 開き方：公開先 **https://ysnagaeiku-byte.github.io/tabi-map/shift/** を開く。手元では `shift/index.html` をブラウザで開くだけでも動きます（サーバーは不要）
 - 日付の区分は「11/4〜6 準備、11/7・8 本祭、11/9 片付け」と仮に置いています。違うときは「⋯」→設定→日付と区分で直せます
 
 ## 画面
@@ -56,4 +56,6 @@
 
 - データの形は `shift.js` の `normalize()` が基準です（`members`・`shifts`・`roles`・`groups`・`days`・`presets`・`opt`）。時刻は 0:00 からの分（例：9:00 → 540）
 - 端末をまたいで共有するには、受信API（`tracking-worker/`）に時刻表（`/api/v1/schedule`）と同じ形で `GET/PUT /api/v1/shifts` を足し、閲覧キー・編集の権限・同時編集の 409 をそのまま使うのが近道です
-- GitHub Pages の公開は `.github/workflows/deploy.yml` の許可リストにあるファイルだけです。このフォルダはまだリストに入れていないので、公開されません
+- GitHub Pages には `.github/workflows/deploy.yml` の許可リストで `shift/` の `index.html`・`shift.css`・`shift.js` だけを載せています（この説明書は載せません）。main に入ると自動で公開されます
+- 公開ページはURLを知っていれば誰でも開けます（検索には出ないようにしてあります）。名簿とシフトは開いた端末の中にだけ保存され、ほかの人には見えません
+- 地図のページの Service Worker（`sw.js`）は `shift/` を扱わない（いつもネットワークから読む）ようにしてあります。`shift.css`・`shift.js` を直したら、`index.html` の `?v=` の数字を上げてください

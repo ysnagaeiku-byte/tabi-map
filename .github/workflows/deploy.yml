@@ -33,7 +33,12 @@ jobs:
                    fest-map-style.json fest-map-style-dark.json; do
             cp "$f" dist-pages/
           done
-          ls -a dist-pages
+          # シフト管理（本祭支援ツールの試作・単独のページ）。説明書（README.md）は載せない
+          mkdir -p dist-pages/shift
+          for f in index.html shift.css shift.js; do
+            cp "shift/$f" dist-pages/shift/
+          done
+          ls -a dist-pages dist-pages/shift
 
       - name: Inject API keys from secrets (repo に実キーは残さない)
         env:
