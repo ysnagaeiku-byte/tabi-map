@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#000000" />
+<meta name="robots" content="noindex, nofollow" />
+<title>渉外局 シフト管理（本祭支援ツール 試作）</title>
+<link rel="icon" href="../icon-senshu-192.png" />
+<link rel="apple-touch-icon" href="../apple-touch-icon-senshu.png" />
+<link rel="stylesheet" href="shift.css?v=1" />
+</head>
+<body>
+<!-- たびマップ 本祭支援ツールに入れる予定の「シフト作成・管理」を、先に単独のサイトとして試すもの。
+     名簿とシフトはこの端末（localStorage）にだけ保存する。リポジトリは公開なので、実際の名簿はコードに書かない。 -->
+<header class="top">
+  <div class="top-row">
+    <div class="brand">
+      <span class="brand-mark" aria-hidden="true"></span>
+      <div class="brand-txt">
+        <h1 id="appTitle">渉外局 シフト</h1>
+        <div class="brand-sub" id="appSub">11/4〜11/9</div>
+      </div>
+    </div>
+    <div class="top-act">
+      <button type="button" class="btn icon" id="btnUndo" title="元に戻す（Ctrl+Z）" aria-label="元に戻す" disabled>↶</button>
+      <button type="button" class="btn icon" id="btnRedo" title="やり直す（Ctrl+Shift+Z）" aria-label="やり直す" disabled>↷</button>
+      <button type="button" class="btn primary" id="btnAdd"><span class="pc">＋ シフト</span><span class="sp">＋</span></button>
+      <button type="button" class="btn" id="btnBulk"><span class="pc">まとめて追加</span><span class="sp">一括</span></button>
+      <button type="button" class="btn" id="btnMembers"><span class="pc">メンバー</span><span class="sp">名簿</span></button>
+      <button type="button" class="btn icon" id="btnMenu" aria-label="その他" aria-haspopup="menu">⋯</button>
+    </div>
+  </div>
+  <div class="top-row sub">
+    <div class="seg" id="viewSeg" role="tablist" aria-label="表示">
+      <button type="button" role="tab" data-view="day">日別</button>
+      <button type="button" role="tab" data-view="week">6日間</button>
+    </div>
+    <div class="seg grp" id="grpSeg" role="tablist" aria-label="課"></div>
+    <label class="search"><span aria-hidden="true">⌕</span><input type="search" id="q" placeholder="名前で絞る" autocomplete="off" /></label>
+  </div>
+  <nav class="days" id="dayTabs" aria-label="日付"></nav>
+</header>
+
+<div id="sampleNote" class="note" hidden>
+  <span>いま表示しているのは<b>サンプル</b>（架空の名前）です。「メンバー」から実際の名簿に差し替えてください。</span>
+  <span class="acts"><button type="button" class="btn small" id="btnClearSample">サンプルを消して始める</button><button type="button" class="btn small ghost x" id="btnHideNote" aria-label="この案内を閉じる">×</button></span>
+</div>
+
+<main id="main">
+  <section id="dayView" class="view" aria-label="日別のタイムライン">
+    <div class="tl-tools">
+      <div class="tl-sum" id="daySum"></div>
+      <div class="tl-ctrl">
+        <label class="chk"><input type="checkbox" id="optHideEmpty" /> シフトなしを隠す</label>
+        <div class="seg mini" id="colorSeg" aria-label="棒の色">
+          <button type="button" data-c="group"><span class="pc">課で色分け</span><span class="sp">課の色</span></button>
+          <button type="button" data-c="role"><span class="pc">役職で色分け</span><span class="sp">役職の色</span></button>
+        </div>
+        <div class="zoom">
+          <button type="button" class="btn small icon" id="zoomOut" aria-label="縮小">−</button>
+          <button type="button" class="btn small" id="zoomFit">全体</button>
+          <button type="button" class="btn small icon" id="zoomIn" aria-label="拡大">＋</button>
+        </div>
+      </div>
+    </div>
+    <div class="tl-wrap" id="tlWrap"><div class="tl" id="tl"></div></div>
+  </section>
+
+  <section id="weekView" class="view" aria-label="6日間の一覧" hidden>
+    <div class="tl-tools"><div class="tl-sum" id="weekSum"></div></div>
+    <div class="mx-wrap" id="mxWrap"></div>
+  </section>
+
+  <footer class="legend" id="legend"></footer>
+</main>
+
+<div id="menu" class="menu" role="menu" hidden></div>
+<dialog id="dlg" class="dlg"></dialog>
+<div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+<input type="file" id="fileIn" accept="application/json,.json" hidden />
+
+<script src="shift.js?v=1"></script>
+</body>
+</html>
