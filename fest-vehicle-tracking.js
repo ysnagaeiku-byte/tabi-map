@@ -294,6 +294,7 @@
       if (r.status === 200) {
         const b = await r.json(); festHttp.me = b; festStore.set(ME_KEY, JSON.stringify(b));
         if (festStore.preview && b.role === 'full') festStore.promote();   // このタブのキーが本部版だった：端末に記憶する
+        else if (!festStore.preview && b.role === 'full' && festStore.rememberHq) festStore.rememberHq(c.viewerToken);   // 本部版のキーを別にも記憶（配布版を開いても上書きしない・消えても戻す）
         try { if (typeof festLockClear === 'function' && festLockGet()) festLockClear(); } catch (e) {}   // 新しい有効なキー：閉じた状態を解除
         applyMe(b);
       } else if (r.status === 401) {   // 取り消し・期限切れ・違うキー：記憶した権限と時刻表を消す（画面の制限は「未確認」のまま）
