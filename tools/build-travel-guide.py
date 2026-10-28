@@ -26,6 +26,7 @@ MOD = '表示用に縮小・WebP形式に変換（内容の加工なし）'   # 
 # 実装時の目視の記録（素材集では「目視未了」だった写真のうち、一覧シートで被写体と名称の対応を確かめたもの／載せないもの）
 REVIEW = json.loads((Path(__file__).resolve().parent / 'travel-guide-review.json').read_text(encoding='utf-8'))
 REVIEW_OK, REJECTED = set(REVIEW['ok']), REVIEW.get('rejected', {})
+REJECT_USE = REVIEW.get('rejectedUse', {})   # 写真そのものは良いが、この項目に使うのは誤り（同名の別の場所など）：項目ID → 理由
 
 def load(n): return json.loads((SRC / 'data' / n).read_text(encoding='utf-8'))
 O, T = load('onsen.json'), load('tourism.json')
@@ -36,12 +37,19 @@ def check(ok, msg):
 # ---------- 写真 ----------
 # 素材集の撮影者名が不十分だったもの：2026-10-28 に Wikimedia Commons のファイル説明ページで撮影者を確認して補う
 CREATOR_FIX = {'File:TsukimiBashi2004-12.jpg': 'Kinori',          # 「撮影者 - Kinori」（PD-user|Kinori）
+               'File:Awa-dance memorial hall01s3200.jpg': '663highland',   # 作者欄に場所が入っていた。投稿者 663highland の自作（Own work）
+               'File:住吉大社にて 住吉鳥居 2012.10.13 - panoramio.jpg': 'Nankou Oronain（Panoramio）',   # Commons の表記自体が「Nankou Oronain (as36…」で途切れている
+               'File:馬見丘陵公園 公園館 2012.6.07 - panoramio.jpg': 'Nankou Oronain（Panoramio）',
                }
 def creator_text(i):
     """クレジットに出す撮影者名。求められた表記があればそれを使い、Commons の定型文・署名の残り・URL は読める形に整える"""
     if i.get('fileTitle') in CREATOR_FIX: return CREATOR_FIX[i['fileTitle']]
     c = (i.get('requestedAttribution') or '').strip() or (i.get('creator') or '').strip()
     c = re.sub(r'\s*\(\s*talk\s*\)', '', c)                                  # 署名の「( talk )」
+    c = re.sub(r'\s*(?:This photo was taken with|Taken with)\b.*$', '', c)   # 撮影機材の書き込み
+    c = re.sub(r'^photo:\s*', '', c)
+    m = re.fullmatch(r'flickr ID;\s*(\S+)\s*\(\s*URL\s*\)', c)
+    if m: c = m.group(1) + '（Flickr）'
     c = re.sub(r'\s*\d{1,2}:\d{2}, \d{1,2} [A-Za-z]+ \d{4} \(UTC\)', '', c)  # 署名の日時
     m = re.fullmatch(r'(?:日|ja):\s*(\S+)\s*,\s*\1', c)                      # 「日:Muramasa , Muramasa」
     if m: c = m.group(1)
@@ -139,7 +147,7 @@ for t in sorted(T, key=lambda t: (t['prefCode'], t['displayOrder'])):
     check(t['category'] in dict(CATS), '不明なカテゴリ: ' + t['category'])
     check(https(t['officialUrl']), '公式URLがhttpsではありません: ' + t['name'])
     i = t.get('image')
-    m = media_index(i) if publishable(i) else -1
+    m = media_index(i) if publishable(i) and t['id'] not in REJECT_USE else -1
     if m < 0: pend.append(t['id'])
     r = t.get('referenceCoordinates')
     items.append({'id': t['id'], 'p': t['prefCode'], 'n': t['name'], 'c': t['city'], 'k': t['category'], 'd': t['description'], 'h': t['highlights'],
@@ -155,6 +163,7 @@ for code, name in prefs:
 # 使っていない古い写真を消す（ファイル名＝中身のハッシュ）
 for p in (OUT / 'photos').glob('*.webp'):
     if p.name not in used: p.unlink()
+for k in REJECT_USE: check(k in ids, '目視の記録にあるが素材集にない項目: ' + k)
 for k in REVIEW_OK | set(REJECTED):
     check(k in {(o.get('image') or {}).get('id') for o in O + T}, '目視の記録にあるが素材集にない写真: ' + k)
 if err:

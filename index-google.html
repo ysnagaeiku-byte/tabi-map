@@ -2615,7 +2615,7 @@ window.ogNearby=function(lat,lng){infoWindow.close();map.setCenter({lat,lng});ma
 // ===== 温泉郷の紹介・観光特集（guide/：紹介文と写真。tools/build-travel-guide.py で作る） =====
 // 写真は「取得済み・被写体の目視確認済み」のものだけ。未取得の項目は無地の代替表示（別の写真で代用しない）
 // 写真の近くに撮影者・ライセンス・出典（Wikimedia Commons のファイル説明ページ）を出し、全点の一覧は「写真の出典一覧」で見られる
-const GUIDE_V=2;                                   // guide/*.json を作り直したら上げる（Service Worker が古い版を使い続けないように）
+const GUIDE_V=3;                                   // guide/*.json を作り直したら上げる（Service Worker が古い版を使い続けないように）
 const GUIDE_PH=/^photos\/[0-9a-f]{16}\.webp$/;     // 写真のパス（中身のハッシュ名）以外は使わない
 const guide={onsen:null,tour:null,_p:{}};
 function guideLoad(name){
