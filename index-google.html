@@ -2727,7 +2727,7 @@ function tourNameOk(a,b){const n=s=>tourNorm(String(s||'').replace(/[（(][^（(
 // 置いたピンの吹き出しが上の帯（たたんだ観光特集・検索バー）に隠れないよう、地図を下へずらす
 function tourPin(lat,lng,name,sub){placeTempPin(lat,lng,name,sub);
   const fix=()=>{const iw=document.querySelector('.gm-style-iw-c');if(!iw||!map||!map.getProjection())return;
-    const over=tourPanel.getBoundingClientRect().bottom+10-iw.getBoundingClientRect().top;if(over<=0)return;
+    const over=document.getElementById('topbar').getBoundingClientRect().bottom+10-iw.getBoundingClientRect().top;if(over<=0)return;   // 上部のバー（検索・タブ・たたんだ一覧）の下に出す
     const pr=map.getProjection(),sc=Math.pow(2,map.getZoom()),w=pr.fromLatLngToPoint(map.getCenter());   // 移動のアニメーションに打ち消されないよう、止まってから中心を直接ずらす
     map.setCenter(pr.fromPointToLatLng(new google.maps.Point(w.x,w.y-over/sc)));};
   let t=null;const L=google.maps.event.addListener(map,'idle',()=>{clearTimeout(t);t=setTimeout(()=>{google.maps.event.removeListener(L);fix();},200);});
