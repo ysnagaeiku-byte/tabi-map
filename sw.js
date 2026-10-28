@@ -1,6 +1,6 @@
 // たびマップ Service Worker — アプリシェルをキャッシュしオフライン起動を可能に。
 // 地図タイル/Places/Routes 等のクロスオリジンは常にネットワーク（キャッシュしない）。
-const CACHE = 'tabimap-v5';
+const CACHE = 'tabimap-v6';   // アプリ情報（manifest）を変えたら上げる（保存済みの古いアプリ情報を使い続けないように）
 const PHOTO_CACHE = 'tabimap-photos-v1';   // 温泉郷・観光特集の写真（guide/photos/）。見た分だけ保存し、件数に上限を設ける
 const PHOTO_MAX = 200;                     // 写真の保存は新しい順に200枚まで（1枚おおむね50KB＝約10MB）。古いものから消す
 const SHELL = ['./index-google.html', './manifest.json', './icon-192.png', './icon-512.png', './apple-touch-icon.png',
