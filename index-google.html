@@ -35,7 +35,7 @@
     --line:#e3e7ee; --accent:#3b6fff; --accent-btn:#3463f0; --accent-weak:#e8efff; --shadow:rgba(20,30,60,.13);
     --c-onsen:#f76707; --c-parking:#3b6fff; --c-hotel:#ae3ec9;
     --c-conveni:#2f9e44; --c-food:#e8590c; --c-fuel:#f59f00; --c-sapa:#0ca678; --c-michi:#c92a2a; --c-onsengo:#e64980; --route:#3b82f6;
-    --open:#2f9e44; --closed:#e03131;
+    --open:#2f9e44; --closed:#e03131; --c-tour:#0c8599;
   }
   :root[data-theme="dark"]{
     --bg:#0c0e13; --panel:#14171e; --panel-blur:rgba(17,20,27,.80);
@@ -43,7 +43,7 @@
     --line:#2a313d; --accent:#6f9bff; --accent-btn:#3463f0; --accent-weak:rgba(111,155,255,.16); --shadow:rgba(0,0,0,.55);
     --c-onsen:#ff922b; --c-parking:#6f9bff; --c-hotel:#da77f2;
     --c-conveni:#51cf66; --c-food:#ff922b; --c-fuel:#ffd43b; --c-sapa:#20c997; --c-michi:#ff8787; --c-onsengo:#f06595; --route:#5b8cff;
-    --open:#51cf66; --closed:#ff6b6b;
+    --open:#51cf66; --closed:#ff6b6b; --c-tour:#1098ad;
   }
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{margin:0;padding:0;height:100%;width:100%;overflow:hidden;}   /* 地図アプリなのでページ自体はスクロールさせない（全画面⇔縮小で画面がずれて見切れるのを防ぐ） */
@@ -174,6 +174,60 @@
   .tab.active{color:#fff;border-color:transparent;text-shadow:0 1px 2px rgba(0,0,0,.35);}   /* 明るい色のタブでも白い文字が読めるように */
   #customPanel{display:none;margin:8px 12px 0;border:1px solid var(--line);border-radius:16px;padding:10px 12px;background:var(--panel);box-shadow:0 10px 30px var(--shadow);gap:8px;flex-wrap:wrap;max-height:66vh;overflow-y:auto;}
   #customPanel.open{display:flex;}
+  /* 観光特集（47都道府県）：県・カテゴリ・キーワードで絞り、カードを20件ずつ出す。写真は表示されるときに読み込む */
+  #tourPanel{display:none;flex-direction:column;margin:8px 12px 0;width:min(560px,calc(100% - 24px));border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--fg);box-shadow:0 10px 30px var(--shadow);max-height:62vh;max-height:62dvh;overflow:hidden;}
+  #tourPanel.open{display:flex;}
+  .tg-head{padding:9px 12px 8px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:7px;flex:0 0 auto;}
+  .tg-top{display:flex;align-items:center;gap:8px;}
+  .tg-top b{font-size:14px;color:var(--c-tour);white-space:nowrap;}
+  .tg-top .tg-sum{flex:1;min-width:0;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  .tg-top button{flex:0 0 auto;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:8px;font-size:12px;font-weight:700;padding:5px 9px;cursor:pointer;}
+  .tg-row{display:flex;gap:6px;}
+  .tg-row select,.tg-row input{min-width:0;border:1px solid var(--line);border-radius:9px;background:var(--surface);color:var(--fg);padding:7px 9px;font-size:13px;font-family:inherit;}
+  .tg-row select{flex:0 0 auto;max-width:44%;} .tg-row input{flex:1;}
+  .tg-cats{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;} .tg-cats::-webkit-scrollbar{display:none;}
+  .tg-cat{flex:0 0 auto;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .tg-cat small{font-weight:600;color:var(--muted);margin-left:3px;}
+  .tg-cat.on{background:var(--c-tour);border-color:var(--c-tour);color:#fff;} .tg-cat.on small{color:rgba(255,255,255,.85);}
+  .tg-list{overflow-y:auto;overscroll-behavior:contain;padding:10px 12px 12px;display:flex;flex-direction:column;gap:10px;flex:1 1 auto;min-height:0;}
+  .tg-msg{font-size:12.5px;color:var(--muted);padding:6px 2px;line-height:1.6;}
+  .tg-card{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);flex:0 0 auto;}
+  .tg-ph{margin:0;background:var(--surface-2);}
+  .tg-ph img{display:block;width:100%;height:auto;max-height:210px;object-fit:contain;background:var(--surface-2);}
+  .tg-ph figcaption,.og-ph figcaption{font-size:10.5px;color:var(--muted);line-height:1.45;padding:4px 10px 0;overflow-wrap:anywhere;}
+  .g-cr a{color:inherit;text-decoration:underline;}
+  .tg-noph{height:38px;display:flex;align-items:center;justify-content:center;background:var(--surface-2);color:var(--muted);font-size:11px;}
+  .tg-body{padding:8px 10px 10px;}
+  .tg-body h4{margin:0;font-size:14.5px;line-height:1.35;}
+  .tg-meta{font-size:11.5px;color:var(--muted);margin-top:2px;}
+  .tg-d{font-size:12.5px;line-height:1.6;margin:6px 0 4px;}
+  .tg-hl{display:flex;flex-wrap:wrap;gap:4px;margin:4px 0;} .tg-hl span{font-size:11px;padding:2px 7px;border-radius:999px;background:var(--accent-weak);color:var(--fg);}
+  .tg-note{font-size:11.5px;color:var(--muted);line-height:1.55;margin-top:3px;}
+  .tg-note b{color:var(--fg);font-weight:700;}
+  .tg-warn{font-size:11.5px;line-height:1.55;margin-top:5px;padding:5px 8px;border-radius:8px;border:1px solid #e03131;color:#c92a2a;background:rgba(224,49,49,.08);}
+  :root[data-theme="dark"] .tg-warn{color:#ff8787;}
+  .tg-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;}
+  .tg-acts button,.tg-acts a{font-size:12.5px;font-weight:700;padding:7px 11px;border-radius:9px;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);text-decoration:none;cursor:pointer;font-family:inherit;}
+  .tg-acts .tg-go{background:var(--c-tour);border-color:var(--c-tour);color:#fff;}
+  .tg-more{border:1px dashed var(--line);background:none;color:var(--fg);border-radius:10px;padding:9px;font-size:12.5px;font-weight:700;cursor:pointer;flex:0 0 auto;font-family:inherit;}
+  .tg-foot{font-size:11px;color:var(--muted);line-height:1.55;padding:2px 2px 0;flex:0 0 auto;}
+  .tg-foot button{border:none;background:none;color:var(--accent);font-size:11px;font-weight:700;padding:0;cursor:pointer;text-decoration:underline;font-family:inherit;}
+  #tourPanel.min{max-height:none;} #tourPanel.min .tg-list,#tourPanel.min .tg-row,#tourPanel.min .tg-cats{display:none;} #tourPanel.min .tg-head{border-bottom:none;}
+  /* 温泉郷の吹き出し：代表写真1点と紹介文 */
+  .og-ph{margin:6px 0 4px;max-width:300px;} .og-ph img{display:block;width:100%;height:auto;max-height:190px;object-fit:contain;border-radius:8px;background:#f1f4f8;}
+  .og-ph figcaption{padding:3px 0 0;color:#6b7280;} .og-ph .g-cr a{color:#52606d;}
+  .og-ph .g-crl{border:none;background:none;padding:0;color:#1a73e8;font-size:10.5px;font-weight:700;text-decoration:underline;cursor:pointer;font-family:inherit;}
+  .og-noph{height:30px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:#f1f4f8;color:#6b7280;font-size:11px;margin:6px 0 4px;max-width:300px;}
+  .og-d{font-size:12.5px;color:#16181d;line-height:1.55;margin:4px 0 2px;max-width:300px;}
+  /* 写真の出典一覧 */
+  #guideCr{display:none;position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:1500;width:min(560px,94vw);max-height:82vh;max-height:82dvh;flex-direction:column;background:var(--panel);color:var(--fg);border:1px solid var(--line);border-radius:16px;box-shadow:0 12px 40px var(--shadow);}
+  #guideCr.open{display:flex;}
+  #guideCr .gc-h{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;border-bottom:1px solid var(--line);font-size:14px;font-weight:800;}
+  #guideCr .gc-h button{border:none;background:none;color:var(--muted);font-size:16px;cursor:pointer;}
+  #guideCr .gc-b{overflow-y:auto;padding:10px 14px 14px;font-size:12px;line-height:1.6;}
+  #guideCr .gc-b h5{margin:12px 0 4px;font-size:12.5px;} #guideCr .gc-b p{margin:0 0 6px;color:var(--muted);}
+  #guideCr .gc-i{padding:6px 0;border-top:1px solid var(--line);overflow-wrap:anywhere;} #guideCr .gc-i small{color:var(--muted);}
+  #guideCr a{color:var(--accent);}
   .chk{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;border:1px solid var(--line);background:var(--surface-2);border-radius:999px;padding:7px 12px;cursor:pointer;color:var(--fg);}
   .chk input{accent-color:var(--accent);width:16px;height:16px;} .chk .dot{width:10px;height:10px;border-radius:50%;}
   #controls{position:fixed;left:0;right:0;bottom:0;z-index:1000;display:flex;justify-content:center;gap:10px;padding:12px 12px calc(12px + env(safe-area-inset-bottom));pointer-events:none;}
@@ -1180,12 +1234,14 @@
   <div class="tabs" id="tabs"></div>
   <div id="customPanel"></div>
   <div id="isoPanel"></div>
+  <div id="tourPanel" aria-label="観光特集"></div>
 </div>
 <div id="festBaseBar"></div>
 <div id="liveClock" title="現在時刻（NTP同期・JST）／タップで緊急避難"><div id="lcMain"><span id="lcTime">--:--:--</span><span id="lcDate"></span><div id="speedChip"><b id="spdVal">--</b><span class="spd-u">km/h</span></div></div><div id="lcEv"></div><span id="evacLabel">緊急避難</span></div>
 <div id="festHq" aria-hidden="true">本部統括用</div><div id="festPv" role="status">配布版を確認中（このタブだけ）<button type="button" onclick="festStore.back()">本部版に戻る</button></div>
 <div id="qkBand" role="alert" aria-live="assertive"><div class="qk-row qk-r1"><span class="qk-in"></span></div><div class="qk-row qk-r2"><span class="qk-in"></span></div></div>
 <div id="festBand" role="button" title="各号館の開錠・施錠時刻（押すと編集）"><div class="fb-view"><div class="fb-page"></div><div class="fb-page"></div><span id="fbMeasure" aria-hidden="true"></span></div></div>
+<div id="guideCr" role="dialog" aria-label="写真の出典一覧"><div class="gc-h"><span>写真の出典一覧</span><button type="button" id="guideCrClose" title="閉じる">✕</button></div><div class="gc-b" id="guideCrBody"></div></div>
 <div id="evacPanel"><div class="evac-h"><b>緊急避難（参考）</b><button id="evacClose" title="閉じる">✕</button></div><div id="evacBody"></div></div>
 <div id="toolMenu">
   <div class="tm-head"><b>機能</b><button id="toolMenuClose" title="閉じる">✕</button></div>
@@ -1478,8 +1534,8 @@ const CATS={
 const cssvar=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const catColor=k=>cssvar(CATS[k]?CATS[k].cv:'--muted')||'#888';
 const TAB_ORDER=FEST?['custom','iso','route']   // 試験用（学園祭）では「温泉郷」は使わないので出さない
-  :['onsengo','custom','iso','route']; // 温泉・銭湯/駐車場/宿泊/SA・PA はカスタムタブで代用するため常時タブからは外す
-const TAB_META={onsengo:{label:'温泉郷',emoji:'♨',cv:'--c-onsengo'},onsen:CATS.onsen,parking:CATS.parking,hotel:CATS.hotel,sapa:CATS.sapa,custom:{label:'カスタム',emoji:'',cv:'--muted'},iso:{label:'到達圏',emoji:'',cv:'--accent'},route:{label:'ルート・費用',emoji:'',cv:'--route'}};
+  :['onsengo','tour','custom','iso','route']; // 温泉・銭湯/駐車場/宿泊/SA・PA はカスタムタブで代用するため常時タブからは外す
+const TAB_META={onsengo:{label:'温泉郷',emoji:'♨',cv:'--c-onsengo'},tour:{label:'観光特集',emoji:'',cv:'--c-tour'},onsen:CATS.onsen,parking:CATS.parking,hotel:CATS.hotel,sapa:CATS.sapa,custom:{label:'カスタム',emoji:'',cv:'--muted'},iso:{label:'到達圏',emoji:'',cv:'--accent'},route:{label:'ルート・費用',emoji:'',cv:'--route'}};
 // 均一料金区間（普通車ベース・ETC概算／車種はVEH係数で按分）— 距離別ではなく定額の有料区間
 const FLAT_ROADS=[
   {re:/アクアライン|海ほたる|木更津金田/,yen:800,name:'東京湾アクアライン'},
@@ -1901,7 +1957,7 @@ function buildTabs(){tabsEl.innerHTML='';TAB_ORDER.forEach(key=>{const m=TAB_MET
 function setPlain(){
   activeTab=null;buildTabs();try{wxClickSync();}catch(e){}
   if(map)map.setOptions({disableDoubleClickZoom:false}); // ルート以外は通常のダブルクリックズームに戻す
-  customPanel.classList.remove('open');document.getElementById('isoPanel').classList.remove('open');routeSheet.classList.remove('open');
+  customPanel.classList.remove('open');document.getElementById('isoPanel').classList.remove('open');routeSheet.classList.remove('open');tourPanel.classList.remove('open');
   document.getElementById('controls').style.display='none';
   if(!onsenLayerOn)clearArr(onsengoMarkers); // 温泉郷/POI/到達圏レイヤーはタブ離脱後も保持
 }
@@ -1910,19 +1966,20 @@ function selectTab(key){
   activeTab=key;buildTabs();try{wxClickSync();}catch(e){}
   const routeMode=(key==='route'),isoMode=(key==='iso');
   if(map)map.setOptions({disableDoubleClickZoom:routeMode}); // ルート中はダブルクリックで地点追加（ズーム誤発火を防止）
-  customPanel.classList.toggle('open',key==='custom');
+  customPanel.classList.toggle('open',key==='custom');tourPanel.classList.toggle('open',key==='tour');
   document.getElementById('isoPanel').classList.toggle('open',isoMode);
   routeSheet.classList.toggle('open',routeMode);
   if(routeMode)routeSheet.classList.remove('collapsed'); // 「ルート・費用」を押したら常に展開（前回の収納状態を引きずらない）
-  document.getElementById('controls').style.display=(routeMode||isoMode||key==='onsengo')?'none':'flex';
+  document.getElementById('controls').style.display=(routeMode||isoMode||key==='onsengo'||key==='tour')?'none':'flex';
   if(!onsenLayerOn)clearArr(onsengoMarkers); // 温泉郷レイヤー/到達圏はタブを切り替えても保持
   if(key==='onsengo'){onsenLayerOn=true;renderOnsenGo();map.fitBounds(llBounds(ONSEN_GO),40);showStatus('温泉郷 '+ONSEN_GO.length+'件',false);hideStatusLater();}
   else if(key==='custom'){buildCustomPanel();runSearch();}
+  else if(key==='tour'){tourOpen();}
   else if(isoMode){buildIsoPanel();showStatus('地図をタップして到達圏の基準地点を設定',false);hideStatusLater();}
   else if(routeMode){renderPoints();updatePrefHint();showStatus('地図を「ダブルタップ」で地点を追加できます（誤操作防止）',false);hideStatusLater();}
   else{runSearch();}
 }
-const customPanel=document.getElementById('customPanel');
+const customPanel=document.getElementById('customPanel'),tourPanel=document.getElementById('tourPanel');
 // ===== 到達圏（アイソクロン：60分まではMapbox／60分超は平均速度ベースの概算リング） =====
 const ISO_PROFILES=[{k:'driving',label:'車'},{k:'walking',label:'徒歩'},{k:'cycling',label:'自転車'}];
 const ISO_MIN_OPTS=FEST?[5,10,30,60]:[5,10,30,60,120,180];   // 本祭支援ツールは60分まで（2時間・3時間・任意の時間は使わない）
@@ -2543,14 +2600,163 @@ function taxOku(tx){return (tx/100000).toFixed(2)+'億円';}
 function renderOnsenGo(){clearArr(onsengoMarkers);
   [...ONSEN_GO].sort((a,b)=>(a.s||2)-(b.s||2)).forEach(o=>{const sc=onsenScale(o);
     const m=new google.maps.Marker({position:{lat:o.lat,lng:o.lng},map,icon:onsenIcon(sc.c,sc.sz),label:{text:'♨',fontSize:Math.round(4+sc.sz*5.5)+'px',color:'#fff',fontWeight:'700'},title:o.name+'（'+sc.l+'）',zIndex:(o.s||2)});
-    m._s=o.s||2;m.addListener('click',()=>openInfo(m,onsengoPopup(o)));onsengoMarkers.push(m);});
+    m._s=o.s||2;m.addListener('click',()=>onsenOpen(m,o));onsengoMarkers.push(m);});
+  guideLoad('onsen').catch(()=>{});   // 紹介文・写真の一覧（約60KB）を先に読んでおく。写真そのものは吹き出しを開いたときに読む
   if(!renderOnsenGo._lod){renderOnsenGo._lod=true;if(map)map.addListener('zoom_changed',applyOnsenLod);} // ズームで表示密度を調整（一度だけ登録）
   applyOnsenLod();}
 // 引き（低ズーム）ではピンが重なるので、規模の大きい温泉から順に表示（LOD）。ズームインで徐々に増える
 function onsenLodMin(z){return z>=9?1:z>=8?2:z>=7?3:z>=6?4:5;}
 function applyOnsenLod(){if(!onsenLayerOn||!map)return;const min=onsenLodMin(map.getZoom()||6);onsengoMarkers.forEach(m=>{const s=m._s||2;if(m.getVisible()!==(s>=min))m.setVisible(s>=min);});}
-function onsengoPopup(o){const q=encodeURIComponent(o.name);const sc=onsenScale(o);const taxTxt=o.tax?`入湯税 ${taxOku(o.tax)}/年（2023年度・全国上位）`:'入湯税データ非公表';return `<div class="popup"><h3>♨ ${escapeHtml(o.name)}</h3><div class="meta">${escapeHtml(o.area)}${o.note?(' ・ '+escapeHtml(o.note)):''}</div><div class="meta" style="margin-top:3px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${sc.c};margin-right:5px;vertical-align:middle;"></span><b>規模：${sc.l}</b>・${taxTxt}</div>${routeActionsHtml(o.lat,o.lng,o.name)}<div class="links"><button class="dest" onclick="window.setDest(${o.lat},${o.lng},'${encodeURIComponent(o.name)}')">ここへ</button><button onclick="window.ogNearby(${o.lat},${o.lng})">周辺の温泉</button>${circleIsoBtns(o.lat,o.lng,o.name)}<a class="rakuten" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+楽天トラベル">宿(楽天)</a><a class="official" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+ゆこゆこ">♨ ゆこゆこ</a><a class="official" target="_blank" rel="noopener" href="https://ja.wikipedia.org/wiki/${q}">詳細</a></div></div>`;}
+function onsengoPopup(o){const q=encodeURIComponent(o.name);const sc=onsenScale(o);const taxTxt=o.tax?`入湯税 ${taxOku(o.tax)}/年（2023年度・全国上位）`:'入湯税データ非公表';return `<div class="popup"><h3>♨ ${escapeHtml(o.name)}</h3><div class="meta">${escapeHtml(o.area)}${o.note?(' ・ '+escapeHtml(o.note)):''}</div><div class="meta" style="margin-top:3px;"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${sc.c};margin-right:5px;vertical-align:middle;"></span><b>規模：${sc.l}</b>・${taxTxt}</div>${onsenGuideHtml(o)}${routeActionsHtml(o.lat,o.lng,o.name)}<div class="links"><button class="dest" onclick="window.setDest(${o.lat},${o.lng},'${encodeURIComponent(o.name)}')">ここへ</button><button onclick="window.ogNearby(${o.lat},${o.lng})">周辺の温泉</button>${circleIsoBtns(o.lat,o.lng,o.name)}<a class="rakuten" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+楽天トラベル">宿(楽天)</a><a class="official" target="_blank" rel="noopener" href="https://www.google.com/search?q=${q}+ゆこゆこ">♨ ゆこゆこ</a><a class="official" target="_blank" rel="noopener" href="https://ja.wikipedia.org/wiki/${q}">詳細</a></div></div>`;}
 window.ogNearby=function(lat,lng){infoWindow.close();map.setCenter({lat,lng});map.setZoom(14);selectTab('onsen');};
+
+// ===== 温泉郷の紹介・観光特集（guide/：紹介文と写真。tools/build-travel-guide.py で作る） =====
+// 写真は「取得済み・被写体の目視確認済み」のものだけ。未取得の項目は無地の代替表示（別の写真で代用しない）
+// 写真の近くに撮影者・ライセンス・出典（Wikimedia Commons のファイル説明ページ）を出し、全点の一覧は「写真の出典一覧」で見られる
+const GUIDE_V=1;                                   // guide/*.json を作り直したら上げる（Service Worker が古い版を使い続けないように）
+const GUIDE_PH=/^photos\/[0-9a-f]{16}\.webp$/;     // 写真のパス（中身のハッシュ名）以外は使わない
+const guide={onsen:null,tour:null,_p:{}};
+function guideLoad(name){
+  if(guide[name])return Promise.resolve(guide[name]);
+  if(!guide._p[name])guide._p[name]=fetch('guide/'+name+'-guide.json?v='+GUIDE_V).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.json();})
+    .then(d=>(guide[name]=d)).catch(e=>{guide._p[name]=null;throw e;});
+  return guide._p[name];
+}
+function gUrl(u){return /^https:\/\/[^\s"'<>]+$/.test(u||'')?u:'';}
+function guideCreditHtml(m){const lu=gUrl(m.licUrl),pu=gUrl(m.page);
+  return `<span class="g-cr">写真：${escapeHtml(m.by)}／${lu?`<a href="${escapeHtml(lu)}" target="_blank" rel="noopener noreferrer">${escapeHtml(m.lic)}</a>`:escapeHtml(m.lic)}（${pu?`<a href="${escapeHtml(pu)}" target="_blank" rel="noopener noreferrer">${escapeHtml(m.src)}</a>`:escapeHtml(m.src)}）</span>`;}
+function guideCreditEl(m){const sp=document.createElement('span');sp.className='g-cr';sp.innerHTML=guideCreditHtml(m).replace(/^<span class="g-cr">|<\/span>$/g,'');return sp;}
+window.guideImgErr=function(img){const f=img.closest('figure');if(!f)return;const d=document.createElement('div');d.className=f.classList.contains('og-ph')?'og-noph':'tg-noph';d.textContent='写真を読み込めませんでした';f.replaceWith(d);};
+function onsenGuideHtml(o){const g=guide.onsen;if(!g)return '';const e=g.onsen[o.name+'|'+o.area];if(!e)return '';
+  const m=e.m>=0?g.media[e.m]:null;let h='';
+  if(m&&GUIDE_PH.test(m.f))h+=`<figure class="og-ph"><img src="guide/${m.f}" width="${+m.w}" height="${+m.h}" alt="${escapeHtml(o.name+'の写真')}" loading="lazy" decoding="async" onerror="guideImgErr(this)"><figcaption>${m.cap?escapeHtml(m.cap)+'<br>':''}${guideCreditHtml(m)} <button type="button" class="g-crl" onclick="guideCreditsOpen()">出典一覧</button></figcaption></figure>`;
+  else h+='<div class="og-noph">写真は準備中です</div>';
+  return h+`<div class="og-d">${escapeHtml(e.d)}</div>`;}
+function onsenOpen(m,o){const opened=openInfo(m,onsengoPopup(o));
+  if(opened!==false&&!guide.onsen)guideLoad('onsen').then(()=>{if(curInfoMarker===m&&infoWindow.getMap())infoWindow.setContent(onsengoPopup(o));}).catch(()=>{});}
+// --- 観光特集 ---
+const TOUR_F_KEY='tabi_tour_filter', TOUR_GEO_KEY='tabi_tour_geo', TOUR_PAGE=20, TOUR_GEO_DAYS=30;
+const tourSt={p:'',k:'',q:'',n:TOUR_PAGE,min:false,built:false};
+try{const f=JSON.parse(localStorage.getItem(TOUR_F_KEY)||'{}');if(typeof f.p==='string')tourSt.p=f.p;if(typeof f.k==='string')tourSt.k=f.k;}catch(e){}
+function tourNorm(s){return String(s||'').normalize('NFKC').toLowerCase().replace(/[ァ-ヶ]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60)).replace(/[\s・･、。「」『』（）()]/g,'');}
+function tourPrefName(code){const d=guide.tour;const p=d&&d.prefs.find(x=>x[0]===code);return p?p[1]:'';}
+function tourCatName(k){const d=guide.tour;const c=d&&d.cats.find(x=>x[0]===k);return c?c[1]:k;}
+function tourShortPref(p){return p==='北海道'?p:p.replace(/(都|府|県)$/,'');}
+function tourSave(){try{localStorage.setItem(TOUR_F_KEY,JSON.stringify({p:tourSt.p,k:tourSt.k}));}catch(e){}}
+function tourOpen(){
+  tourPanel.classList.remove('min');tourSt.min=false;
+  if(guide.tour){if(!tourSt.built)tourBuild();return;}
+  tourPanel.innerHTML='<div class="tg-head"><div class="tg-top"><b>観光特集</b><span class="tg-sum">読み込み中…</span></div></div>';
+  guideLoad('tour').then(()=>{tourBuild();}).catch(()=>{tourPanel.innerHTML='<div class="tg-head"><div class="tg-top"><b>観光特集</b><span class="tg-sum">読み込めませんでした</span><button type="button" id="tgRetry">再試行</button></div></div>';
+    document.getElementById('tgRetry').onclick=tourOpen;});
+}
+function tourBuild(){const d=guide.tour;tourSt.built=true;
+  d.items.forEach(it=>{it._s=tourNorm([it.n,it.c,tourPrefName(it.p),tourCatName(it.k),it.d,(it.h||[]).join(' ')].join(' '));});
+  if(tourSt.p&&!d.prefs.some(x=>x[0]===tourSt.p))tourSt.p='';if(tourSt.k&&!d.cats.some(x=>x[0]===tourSt.k))tourSt.k='';
+  tourPanel.innerHTML='';
+  const head=document.createElement('div');head.className='tg-head';
+  head.innerHTML='<div class="tg-top"><b>観光特集</b><span class="tg-sum" id="tgSum"></span><button type="button" id="tgMin" title="一覧をたたむ／ひらく">たたむ</button></div>'
+    +'<div class="tg-row"><select id="tgPref" aria-label="都道府県"></select><input id="tgQ" type="search" placeholder="名称・市町村・キーワード" autocomplete="off" aria-label="キーワード"></div><div class="tg-cats" id="tgCats"></div>';
+  const list=document.createElement('div');list.className='tg-list';list.id='tgList';
+  tourPanel.append(head,list);
+  const sel=head.querySelector('#tgPref');
+  const o0=document.createElement('option');o0.value='';o0.textContent='全国（'+d.items.length+'件）';sel.appendChild(o0);
+  d.prefs.forEach(([code,name])=>{const o=document.createElement('option');o.value=code;o.textContent=name+'（'+d.items.filter(i=>i.p===code).length+'）';sel.appendChild(o);});
+  sel.value=tourSt.p;
+  sel.onchange=()=>{tourSt.p=sel.value;tourSt.n=TOUR_PAGE;tourSave();tourRender(true);};
+  const q=head.querySelector('#tgQ');q.value=tourSt.q;let qt=null;
+  q.oninput=()=>{clearTimeout(qt);qt=setTimeout(()=>{tourSt.q=q.value;tourSt.n=TOUR_PAGE;tourRender(true);},250);};
+  head.querySelector('#tgMin').onclick=()=>tourMin(!tourSt.min);
+  tourRender(true);
+}
+function tourMin(on){tourSt.min=on;tourPanel.classList.toggle('min',on);const b=document.getElementById('tgMin');if(b)b.textContent=on?'一覧をひらく':'たたむ';}
+function tourRender(reset){const d=guide.tour;if(!d)return;
+  const q=tourNorm(tourSt.q);
+  const inPref=d.items.filter(it=>(!tourSt.p||it.p===tourSt.p)&&(!q||it._s.includes(q)));
+  const rows=inPref.filter(it=>!tourSt.k||it.k===tourSt.k);
+  // カテゴリの件数（選んでいる県・キーワードの中で）
+  const cats=document.getElementById('tgCats');cats.innerHTML='';
+  [['','すべて']].concat(d.cats).forEach(([k,label])=>{const b=document.createElement('button');b.type='button';b.className='tg-cat'+(tourSt.k===k?' on':'');
+    b.textContent=label;const sm=document.createElement('small');sm.textContent=k?inPref.filter(i=>i.k===k).length:inPref.length;b.appendChild(sm);
+    b.onclick=()=>{tourSt.k=k;tourSt.n=TOUR_PAGE;tourSave();tourRender(true);};cats.appendChild(b);});
+  const pn=tourSt.p?tourPrefName(tourSt.p):'全国';
+  const all=d.items.filter(it=>!tourSt.p||it.p===tourSt.p);
+  document.getElementById('tgSum').textContent=pn+' '+all.length+'件（'+d.cats.map(([k,l])=>l.replace(/・.*$/,'')+all.filter(i=>i.k===k).length).join('・')+'）';
+  const list=document.getElementById('tgList');if(reset){list.innerHTML='';list.scrollTop=0;}
+  else{const mb=list.querySelector('.tg-more');if(mb)mb.remove();const ft=list.querySelector('.tg-foot');if(ft)ft.remove();}
+  if(!rows.length){const m=document.createElement('div');m.className='tg-msg';m.textContent='該当する項目がありません。都道府県・カテゴリ・キーワードを変えてみてください。';list.appendChild(m);}
+  const start=reset?0:list.querySelectorAll('.tg-card').length;
+  rows.slice(start,tourSt.n).forEach(it=>list.appendChild(tourCard(it)));
+  if(rows.length>tourSt.n){const b=document.createElement('button');b.type='button';b.className='tg-more';b.textContent='さらに表示（残り'+(rows.length-tourSt.n)+'件）';
+    b.onclick=()=>{tourSt.n+=TOUR_PAGE;tourRender(false);};list.appendChild(b);}
+  const ft=document.createElement('div');ft.className='tg-foot';
+  ft.innerHTML='紹介文は公式観光サイト等を参考にした編集による参考情報です。営業時間・料金・道路の通行可否は訪問前に公式情報で確認してください。地図の位置は駐車場・入口を示すものではありません。 ';
+  const cb=document.createElement('button');cb.type='button';cb.textContent='写真の出典一覧';cb.onclick=guideCreditsOpen;ft.appendChild(cb);list.appendChild(ft);
+}
+function tourCard(it){const d=guide.tour;const el=document.createElement('article');el.className='tg-card';
+  const m=it.m>=0?d.media[it.m]:null;
+  if(m&&GUIDE_PH.test(m.f)){const f=document.createElement('figure');f.className='tg-ph';
+    const img=document.createElement('img');img.loading='lazy';img.decoding='async';img.width=m.w;img.height=m.h;img.alt=it.n+'の写真';
+    img.onerror=()=>guideImgErr(img);img.src='guide/'+m.f;f.appendChild(img);
+    const cap=document.createElement('figcaption');if(m.cap){cap.append(m.cap);cap.appendChild(document.createElement('br'));}cap.appendChild(guideCreditEl(m));f.appendChild(cap);el.appendChild(f);}
+  else{const n=document.createElement('div');n.className='tg-noph';n.textContent='写真は準備中です';el.appendChild(n);}
+  const b=document.createElement('div');b.className='tg-body';
+  const h=document.createElement('h4');h.textContent=it.n;b.appendChild(h);
+  const me=document.createElement('div');me.className='tg-meta';me.textContent=tourPrefName(it.p)+' '+it.c+'・'+tourCatName(it.k);b.appendChild(me);
+  const de=document.createElement('div');de.className='tg-d';de.textContent=it.d;b.appendChild(de);
+  if(it.h&&it.h.length){const hl=document.createElement('div');hl.className='tg-hl';it.h.forEach(t=>{const s=document.createElement('span');s.textContent=t;hl.appendChild(s);});b.appendChild(hl);}
+  const note=(lab,txt)=>{if(!txt)return;const n=document.createElement('div');n.className='tg-note';const bb=document.createElement('b');bb.textContent=lab+'：';n.append(bb,txt);b.appendChild(n);};
+  note('時季',it.s);note('移動',it.a);
+  note('確認状況',it.sc?'公式の個別ページで所在地と主な特徴を確認（2026年10月）':'県の公式観光サイトの一覧を参照した紹介（施設の個別ページは未確認）');
+  if(it.x){const w=document.createElement('div');w.className='tg-warn';w.textContent='注意：'+it.x;b.appendChild(w);}
+  const acts=document.createElement('div');acts.className='tg-acts';
+  const go=document.createElement('button');go.type='button';go.className='tg-go';go.textContent='地図で見る';go.onclick=()=>tourLocate(it);acts.appendChild(go);
+  const u=gUrl(it.u);if(u){const a=document.createElement('a');a.href=u;a.target='_blank';a.rel='noopener noreferrer';a.textContent=it.sc?'公式ページ':'県の観光公式サイト';acts.appendChild(a);}
+  b.appendChild(acts);el.appendChild(b);return el;
+}
+function tourGeoAll(){try{return JSON.parse(localStorage.getItem(TOUR_GEO_KEY)||'{}')||{};}catch(e){return {};}}
+function tourGeoGet(id){const d=guide.tour;const all=tourGeoAll();const k=all[id]?id:Object.keys(d.idMap||{}).find(o=>d.idMap[o]===id&&all[o]);const c=k&&all[k];
+  return c&&Date.now()-c.t<TOUR_GEO_DAYS*864e5&&isFinite(c.lat)&&isFinite(c.lng)?c:null;}
+function tourGeoSet(id,c){const all=tourGeoAll();all[id]=Object.assign({t:Date.now()},c);
+  const ks=Object.keys(all).sort((a,b)=>all[b].t-all[a].t);ks.slice(300).forEach(k=>delete all[k]);   // 直近300件まで
+  try{localStorage.setItem(TOUR_GEO_KEY,JSON.stringify(all));}catch(e){}}
+function tourNameOk(a,b){const n=s=>tourNorm(String(s||'').replace(/[（(][^（()）]*[)）]/g,''));a=n(a);b=n(b);if(!a||!b)return false;if(a.includes(b)||b.includes(a))return true;
+  const bg=s=>{const r=new Set();for(let i=0;i<s.length-1;i++)r.add(s.slice(i,i+2));return r;};const A=bg(a),B=bg(b);let c=0;A.forEach(x=>{if(B.has(x))c++;});return A.size+B.size>0&&2*c/(A.size+B.size)>=0.5;}
+// 「地図で見る」：①温泉郷の既存データ ②前回見つけた位置（30日） ③Googleの施設検索（名称＋市町村＋県。同じ県・似た名前の候補だけ）
+// ④資料の参考座標 ⑤上部の検索に名称を入れて候補から選んでもらう。県庁・市役所などの代わりの位置には置かない
+function tourLocate(it){const pref=tourPrefName(it.p);tourMin(true);
+  const og=it.k==='onsen'&&ONSEN_GO.find(o=>o.name===it.n&&o.area===tourShortPref(pref));
+  if(og){placeTempPin(og.lat,og.lng,it.n,'温泉郷の位置（たびマップの温泉郷データ・温泉地の中心付近）');return;}
+  const c=tourGeoGet(it.id);if(c){placeTempPin(c.lat,c.lng,it.n,c.sub);return;}
+  const fallback=()=>{
+    if(it.r){placeTempPin(it.r[0],it.r[1],it.n,'参考位置（資料の参考座標。駐車場・入口ではありません）');return;}
+    const ts=document.getElementById('topSearch');ts.value=it.n+' '+it.c;doTopSearch();
+    showStatus('位置を特定できませんでした。検索の候補から選んでください',false);};
+  if(!placesSvc){fallback();return;}
+  showStatus('「'+it.n+'」の位置を探しています…',true);
+  placesSvc.textSearch({query:it.n+' '+it.c+' '+pref,language:'ja',region:'jp'},(r,st)=>{statusEl.classList.remove('show');
+    const ok=(st===google.maps.places.PlacesServiceStatus.OK&&r?r:[]).filter(p=>p.geometry&&String(p.formatted_address||'').includes(pref));
+    const best=ok.find(p=>tourNameOk(p.name,it.n));
+    if(!best){fallback();return;}
+    const lat=best.geometry.location.lat(),lng=best.geometry.location.lng(),sub='Googleの検索で見つけた位置・'+shortAddr(best.formatted_address);
+    tourGeoSet(it.id,{lat,lng,sub});placeTempPin(lat,lng,it.n,sub);
+  });
+}
+// 写真の出典一覧（温泉郷・観光特集の全写真。どこに使っているかも出す）
+function guideCreditsOpen(){const box=document.getElementById('guideCr'),body=document.getElementById('guideCrBody');
+  body.textContent='読み込み中…';box.classList.add('open');
+  Promise.all([guideLoad('onsen').catch(()=>null),guideLoad('tour').catch(()=>null)]).then(([go,gt])=>{body.innerHTML='';
+    const p=document.createElement('p');p.textContent='写真は Wikimedia Commons の各ファイルの利用条件（ライセンス）に従って掲載しています。撮影者・ライセンス・ファイル説明ページへのリンクを示します。'+((go||gt||{}).mod?'変更：'+(go||gt).mod+'。':'')+'写真は風景・施設の一例で、その場所の全体や現在の様子を示すものではありません。';body.appendChild(p);
+    const sec=(title,g,uses)=>{if(!g)return;const h=document.createElement('h5');h.textContent=title+'（'+g.media.length+'点）';body.appendChild(h);
+      g.media.forEach((m,i)=>{const row=document.createElement('div');row.className='gc-i';const u=document.createElement('b');u.textContent=(uses[i]||[]).join('、')||'—';row.appendChild(u);row.appendChild(document.createElement('br'));
+        row.appendChild(guideCreditEl(m));const sm=document.createElement('small');sm.textContent=' ファイル：'+m.title+(m.at?'・撮影 '+m.at:'')+(m.byRaw?'・元の表記：'+m.byRaw:'');row.appendChild(sm);body.appendChild(row);});};
+    if(go){const u={};Object.keys(go.onsen).forEach(k=>{const e=go.onsen[k];if(e.m>=0)(u[e.m]=u[e.m]||[]).push(k.split('|')[0]);});sec('温泉郷',go,u);}
+    if(gt){const u={};gt.items.forEach(it=>{if(it.m>=0)(u[it.m]=u[it.m]||[]).push(it.n);});sec('観光特集',gt,u);}
+    if(!go&&!gt)body.textContent='読み込めませんでした。通信状況を確認してください。';
+  });
+}
+document.getElementById('guideCrClose').onclick=()=>document.getElementById('guideCr').classList.remove('open');
+window.guideCreditsOpen=guideCreditsOpen;
 
 // ===== 距離円バッファ（レイヤー管理・複数同時描画・5〜30・50km） =====
 let bufferLayers=[]; // {id,name,center,shapes[],visible}

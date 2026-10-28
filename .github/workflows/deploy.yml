@@ -33,6 +33,10 @@ jobs:
                    fest-map-style.json fest-map-style-dark.json; do
             cp "$f" dist-pages/
           done
+          # 温泉郷の紹介・観光特集（tools/build-travel-guide.py の出力。写真は取得済み・目視確認済みのものだけ。素材集そのものは載せない）
+          mkdir -p dist-pages/guide/photos
+          cp guide/onsen-guide.json guide/tour-guide.json dist-pages/guide/
+          cp guide/photos/*.webp dist-pages/guide/photos/
           # シフト管理（本祭支援ツールの試作・単独のページ）。説明書（README.md）は載せない
           mkdir -p dist-pages/shift
           for f in index.html shift.css shift.js; do

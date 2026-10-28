@@ -10,3 +10,6 @@ node_modules
 .env*
 .secrets/
 dist-pages/
+# 引き継ぎ素材集（調査用の資料・未使用の写真）は公開リポジトリに入れない。必要な分は tools/build-travel-guide.py で guide/ に書き出す
+*.zip
+japan_travel_handoff_*/
