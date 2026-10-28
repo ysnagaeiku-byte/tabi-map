@@ -8,7 +8,7 @@
 <title>渉外局 シフト管理（本祭支援ツール 試作）</title>
 <link rel="icon" href="../icon-senshu-192.png" />
 <link rel="apple-touch-icon" href="../apple-touch-icon-senshu.png" />
-<link rel="stylesheet" href="shift.css?v=3" />
+<link rel="stylesheet" href="shift.css?v=4" />
 </head>
 <body>
 <!-- たびマップ 本祭支援ツールに入れる予定の「シフト作成・管理」を、先に単独のサイトとして試すもの。
@@ -37,8 +37,8 @@
       <button type="button" role="tab" data-view="week">6日間</button>
     </div>
     <div class="seg grp" id="grpSeg" role="tablist" aria-label="課"></div>
-    <button type="button" class="btn icon icon-only" id="btnSearch" aria-label="名前で探す" aria-expanded="false">⌕</button>
-    <label class="search"><span aria-hidden="true">⌕</span><input type="search" id="q" placeholder="名前で絞る" autocomplete="off" aria-label="名前で絞る" /></label>
+    <button type="button" class="btn icon icon-only" id="btnSearch" aria-label="名前で検索" aria-expanded="false">⌕</button>
+    <label class="search"><span aria-hidden="true">⌕</span><input type="search" id="q" placeholder="名前で検索" autocomplete="off" aria-label="名前で検索" /></label>
   </div>
   <nav class="days" id="dayTabs" aria-label="日付"></nav>
 </header>
@@ -56,13 +56,19 @@
       <div class="tl-ctrl">
         <label class="chk"><input type="checkbox" id="optHideEmpty" /> シフトなしを隠す</label>
         <div class="seg mini" id="colorSeg" aria-label="棒の色">
-          <button type="button" data-c="duty"><span class="pc">役職で色分け</span><span class="sp">役職の色</span></button>
+          <button type="button" data-c="duty"><span class="pc">持ち場で色分け</span><span class="sp">持ち場の色</span></button>
           <button type="button" data-c="group"><span class="pc">課で色分け</span><span class="sp">課の色</span></button>
         </div>
-        <div class="zoom">
-          <button type="button" class="btn small icon" id="zoomOut" aria-label="縮小">−</button>
-          <button type="button" class="btn small" id="zoomFit">全体</button>
-          <button type="button" class="btn small icon" id="zoomIn" aria-label="拡大">＋</button>
+        <div class="zoom" role="group" aria-label="横の縮尺">
+          <span class="zl" aria-hidden="true">横</span>
+          <button type="button" class="btn small icon" id="zoomOut" aria-label="横を縮める">−</button>
+          <button type="button" class="btn small" id="zoomFit" title="横を画面の幅に合わせる">全体</button>
+          <button type="button" class="btn small icon" id="zoomIn" aria-label="横を広げる">＋</button>
+        </div>
+        <div class="zoom" role="group" aria-label="縦の縮尺">
+          <span class="zl" aria-hidden="true">縦</span>
+          <button type="button" class="btn small icon" id="zoomVOut" aria-label="縦を縮める">−</button>
+          <button type="button" class="btn small icon" id="zoomVIn" aria-label="縦を広げる">＋</button>
         </div>
       </div>
     </div>
@@ -82,6 +88,6 @@
 <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
 <input type="file" id="fileIn" accept="application/json,.json" hidden />
 
-<script src="shift.js?v=3"></script>
+<script src="shift.js?v=4"></script>
 </body>
 </html>
