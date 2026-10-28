@@ -6,6 +6,7 @@
   "start_url": "./index-google.html?m=senshu",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["window-controls-overlay"],
   "orientation": "any",
   "background_color": "#01001b",
   "theme_color": "#000000",

@@ -176,7 +176,7 @@
   #customPanel{display:none;margin:8px 12px 0;border:1px solid var(--line);border-radius:16px;padding:10px 12px;background:var(--panel);box-shadow:0 10px 30px var(--shadow);gap:8px;flex-wrap:wrap;max-height:66vh;overflow-y:auto;}
   #customPanel.open{display:flex;}
   /* 観光特集（47都道府県）：県・カテゴリ・キーワードで絞り、カードを20件ずつ出す。写真は表示されるときに読み込む */
-  #tourPanel{display:none;flex-direction:column;margin:8px 12px 0;width:min(560px,calc(100% - 24px));border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--fg);box-shadow:0 10px 30px var(--shadow);max-height:62vh;max-height:62dvh;overflow:hidden;}
+  #tourPanel{display:none;position:relative;flex-direction:column;margin:8px 12px 0;width:min(560px,calc(100% - 24px));border:1px solid var(--line);border-radius:16px;background:var(--panel);color:var(--fg);box-shadow:0 10px 30px var(--shadow);max-height:62vh;max-height:62dvh;overflow:hidden;}
   #tourPanel.open{display:flex;}
   .tg-head{padding:9px 12px 8px;border-bottom:1px solid var(--line);display:flex;flex-direction:column;gap:7px;flex:0 0 auto;}
   .tg-top{display:flex;align-items:center;gap:8px;}
@@ -190,7 +190,8 @@
   .tg-cat{flex:0 0 auto;border:1px solid var(--line);background:var(--surface-2);color:var(--fg);border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
   .tg-cat small{font-weight:600;color:var(--muted);margin-left:3px;}
   .tg-cat.on{background:var(--c-tour);border-color:var(--c-tour);color:#fff;} .tg-cat.on small{color:rgba(255,255,255,.85);}
-  .tg-list{overflow-y:auto;overscroll-behavior:contain;padding:10px 12px 12px;display:flex;flex-direction:column;gap:10px;flex:1 1 auto;min-height:0;}
+  .tg-list{overflow-y:auto;overscroll-behavior:contain;padding:10px 12px 12px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));grid-auto-rows:max-content;align-content:start;align-items:start;gap:10px;flex:1 1 auto;min-height:0;}   /* パネルを広げると2列・3列に */
+  .tg-list>.tg-msg,.tg-list>.tg-more,.tg-list>.tg-foot{grid-column:1/-1;}
   .tg-msg{font-size:12.5px;color:var(--muted);padding:6px 2px;line-height:1.6;}
   .tg-card{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:var(--surface);flex:0 0 auto;}
   .tg-ph{margin:0;background:var(--surface-2);}
@@ -213,7 +214,19 @@
   .tg-more{border:1px dashed var(--line);background:none;color:var(--fg);border-radius:10px;padding:9px;font-size:12.5px;font-weight:700;cursor:pointer;flex:0 0 auto;font-family:inherit;}
   .tg-foot{font-size:11px;color:var(--muted);line-height:1.55;padding:2px 2px 0;flex:0 0 auto;}
   .tg-foot button{border:none;background:none;color:var(--accent);font-size:11px;font-weight:700;padding:0;cursor:pointer;text-decoration:underline;font-family:inherit;}
-  #tourPanel.min{max-height:none;} #tourPanel.min .tg-list,#tourPanel.min .tg-row,#tourPanel.min .tg-cats{display:none;} #tourPanel.min .tg-head{border-bottom:none;}
+  #tourPanel.min{max-height:none;height:auto !important;} #tourPanel.min .tg-list,#tourPanel.min .tg-row,#tourPanel.min .tg-cats,#tourPanel.min .tg-rs{display:none;} #tourPanel.min .tg-head{border-bottom:none;}
+  /* PC：右端・下端・右下の角をドラッグして大きさを変える（角のダブルクリックで元の大きさ） */
+  .tg-rs{display:none;position:absolute;z-index:2;touch-action:none;}
+  @media (min-width:768px) and (pointer:fine){
+    .tg-rs{display:block;}
+    .tg-rs-r{top:14px;right:0;bottom:14px;width:6px;cursor:ew-resize;}
+    .tg-rs-b{left:14px;right:14px;bottom:0;height:6px;cursor:ns-resize;}
+    .tg-rs-c{right:0;bottom:0;width:16px;height:16px;cursor:nwse-resize;border-bottom-right-radius:16px;
+      background:linear-gradient(135deg,transparent 0 55%,var(--muted) 55% 61%,transparent 61% 72%,var(--muted) 72% 78%,transparent 78%);opacity:.65;}
+    .tg-rs-c:hover,#tourPanel.rs-on .tg-rs-c{opacity:1;}
+    .tg-rs-r:hover,.tg-rs-b:hover,#tourPanel.rs-on .tg-rs-r,#tourPanel.rs-on .tg-rs-b{background:var(--accent-weak);}
+    #tourPanel.rs-on{user-select:none;}
+  }
   /* 温泉郷の吹き出し：代表写真1点と紹介文 */
   .og-ph{margin:6px 0 4px;max-width:300px;} .og-ph img{display:block;width:100%;height:auto;max-height:190px;object-fit:contain;border-radius:8px;background:#f1f4f8;}
   .og-ph figcaption{padding:3px 0 0;color:#6b7280;} .og-ph .g-cr a{color:#52606d;}
@@ -1196,7 +1209,18 @@
   #qkBand .qk-fc{background:#f59f00;color:#000;}
   @keyframes qkPulse{from{background:#e03131;}to{background:#9c1414;}}
   @media (prefers-reduced-motion:reduce){#qkBand .qk-warn{animation:none;}}
-  html.qk-on:not(.fest) #disasterBanner{top:var(--qk);}   /* 津波のお知らせ（津波情報のぬり分け）は黒帯の下に出す */
+  html.qk-on:not(.fest) #disasterBanner{top:var(--qk);}
+  /* PCのアプリ（本祭支援ツール）で「タイトルバーを隠す」にしたとき（Window Controls Overlay）：
+     アプリ名のタイトルバーをなくし、黒帯をいちばん上（窓のボタンの横）に置く。帯の左端の「本祭支援」をつかむと窓を動かせる */
+  #festDrag{display:none;}
+  @media (display-mode:window-controls-overlay){
+    html.fest{--tbh:max(20px,env(titlebar-area-height,20px));--fb:calc(var(--tbh) + 4px);}
+    html.fest.qk-on.qk-2{--fb:calc(var(--tbh) + 25px);}
+    html.fest #festBand{display:flex;align-items:center;height:var(--tbh);padding:0 calc(100vw - env(titlebar-area-x,0px) - env(titlebar-area-width,100vw)) 0 env(titlebar-area-x,0px);}
+    html.fest #festBand .fb-view{flex:1 1 auto;min-width:0;}
+    html.fest #festDrag{display:flex;align-items:center;align-self:stretch;flex:0 0 auto;padding:0 8px 0 6px;font-size:10.5px;font-weight:800;color:#868e96;letter-spacing:.5px;white-space:nowrap;cursor:default;-webkit-app-region:drag;app-region:drag;}
+    html.fest #qkBand{padding:calc((var(--tbh) - 20px) / 2) calc(100vw - env(titlebar-area-x,0px) - env(titlebar-area-width,100vw)) 0 env(titlebar-area-x,0px);}
+  }   /* 津波のお知らせ（津波情報のぬり分け）は黒帯の下に出す */
   html.fest #disasterBanner{top:var(--fb);}
   /* 地震のぬり分けの凡例：震度1〜7の色を小さく1列に（色の下に震度。観測のない震度は薄く） */
   #mapLegend .qk-lt{font-size:8.5px;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -1241,7 +1265,7 @@
 <div id="liveClock" title="現在時刻（NTP同期・JST）／タップで緊急避難"><div id="lcMain"><span id="lcTime">--:--:--</span><span id="lcDate"></span><div id="speedChip"><b id="spdVal">--</b><span class="spd-u">km/h</span></div></div><div id="lcEv"></div><span id="evacLabel">緊急避難</span></div>
 <div id="festHq" aria-hidden="true">本部統括用</div><div id="festPv" role="status">配布版を確認中（このタブだけ）<button type="button" onclick="festStore.back()">本部版に戻る</button></div>
 <div id="qkBand" role="alert" aria-live="assertive"><div class="qk-row qk-r1"><span class="qk-in"></span></div><div class="qk-row qk-r2"><span class="qk-in"></span></div></div>
-<div id="festBand" role="button" title="各号館の開錠・施錠時刻（押すと編集）"><div class="fb-view"><div class="fb-page"></div><div class="fb-page"></div><span id="fbMeasure" aria-hidden="true"></span></div></div>
+<div id="festBand" role="button" title="各号館の開錠・施錠時刻（押すと編集）"><span id="festDrag" aria-hidden="true" title="ここをつかんで窓を動かす">本祭支援</span><div class="fb-view"><div class="fb-page"></div><div class="fb-page"></div><span id="fbMeasure" aria-hidden="true"></span></div></div>
 <div id="guideCr" role="dialog" aria-label="写真の出典一覧"><div class="gc-h"><span>写真の出典一覧</span><button type="button" id="guideCrClose" title="閉じる">✕</button></div><div class="gc-b" id="guideCrBody"></div></div>
 <div id="evacPanel"><div class="evac-h"><b>緊急避難（参考）</b><button id="evacClose" title="閉じる">✕</button></div><div id="evacBody"></div></div>
 <div id="toolMenu">
@@ -2653,7 +2677,7 @@ function tourCatName(k){const d=guide.tour;const c=d&&d.cats.find(x=>x[0]===k);r
 function tourShortPref(p){return p==='北海道'?p:p.replace(/(都|府|県)$/,'');}
 function tourSave(){try{localStorage.setItem(TOUR_F_KEY,JSON.stringify({p:tourSt.p,k:tourSt.k}));}catch(e){}}
 function tourOpen(){
-  tourPanel.classList.remove('min');tourSt.min=false;
+  tourPanel.classList.remove('min');tourSt.min=false;tourSizeApply();
   if(guide.tour){if(!tourSt.built)tourBuild();return;}
   tourPanel.innerHTML='<div class="tg-head"><div class="tg-top"><b>観光特集</b><span class="tg-sum">読み込み中…</span></div></div>';
   guideLoad('tour').then(()=>{tourBuild();}).catch(()=>{tourPanel.innerHTML='<div class="tg-head"><div class="tg-top"><b>観光特集</b><span class="tg-sum">読み込めませんでした</span><button type="button" id="tgRetry">再試行</button></div></div>';
@@ -2667,7 +2691,7 @@ function tourBuild(){const d=guide.tour;tourSt.built=true;
   head.innerHTML='<div class="tg-top"><b>観光特集</b><span class="tg-sum" id="tgSum"></span><button type="button" id="tgMin" title="一覧をたたむ／ひらく">たたむ</button></div>'
     +'<div class="tg-row"><select id="tgPref" aria-label="都道府県"></select><input id="tgQ" type="search" placeholder="名称・市町村・キーワード" autocomplete="off" aria-label="キーワード"></div><div class="tg-cats" id="tgCats"></div>';
   const list=document.createElement('div');list.className='tg-list';list.id='tgList';
-  tourPanel.append(head,list);
+  tourPanel.append(head,list);tourResizeHandles();
   const sel=head.querySelector('#tgPref');
   const o0=document.createElement('option');o0.value='';o0.textContent='全国（'+d.items.length+'件）';sel.appendChild(o0);
   d.prefs.forEach(([code,name])=>{const o=document.createElement('option');o.value=code;o.textContent=name+'（'+d.items.filter(i=>i.p===code).length+'）';sel.appendChild(o);});
@@ -2679,6 +2703,28 @@ function tourBuild(){const d=guide.tour;tourSt.built=true;
   tourRender(true);
 }
 function tourMin(on){tourSt.min=on;tourPanel.classList.toggle('min',on);const b=document.getElementById('tgMin');if(b)b.textContent=on?'一覧をひらく':'たたむ';}
+// PC：観光特集のパネルの大きさを右端・下端・右下の角のドラッグで変える（端末に記憶。角のダブルクリックで元の大きさ）
+const TOUR_SIZE_KEY='tabi_tour_size', tourDesk=matchMedia('(min-width:768px) and (pointer:fine)');
+function tourSizeClamp(w,h){const r=tourPanel.getBoundingClientRect();
+  return [Math.round(Math.min(Math.max(w,320),innerWidth-r.left-12)),Math.round(Math.min(Math.max(h,220),innerHeight-r.top-12))];}
+function tourSizeSet(w,h){tourPanel.style.width=w+'px';tourPanel.style.height=h+'px';tourPanel.style.maxHeight='none';}
+function tourSizeApply(){let z=null;
+  if(tourDesk.matches&&tourPanel.classList.contains('open')){try{z=JSON.parse(localStorage.getItem(TOUR_SIZE_KEY)||'null');}catch(e){}}
+  if(!z||!(z.w>0)||!(z.h>0)){tourPanel.style.width=tourPanel.style.height=tourPanel.style.maxHeight='';return;}
+  const [w,h]=tourSizeClamp(z.w,z.h);tourSizeSet(w,h);}
+function tourResizeHandles(){
+  ['r','b','c'].forEach(k=>{const el=document.createElement('div');el.className='tg-rs tg-rs-'+k;
+    el.title=k==='c'?'ドラッグで大きさを変える（ダブルクリックで元の大きさ）':(k==='r'?'ドラッグで幅を変える':'ドラッグで高さを変える');
+    el.addEventListener('pointerdown',e=>{if(e.button!==0)return;e.preventDefault();try{el.setPointerCapture(e.pointerId);}catch(_){}
+      const r=tourPanel.getBoundingClientRect(),x0=e.clientX,y0=e.clientY;tourPanel.classList.add('rs-on');
+      const mv=ev=>{const [w,h]=tourSizeClamp(k==='b'?r.width:r.width+ev.clientX-x0,k==='r'?r.height:r.height+ev.clientY-y0);tourSizeSet(w,h);};
+      const up=()=>{el.removeEventListener('pointermove',mv);el.removeEventListener('pointerup',up);el.removeEventListener('pointercancel',up);tourPanel.classList.remove('rs-on');
+        if(tourPanel.style.width)try{localStorage.setItem(TOUR_SIZE_KEY,JSON.stringify({w:parseInt(tourPanel.style.width,10),h:parseInt(tourPanel.style.height,10)}));}catch(e){}};
+      el.addEventListener('pointermove',mv);el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up);});
+    if(k==='c')el.addEventListener('dblclick',()=>{try{localStorage.removeItem(TOUR_SIZE_KEY);}catch(e){}tourSizeApply();});
+    tourPanel.appendChild(el);});}
+addEventListener('resize',()=>{if(tourPanel.classList.contains('open'))tourSizeApply();});
+if(tourDesk.addEventListener)tourDesk.addEventListener('change',tourSizeApply);
 function tourRender(reset){const d=guide.tour;if(!d)return;
   const q=tourNorm(tourSt.q);
   const inPref=d.items.filter(it=>(!tourSt.p||it.p===tourSt.p)&&(!q||it._s.includes(q)));
