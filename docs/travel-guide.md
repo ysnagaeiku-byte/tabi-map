@@ -34,7 +34,8 @@ Google版（ドライブ支援）だけの機能です。本祭支援ツール�
 python3 -I tools/build-travel-guide.py <引き継ぎ素材集を展開したフォルダ> --extra <追加取得した写真のフォルダ>
 ```
 
-- `--extra` のフォルダには、素材集の `download_queue.json` の `imageUrl` から取得した写真を `<画像ID>.jpg`（png）の名前で置きます。採用する写真は `tools/travel-guide-review.json` の `ok` に載っているものだけです。
+- `--extra` のフォルダには、素材集の `download_queue.json` の `imageUrl` から取得した写真を `<画像ID>.jpg`（png）の名前で置きます。2026-10-28 に取得した605点は作業フォルダの `japan_travel_handoff_2026-10-28_extra_photos/`（公開しない・`.gitignore` 済み）にあります。採用する写真は `tools/travel-guide-review.json` の `ok` に載っているものだけです。
+- 確認済みの写真のファイルが足りない（`--extra` の指定漏れなど）ときや検証に問題があるときは、JSON を書き換えず・写真も消さずに止まります。
 
 - 照合漏れ・重複キー・紹介文50字超・47都道府県と5カテゴリ・写真ファイル・撮影者名・ライセンスURL・ファイル説明ページURLを検証し、問題があれば書き出さずに止まります。
 - 作り直したら `index-google.html` の `GUIDE_V` を上げます。写真はファイル名が中身のハッシュなので、差し替えると自動で別名になります。

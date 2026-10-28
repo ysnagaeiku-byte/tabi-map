@@ -90,6 +90,8 @@ def size_of(p):
     r = subprocess.run(['sips', '-g', 'pixelWidth', '-g', 'pixelHeight', str(p)], capture_output=True, text=True, check=True).stdout
     return int(re.search(r'pixelWidth: (\d+)', r).group(1)), int(re.search(r'pixelHeight: (\d+)', r).group(1))
 
+need = {i['id'] for i in [o.get('image') for o in O + T] if i and i['id'] in REVIEW_OK and not photo_file(i)}
+if need: sys.exit('確認済みの写真 %d 点のファイルがありません。追加取得した写真のフォルダを --extra で指定してください（何も書き換えていません）' % len(need))
 (OUT / 'photos').mkdir(parents=True, exist_ok=True)
 media, mid, used = [], {}, set()
 def media_index(i):
@@ -133,7 +135,7 @@ appk = {n + '|' + a for n, a in app}
 check(len(app) == len(O), 'アプリの温泉郷（%d件）と素材集（%d件）の件数が違います' % (len(app), len(O)))
 for k in appk - keys: check(False, '紹介文のない温泉郷: ' + k)
 for k in keys - appk: check(False, 'アプリにない温泉郷: ' + k)
-(OUT / 'onsen-guide.json').write_text(json.dumps({'v': '2026-10-28', 'mod': MOD, 'media': media, 'onsen': onsen}, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+onsen_out = {'v': '2026-10-28', 'mod': MOD, 'media': media, 'onsen': onsen}
 n_onsen_media = len(media)
 
 # ---------- 観光特集 ----------
@@ -157,16 +159,17 @@ for t in sorted(T, key=lambda t: (t['prefCode'], t['displayOrder'])):
 for code, name in prefs:
     cs = {k: sum(1 for x in items if x['p'] == code and x['k'] == k) for k, _ in CATS}
     check(sum(cs.values()) >= 20 and all(cs.values()), '%s の件数・カテゴリが足りません: %s' % (name, cs))
-(OUT / 'tour-guide.json').write_text(json.dumps({'v': '2026-10-28', 'mod': MOD, 'cats': CATS, 'prefs': prefs, 'media': media, 'items': items,
-                                                 'idMap': {}}, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+tour_out = {'v': '2026-10-28', 'mod': MOD, 'cats': CATS, 'prefs': prefs, 'media': media, 'items': items, 'idMap': {}}
 
-# 使っていない古い写真を消す（ファイル名＝中身のハッシュ）
-for p in (OUT / 'photos').glob('*.webp'):
-    if p.name not in used: p.unlink()
 for k in REJECT_USE: check(k in ids, '目視の記録にあるが素材集にない項目: ' + k)
 for k in REVIEW_OK | set(REJECTED):
     check(k in {(o.get('image') or {}).get('id') for o in O + T}, '目視の記録にあるが素材集にない写真: ' + k)
-if err:
-    print('\n'.join(err)); sys.exit('検証で %d 件の問題がありました' % len(err))
+if err:   # 問題があれば JSON を書き換えず、写真も消さない
+    print('\n'.join(err)); sys.exit('検証で %d 件の問題がありました（JSON は書き換えていません）' % len(err))
+for name, d in (('onsen-guide.json', onsen_out), ('tour-guide.json', tour_out)):
+    (OUT / name).write_text(json.dumps(d, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+# 使っていない古い写真を消す（ファイル名＝中身のハッシュ）
+for p in (OUT / 'photos').glob('*.webp'):
+    if p.name not in used: p.unlink()
 tot = sum(p.stat().st_size for p in (OUT / 'photos').glob('*.webp'))
 print('温泉郷 %d件（写真 %d）／観光特集 %d件（写真 %d・写真なし %d）／写真ファイル %d点 %.1fMB' % (len(onsen), n_onsen_media, len(items), len(items) - len(pend), len(pend), len(used), tot / 1e6))
