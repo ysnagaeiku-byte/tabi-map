@@ -1861,8 +1861,8 @@ window.initGMap=function(){
   map.addListener('dragstart',()=>{if(liveWatchId!=null&&liveFollow){liveFollow=false;liveFabUi();}}); // 地図ドラッグで追従解除（追跡は継続）
   applyTheme(localStorage.getItem('tabi_theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'));
   buildTabs(); updateGasNote();
-  google.maps.event.addListenerOnce(map,'idle',()=>{restoreState();setPlain();
-    if(FEST)festInit();else{showStatus('検索、または下のチップで温泉郷・ルートなどを表示',false);hideStatusLater();try{awakeInit();}catch(e){console.warn('awake',e);}}   // 表示している間はスリープさせない（既定ON）
+  google.maps.event.addListenerOnce(map,'idle',()=>{restoreState();if(!activeTab)setPlain();   // 地図の準備ができる前にタブを開いていたら、そのまま残す
+    if(FEST)festInit();else{showStatus('検索、または下のチップで観光特集・ルートなどを表示',false);hideStatusLater();try{awakeInit();}catch(e){console.warn('awake',e);}}   // 表示している間はスリープさせない（既定ON）
     // 防災トグルの復元（地図準備後）。津波情報・地震情報・緊急地震速報は既定で受信する（メニューで止めた端末は止めたまま）
     if(localStorage.getItem(TSU_KEY)!=='0')setTsunami(true,true);
     if(localStorage.getItem(QK_KEY)!=='0')setQuake(true,true);
