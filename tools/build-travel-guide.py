@@ -1,25 +1,32 @@
 #!/usr/bin/env python3
 # 温泉郷の紹介文・写真と、47都道府県の観光特集（guide/）を作り直す。
 #   入力：引き継ぎ素材集（japan_travel_handoff_*.zip）を展開したフォルダ。素材集そのもの（調査用の資料・未使用の写真）はリポジトリに入れない
+#         --extra <フォルダ>：素材集で未取得だった写真を後から取得したもの（<画像ID>.jpg 等。download_queue.json の imageUrl から取得）
 #   出力：guide/onsen-guide.json（温泉郷110件の紹介文と写真）・guide/tour-guide.json（観光特集）・guide/photos/*.webp（表示用に縮小した写真）
-# 使い方：python3 -I tools/build-travel-guide.py <展開したフォルダ> [出力先=guide]   （cwebp が必要。brew install webp）
-# 公開する写真は「取得済み」かつ「被写体の目視確認済み」のものだけ。未取得・要許諾・目視未了の写真は載せず、無地の代替表示にする
+# 使い方：python3 -I tools/build-travel-guide.py <展開したフォルダ> [--extra <追加取得した写真のフォルダ>] [出力先=guide]   （cwebp が必要。brew install webp）
+# 公開する写真は「取得済み」かつ「被写体の目視確認済み」のものだけ。目視の記録は tools/travel-guide-review.json（ok＝確認済み・rejected＝載せない理由）
+# 未取得・要許諾（公式サイト等の写真）・目視未了・不採用の写真は載せず、無地の代替表示にする
 # 写真のファイル名は中身のハッシュ。差し替えると名前が変わるので、端末に古い写真が残り続けない（Service Worker は写真を件数上限付きで保存）
 # データを作り直したら index-google.html の GUIDE_V を上げる（サービスワーカーが古いデータを使い続けないように）
 import hashlib, json, re, subprocess, sys
 from pathlib import Path
 
-SRC = Path(sys.argv[1]) if len(sys.argv) > 1 else None
-OUT = Path(sys.argv[2]) if len(sys.argv) > 2 else Path(__file__).resolve().parent.parent / 'guide'
+args = sys.argv[1:]; EXTRA = None
+if '--extra' in args:
+    k = args.index('--extra'); EXTRA = Path(args[k + 1]); del args[k:k + 2]
+SRC = Path(args[0]) if args else None
+OUT = Path(args[1]) if len(args) > 1 else Path(__file__).resolve().parent.parent / 'guide'
 if not SRC or not (SRC / 'data' / 'tourism.json').exists():
-    sys.exit('使い方: python3 -I tools/build-travel-guide.py <引き継ぎ素材集を展開したフォルダ> [出力先]')
+    sys.exit('使い方: python3 -I tools/build-travel-guide.py <引き継ぎ素材集を展開したフォルダ> [--extra <追加取得した写真のフォルダ>] [出力先]')
 APP = Path(__file__).resolve().parent.parent / 'index-google.html'
 LONG = 640   # 写真の長辺（px）。カード・吹き出しの表示幅（〜360px）の約2倍
 Q = 72       # WebP の画質
 MOD = '表示用に縮小・WebP形式に変換（内容の加工なし）'   # 写真に行った変更（全点共通）
 
-# 2026-10-28 実装時に一覧シートで被写体と名称の対応を目視した写真（素材集では「目視未了」だったもの）
-IMPL_REVIEWED = {'img-1a0b47059ed0bc', 'img-520a06fd7464e0', 'img-9224b706e7b05b', 'img-b03fe2bfb5aa47', 'img-ca6d8ad4dfc172', 'img-f370b7a594d786', 'img-f5f60ce9ba540f'}
+# 実装時の目視の記録（素材集では「目視未了」だった写真のうち、一覧シートで被写体と名称の対応を確かめたもの／載せないもの）
+REVIEW = json.loads((Path(__file__).resolve().parent / 'travel-guide-review.json').read_text(encoding='utf-8'))
+REVIEW_OK, REJECTED = set(REVIEW['ok']), REVIEW.get('rejected', {})
+REJECT_USE = REVIEW.get('rejectedUse', {})   # 写真そのものは良いが、この項目に使うのは誤り（同名の別の場所など）：項目ID → 理由
 
 def load(n): return json.loads((SRC / 'data' / n).read_text(encoding='utf-8'))
 O, T = load('onsen.json'), load('tourism.json')
@@ -30,12 +37,19 @@ def check(ok, msg):
 # ---------- 写真 ----------
 # 素材集の撮影者名が不十分だったもの：2026-10-28 に Wikimedia Commons のファイル説明ページで撮影者を確認して補う
 CREATOR_FIX = {'File:TsukimiBashi2004-12.jpg': 'Kinori',          # 「撮影者 - Kinori」（PD-user|Kinori）
+               'File:Awa-dance memorial hall01s3200.jpg': '663highland',   # 作者欄に場所が入っていた。投稿者 663highland の自作（Own work）
+               'File:住吉大社にて 住吉鳥居 2012.10.13 - panoramio.jpg': 'Nankou Oronain（Panoramio）',   # Commons の表記自体が「Nankou Oronain (as36…」で途切れている
+               'File:馬見丘陵公園 公園館 2012.6.07 - panoramio.jpg': 'Nankou Oronain（Panoramio）',
                }
 def creator_text(i):
     """クレジットに出す撮影者名。求められた表記があればそれを使い、Commons の定型文・署名の残り・URL は読める形に整える"""
     if i.get('fileTitle') in CREATOR_FIX: return CREATOR_FIX[i['fileTitle']]
     c = (i.get('requestedAttribution') or '').strip() or (i.get('creator') or '').strip()
     c = re.sub(r'\s*\(\s*talk\s*\)', '', c)                                  # 署名の「( talk )」
+    c = re.sub(r'\s*(?:This photo was taken with|Taken with)\b.*$', '', c)   # 撮影機材の書き込み
+    c = re.sub(r'^photo:\s*', '', c)
+    m = re.fullmatch(r'flickr ID;\s*(\S+)\s*\(\s*URL\s*\)', c)
+    if m: c = m.group(1) + '（Flickr）'
     c = re.sub(r'\s*\d{1,2}:\d{2}, \d{1,2} [A-Za-z]+ \d{4} \(UTC\)', '', c)  # 署名の日時
     m = re.fullmatch(r'(?:日|ja):\s*(\S+)\s*,\s*\1', c)                      # 「日:Muramasa , Muramasa」
     if m: c = m.group(1)
@@ -56,10 +70,15 @@ def iri(u):   # 日本語の部分の %XX をそのまま読める文字に戻�
 def lic_url(u):   # 素材集の一部は http:// の CC のURL（同じページ）。外部リンクは https に統一する
     return re.sub(r'^http://(creativecommons\.org/)', r'https://\1', u or '')
 
+def photo_file(i):   # 写真のファイル（素材集に同梱 → 追加取得の順）
+    if i.get('downloadStatus') == 'downloaded' and i.get('localPath'): return SRC / i['localPath']
+    if EXTRA:
+        for p in sorted(EXTRA.glob(i['id'] + '.*')): return p
+    return None
+
 def publishable(i):
-    if not i or i.get('downloadStatus') != 'downloaded' or not i.get('localPath'): return False
-    if i.get('licenseStatus') != 'metadata_checked': return False
-    return i.get('visualReview') == 'contact_sheet_reviewed' or i['id'] in IMPL_REVIEWED
+    if not i or i['id'] in REJECTED or i.get('licenseStatus') != 'metadata_checked' or not photo_file(i): return False
+    return (i.get('visualReview') == 'contact_sheet_reviewed' and i.get('downloadStatus') == 'downloaded') or i['id'] in REVIEW_OK
 
 def shot_date(v):   # 撮影日（「2008-05-06 …」→ 2008-05-06、「8 October 2006 …」→ 2006）
     v = str(v or ''); m = re.match(r'(\d{4}-\d\d-\d\d)', v)
@@ -71,12 +90,14 @@ def size_of(p):
     r = subprocess.run(['sips', '-g', 'pixelWidth', '-g', 'pixelHeight', str(p)], capture_output=True, text=True, check=True).stdout
     return int(re.search(r'pixelWidth: (\d+)', r).group(1)), int(re.search(r'pixelHeight: (\d+)', r).group(1))
 
+need = {i['id'] for i in [o.get('image') for o in O + T] if i and i['id'] in REVIEW_OK and not photo_file(i)}
+if need: sys.exit('確認済みの写真 %d 点のファイルがありません。追加取得した写真のフォルダを --extra で指定してください（何も書き換えていません）' % len(need))
 (OUT / 'photos').mkdir(parents=True, exist_ok=True)
 media, mid, used = [], {}, set()
 def media_index(i):
     if i['id'] in mid: return mid[i['id']]
-    src = SRC / i['localPath']
-    check(src.exists(), '写真ファイルがありません: ' + i['localPath'])
+    src = photo_file(i)
+    check(src.exists(), '写真ファイルがありません: ' + str(src))
     w, h = size_of(src)
     rs = ['-resize', str(LONG), '0'] if w >= h else ['-resize', '0', str(LONG)]
     if max(w, h) <= LONG: rs = []
@@ -114,7 +135,7 @@ appk = {n + '|' + a for n, a in app}
 check(len(app) == len(O), 'アプリの温泉郷（%d件）と素材集（%d件）の件数が違います' % (len(app), len(O)))
 for k in appk - keys: check(False, '紹介文のない温泉郷: ' + k)
 for k in keys - appk: check(False, 'アプリにない温泉郷: ' + k)
-(OUT / 'onsen-guide.json').write_text(json.dumps({'v': '2026-10-28', 'mod': MOD, 'media': media, 'onsen': onsen}, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+onsen_out = {'v': '2026-10-28', 'mod': MOD, 'media': media, 'onsen': onsen}
 n_onsen_media = len(media)
 
 # ---------- 観光特集 ----------
@@ -128,23 +149,27 @@ for t in sorted(T, key=lambda t: (t['prefCode'], t['displayOrder'])):
     check(t['category'] in dict(CATS), '不明なカテゴリ: ' + t['category'])
     check(https(t['officialUrl']), '公式URLがhttpsではありません: ' + t['name'])
     i = t.get('image')
-    m = media_index(i) if publishable(i) else -1
+    m = media_index(i) if publishable(i) and t['id'] not in REJECT_USE else -1
     if m < 0: pend.append(t['id'])
     r = t.get('referenceCoordinates')
     items.append({'id': t['id'], 'p': t['prefCode'], 'n': t['name'], 'c': t['city'], 'k': t['category'], 'd': t['description'], 'h': t['highlights'],
-                  's': t['seasonNote'], 'a': t['accessNote'], 'u': t['officialUrl'], 'sc': 1 if t['officialSourceScope'] == 'spot' else 0,
-                  'src': [iri(u) for u in t['sourceUrls'] if https(u)], 'r': [round(r['lat'], 6), round(r['lng'], 6)] if r else None, 'm': m,
+                  's': t['seasonNote'], 'u': t['officialUrl'], 'sc': 1 if t['officialSourceScope'] == 'spot' else 0,
+                  'r': [round(r['lat'], 6), round(r['lng'], 6)] if r else None, 'm': m,
                   'x': t['verificationNote'] if t.get('operationalStatus') else None})
 for code, name in prefs:
     cs = {k: sum(1 for x in items if x['p'] == code and x['k'] == k) for k, _ in CATS}
     check(sum(cs.values()) >= 20 and all(cs.values()), '%s の件数・カテゴリが足りません: %s' % (name, cs))
-(OUT / 'tour-guide.json').write_text(json.dumps({'v': '2026-10-28', 'mod': MOD, 'cats': CATS, 'prefs': prefs, 'media': media, 'items': items,
-                                                 'idMap': {}}, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
+tour_out = {'v': '2026-10-28', 'mod': MOD, 'cats': CATS, 'prefs': prefs, 'media': media, 'items': items, 'idMap': {}}
 
+for k in REJECT_USE: check(k in ids, '目視の記録にあるが素材集にない項目: ' + k)
+for k in REVIEW_OK | set(REJECTED):
+    check(k in {(o.get('image') or {}).get('id') for o in O + T}, '目視の記録にあるが素材集にない写真: ' + k)
+if err:   # 問題があれば JSON を書き換えず、写真も消さない
+    print('\n'.join(err)); sys.exit('検証で %d 件の問題がありました（JSON は書き換えていません）' % len(err))
+for name, d in (('onsen-guide.json', onsen_out), ('tour-guide.json', tour_out)):
+    (OUT / name).write_text(json.dumps(d, ensure_ascii=False, separators=(',', ':')), encoding='utf-8')
 # 使っていない古い写真を消す（ファイル名＝中身のハッシュ）
 for p in (OUT / 'photos').glob('*.webp'):
     if p.name not in used: p.unlink()
-if err:
-    print('\n'.join(err)); sys.exit('検証で %d 件の問題がありました' % len(err))
 tot = sum(p.stat().st_size for p in (OUT / 'photos').glob('*.webp'))
 print('温泉郷 %d件（写真 %d）／観光特集 %d件（写真 %d・写真なし %d）／写真ファイル %d点 %.1fMB' % (len(onsen), n_onsen_media, len(items), len(items) - len(pend), len(pend), len(used), tot / 1e6))
