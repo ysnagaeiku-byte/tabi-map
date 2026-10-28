@@ -171,6 +171,7 @@
   .tabs::-webkit-scrollbar{display:none;}
   .tab{flex:0 0 auto;border:1px solid var(--line);background:var(--panel);color:var(--fg);padding:6px 12px;border-radius:999px;font-size:12px;font-weight:700;min-height:32px;cursor:pointer;display:flex;align-items:center;gap:6px;box-shadow:0 3px 12px var(--shadow);}
   .tab .dot{width:7px;height:7px;border-radius:50%;}
+  a.tab{text-decoration:none;-webkit-tap-highlight-color:transparent;}   /* 本祭支援ツールの「シフト管理」（別のページへ） */
   .tab.active{color:#fff;border-color:transparent;text-shadow:0 1px 2px rgba(0,0,0,.35);}   /* 明るい色のタブでも白い文字が読めるように */
   #customPanel{display:none;margin:8px 12px 0;border:1px solid var(--line);border-radius:16px;padding:10px 12px;background:var(--panel);box-shadow:0 10px 30px var(--shadow);gap:8px;flex-wrap:wrap;max-height:66vh;overflow-y:auto;}
   #customPanel.open{display:flex;}
@@ -1923,11 +1924,13 @@ function festTiltSet(v){
   if(festBase==='p3d'){if(fest3d)fest3d.tilt=v;return;}
   if(!map)return;if(map.moveCamera)map.moveCamera({tilt:v});else map.setTilt(v);
 }
-function festResumeSave(){   // 昼/夜の切替（再読込）の直前の状態
+function festResumeSave(via){   // 昼/夜の切替（再読込）や、シフト管理の画面へ行く直前の状態（via='shift'）
   try{const c=map&&map.getCenter&&map.getCenter();
-    sessionStorage.setItem('fest_resume',JSON.stringify({b:festBase,c:c?{lat:c.lat(),lng:c.lng()}:null,z:map.getZoom(),t:map.getTilt?map.getTilt():0,h:map.getHeading?map.getHeading():0,way:!!festWayOn,tab:activeTab||null,trk:liveWatchId!=null,ts:Date.now()}));}catch(e){}
+    sessionStorage.setItem('fest_resume',JSON.stringify({b:festBase,c:c?{lat:c.lat(),lng:c.lng()}:null,z:map.getZoom(),t:map.getTilt?map.getTilt():0,h:map.getHeading?map.getHeading():0,way:!!festWayOn,tab:activeTab||null,trk:liveWatchId!=null,via:via||'',ts:Date.now()}));}catch(e){}
 }
-function festResumeTake(){let r=null;try{r=JSON.parse(sessionStorage.getItem('fest_resume')||'null');sessionStorage.removeItem('fest_resume');}catch(e){}return(r&&Date.now()-r.ts<120000)?r:null;}
+function festResumeTake(){let r=null;try{r=JSON.parse(sessionStorage.getItem('fest_resume')||'null');sessionStorage.removeItem('fest_resume');}catch(e){}return(r&&Date.now()-r.ts<(r.via==='shift'?7200000:120000))?r:null;}   // シフト管理から戻るときは2時間まで
+// シフト管理から「戻る」で、ページがそのまま戻ってきた（読み込み直していない）ときは、控えた状態は使わない
+window.addEventListener('pageshow',e=>{if(e.persisted)try{sessionStorage.removeItem('fest_resume');}catch(err){}});
 function bootGoogle(){
   if(FEST&&document.documentElement.classList.contains('fest-locked'))return;   // 止められた配布版の端末では地図を読み込まない
   const key=cfgKey('gmap');
@@ -1950,7 +1953,11 @@ document.getElementById('themeBtn').onclick=()=>{
 
 // ===== タブ =====
 const tabsEl=document.getElementById('tabs');
-function buildTabs(){tabsEl.innerHTML='';TAB_ORDER.forEach(key=>{const m=TAB_META[key],color=cssvar(m.cv);const b=document.createElement('button');b.className='tab'+(key===activeTab?' active':'');b.innerHTML=`<span class="dot" style="background:${color}"></span>${m.emoji?m.emoji+' ':''}${m.label}`;if(key===activeTab)b.style.background=color;b.onclick=()=>selectTab(key);tabsEl.appendChild(b);});
+function buildTabs(){tabsEl.innerHTML='';
+  if(FEST){const a=document.createElement('a');a.className='tab tab-shift';a.href='shift/';a.title='渉外局のシフト管理を開く（地図に戻るときは、シフトの画面の左上の「たびマップ」）';
+    a.innerHTML='<span class="dot" style="background:linear-gradient(180deg,#2dd4bf 0 50%,#a78bfa 50%)"></span>シフト管理';
+    a.onclick=e=>{if(!e.button&&!e.ctrlKey&&!e.metaKey&&!e.shiftKey)festResumeSave('shift');};tabsEl.appendChild(a);}   // 本祭支援ツールだけ。戻ってきたら今の地図の種類・視点・タブに戻す
+  TAB_ORDER.forEach(key=>{const m=TAB_META[key],color=cssvar(m.cv);const b=document.createElement('button');b.className='tab'+(key===activeTab?' active':'');b.innerHTML=`<span class="dot" style="background:${color}"></span>${m.emoji?m.emoji+' ':''}${m.label}`;if(key===activeTab)b.style.background=color;b.onclick=()=>selectTab(key);tabsEl.appendChild(b);});
   if(FEST){const b=document.createElement('button');b.className='tab fest-adv-tab';b.type='button';b.innerHTML='<span class="dot" style="background:#ffd43b"></span>高度な設定<small>（情報組込）</small>';b.title='黒帯に流す情報（開錠・施錠時間・学内施設時間・イベント時間・インフォメーション）と表示の設定（本部版だけ）';
     b.onclick=()=>{if(window.festSched&&festSched.adv)festSched.adv.open();else{showStatus('読み込み中です。少し待ってからもう一度押してください',false);hideStatusLater();}};tabsEl.appendChild(b);}   // 本部版だけ表示（html.fest-hq）
 }

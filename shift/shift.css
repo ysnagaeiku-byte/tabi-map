@@ -24,6 +24,12 @@ button,input,select,textarea{font:inherit;color:inherit;}
 .top-row{display:flex;align-items:center;gap:10px;justify-content:space-between;}
 .top-row.sub{margin-top:8px;justify-content:flex-start;flex-wrap:wrap;gap:8px;}
 .brand{display:flex;align-items:center;gap:10px;min-width:0;}
+/* たびマップ（本祭支援ツール）へ戻る：小さく */
+.back{flex:none;display:inline-flex;align-items:center;gap:3px;height:26px;padding:0 9px 0 7px;border:1px solid var(--line);border-radius:999px;background:var(--panel);
+  color:var(--muted);font-size:11.5px;font-weight:700;text-decoration:none;white-space:nowrap;-webkit-tap-highlight-color:transparent;}
+.back:hover{color:var(--fg);border-color:#3a3a42;}
+.back:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+.back .chev{font-size:17px;line-height:1;margin-top:-2px;}
 .brand-mark{width:10px;height:28px;border-radius:3px;background:linear-gradient(180deg,#2dd4bf 0 50%,#a78bfa 50%);flex:none;}
 .brand-txt{min-width:0;}
 .brand h1{font-size:17px;margin:0;font-weight:800;letter-spacing:.04em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
@@ -501,8 +507,20 @@ table.ed input[type=color]{width:38px;height:32px;padding:2px;border-radius:7px;
 }
 @media (max-width:420px){
   .brand-sub{display:none;}
+  .brand{gap:7px;}
+  .brand-mark{display:none;}
+  .back{padding:0 7px 0 5px;}
+  /* 上の行：戻る・タイトル・ボタンが1行に収まるように詰める */
+  .top-row:first-child{gap:8px;}
+  .top-act{gap:4px;}
+  .top-act .btn{padding-left:9px;padding-right:9px;}
+  .top-act .btn.icon{min-width:34px;padding-left:6px;padding-right:6px;}
+  .brand h1{font-size:14px;letter-spacing:.02em;}
   #btnBulk{display:none;}
   .seg button{padding:7px 7px;}
+}
+@media (max-width:340px){
+  .brand-txt{display:none;}
 }
 
 /* ---------- 印刷（白地に。日別は用紙の幅に合わせて描き直し、ページごとに時刻の見出しを付ける） ---------- */

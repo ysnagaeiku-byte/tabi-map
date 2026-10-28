@@ -1823,6 +1823,12 @@
     $('btnBulk').addEventListener('click', openBulk);
     $('btnMembers').addEventListener('click', openRoster);
     $('btnMenu').addEventListener('click', e => { if (menu.hidden) openMenu(e.currentTarget); else closeMenu(); });
+    // たびマップへ戻る：地図から来たときは、ブラウザの「戻る」と同じに（地図がそのまま戻ることがある）。ほかはリンクのとおり支援ツールを開く
+    $('btnBack').addEventListener('click', e => {
+      if (e.button || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      let ref = null; try { ref = new URL(document.referrer); } catch (err) {}
+      if (ref && ref.origin === location.origin && /\/index-google\.html$/.test(ref.pathname) && history.length > 1) { e.preventDefault(); history.back(); }
+    });
     $('btnUndo').addEventListener('click', undo);
     $('btnRedo').addEventListener('click', redo);
     $('btnClearSample').addEventListener('click', clearSample);
