@@ -2724,12 +2724,20 @@ function tourNameOk(a,b){const n=s=>tourNorm(String(s||'').replace(/[（(][^（(
   const bg=s=>{const r=new Set();for(let i=0;i<s.length-1;i++)r.add(s.slice(i,i+2));return r;};const A=bg(a),B=bg(b);let c=0;A.forEach(x=>{if(B.has(x))c++;});return A.size+B.size>0&&2*c/(A.size+B.size)>=0.5;}
 // 「地図で見る」：①温泉郷の既存データ ②前回見つけた位置（30日） ③Googleの施設検索（名称＋市町村＋県。同じ県・似た名前の候補だけ）
 // ④資料の参考座標 ⑤上部の検索に名称を入れて候補から選んでもらう。県庁・市役所などの代わりの位置には置かない
+// 置いたピンの吹き出しが上の帯（たたんだ観光特集・検索バー）に隠れないよう、地図を下へずらす
+function tourPin(lat,lng,name,sub){placeTempPin(lat,lng,name,sub);
+  const fix=()=>{const iw=document.querySelector('.gm-style-iw-c');if(!iw||!map||!map.getProjection())return;
+    const over=tourPanel.getBoundingClientRect().bottom+10-iw.getBoundingClientRect().top;if(over<=0)return;
+    const pr=map.getProjection(),sc=Math.pow(2,map.getZoom()),w=pr.fromLatLngToPoint(map.getCenter());   // 移動のアニメーションに打ち消されないよう、止まってから中心を直接ずらす
+    map.setCenter(pr.fromPointToLatLng(new google.maps.Point(w.x,w.y-over/sc)));};
+  let t=null;const L=google.maps.event.addListener(map,'idle',()=>{clearTimeout(t);t=setTimeout(()=>{google.maps.event.removeListener(L);fix();},200);});
+  setTimeout(()=>{if(t===null){google.maps.event.removeListener(L);fix();}},900);}
 function tourLocate(it){const pref=tourPrefName(it.p);tourMin(true);
   const og=it.k==='onsen'&&ONSEN_GO.find(o=>o.name===it.n&&o.area===tourShortPref(pref));
-  if(og){placeTempPin(og.lat,og.lng,it.n,'温泉郷の位置（たびマップの温泉郷データ・温泉地の中心付近）');return;}
-  const c=tourGeoGet(it.id);if(c){placeTempPin(c.lat,c.lng,it.n,c.sub);return;}
+  if(og){tourPin(og.lat,og.lng,it.n,'温泉郷の位置（たびマップの温泉郷データ・温泉地の中心付近）');return;}
+  const c=tourGeoGet(it.id);if(c){tourPin(c.lat,c.lng,it.n,c.sub);return;}
   const fallback=()=>{
-    if(it.r){placeTempPin(it.r[0],it.r[1],it.n,'参考位置（資料の参考座標。駐車場・入口ではありません）');return;}
+    if(it.r){tourPin(it.r[0],it.r[1],it.n,'参考位置（資料の参考座標。駐車場・入口ではありません）');return;}
     const ts=document.getElementById('topSearch');ts.value=it.n+' '+it.c;doTopSearch();
     showStatus('位置を特定できませんでした。検索の候補から選んでください',false);};
   if(!placesSvc){fallback();return;}
@@ -2739,7 +2747,7 @@ function tourLocate(it){const pref=tourPrefName(it.p);tourMin(true);
     const best=ok.find(p=>tourNameOk(p.name,it.n));
     if(!best){fallback();return;}
     const lat=best.geometry.location.lat(),lng=best.geometry.location.lng(),sub='Googleの検索で見つけた位置・'+shortAddr(best.formatted_address);
-    tourGeoSet(it.id,{lat,lng,sub});placeTempPin(lat,lng,it.n,sub);
+    tourGeoSet(it.id,{lat,lng,sub});tourPin(lat,lng,it.n,sub);
   });
 }
 // 写真の出典一覧（温泉郷・観光特集の全写真。どこに使っているかも出す）
