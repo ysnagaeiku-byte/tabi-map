@@ -1534,7 +1534,7 @@ const CATS={
 const cssvar=v=>getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const catColor=k=>cssvar(CATS[k]?CATS[k].cv:'--muted')||'#888';
 const TAB_ORDER=FEST?['custom','iso','route']   // 試験用（学園祭）では「温泉郷」は使わないので出さない
-  :['onsengo','tour','custom','iso','route']; // 温泉・銭湯/駐車場/宿泊/SA・PA はカスタムタブで代用するため常時タブからは外す
+  :['tour','custom','iso','route']; // 温泉郷・温泉/銭湯・駐車場・SA/PA などはカスタムタブの中で切り替える
 const TAB_META={onsengo:{label:'温泉郷',emoji:'♨',cv:'--c-onsengo'},tour:{label:'観光特集',emoji:'',cv:'--c-tour'},onsen:CATS.onsen,parking:CATS.parking,hotel:CATS.hotel,sapa:CATS.sapa,custom:{label:'カスタム',emoji:'',cv:'--muted'},iso:{label:'到達圏',emoji:'',cv:'--accent'},route:{label:'ルート・費用',emoji:'',cv:'--route'}};
 // 均一料金区間（普通車ベース・ETC概算／車種はVEH係数で按分）— 距離別ではなく定額の有料区間
 const FLAT_ROADS=[
@@ -1560,7 +1560,7 @@ function travelText(html){
 }
 function flatRoad(html){const t=travelText(html);for(const f of FLAT_ROADS){if(f.re.test(t))return f;}return null;}
 const CUSTOM_OPTIONS=FEST?['onsen','parking','fuel']   // 本祭支援ツールでは宿泊・SA/PA・道の駅・コンビニ・飲食店は出さない
-  :['onsen','parking','hotel','sapa','michinoeki','conveni','fuel'];   // 飲食店は出さない
+  :['onsen','parking','sapa','michinoeki','conveni','fuel'];   // 宿泊施設・飲食店は出さない
 const ONSEN_GO=[
   {name:'登別温泉',lat:42.49,lng:141.15,area:'北海道',note:'温泉のデパート',s:5,tax:311074},
   {name:'定山渓温泉',lat:42.967,lng:141.162,area:'北海道',note:'札幌の奥座敷',s:5,tax:373619},
@@ -1962,7 +1962,7 @@ function setPlain(){
   if(!onsenLayerOn)clearArr(onsengoMarkers); // 温泉郷/POI/到達圏レイヤーはタブ離脱後も保持
 }
 function selectTab(key){
-  if(key===activeTab){if(key==='onsengo'){onsenLayerOn=false;clearArr(onsengoMarkers);}setPlain();return;} // 再タップで解除（温泉郷はレイヤーOFF）
+  if(key===activeTab){setPlain();return;} // 再タップで解除
   activeTab=key;buildTabs();try{wxClickSync();}catch(e){}
   const routeMode=(key==='route'),isoMode=(key==='iso');
   if(map)map.setOptions({disableDoubleClickZoom:routeMode}); // ルート中はダブルクリックで地点追加（ズーム誤発火を防止）
@@ -1970,10 +1970,9 @@ function selectTab(key){
   document.getElementById('isoPanel').classList.toggle('open',isoMode);
   routeSheet.classList.toggle('open',routeMode);
   if(routeMode)routeSheet.classList.remove('collapsed'); // 「ルート・費用」を押したら常に展開（前回の収納状態を引きずらない）
-  document.getElementById('controls').style.display=(routeMode||isoMode||key==='onsengo'||key==='tour')?'none':'flex';
+  document.getElementById('controls').style.display=(routeMode||isoMode||key==='tour')?'none':'flex';
   if(!onsenLayerOn)clearArr(onsengoMarkers); // 温泉郷レイヤー/到達圏はタブを切り替えても保持
-  if(key==='onsengo'){onsenLayerOn=true;renderOnsenGo();map.fitBounds(llBounds(ONSEN_GO),40);showStatus('温泉郷 '+ONSEN_GO.length+'件',false);hideStatusLater();}
-  else if(key==='custom'){buildCustomPanel();runSearch();}
+  if(key==='custom'){buildCustomPanel();runSearch();}
   else if(key==='tour'){tourOpen();}
   else if(isoMode){buildIsoPanel();showStatus('地図をタップして到達圏の基準地点を設定',false);hideStatusLater();}
   else if(routeMode){renderPoints();updatePrefHint();showStatus('地図を「ダブルタップ」で地点を追加できます（誤操作防止）',false);hideStatusLater();}
@@ -2094,6 +2093,9 @@ function buildCustomPanel(){
   customPanel.innerHTML='';
   const sr=document.createElement('div');sr.style.cssText='width:100%;margin-bottom:2px;';
   sr.innerHTML=`<div class="rs-search" style="margin-bottom:6px;"><input id="cSearch" placeholder="施設名・地名・住所で検索" autocomplete="off"><button id="cSearchBtn">検索</button></div><div id="cResults" class="geo-results"></div>`;customPanel.appendChild(sr);
+  if(!FEST){const og=document.createElement('label');og.className='chk';   // 温泉郷（全国の主な温泉地・たびマップ内蔵のデータ。Googleの検索は使わない）
+    og.innerHTML=`<input type="checkbox" id="cOnsenGo" ${onsenLayerOn?'checked':''}><span class="dot" style="background:${cssvar('--c-onsengo')}"></span>♨ 温泉郷（全国${ONSEN_GO.length}）`;
+    og.querySelector('input').onchange=e=>setOnsenLayer(e.target.checked);customPanel.appendChild(og);}
   CUSTOM_OPTIONS.forEach(key=>{const c=CATS[key];const lab=document.createElement('label');lab.className='chk';lab.innerHTML=`<input type="checkbox" ${customSelected.has(key)?'checked':''}><span class="dot" style="background:${cssvar(c.cv)}"></span>${c.label}`;lab.querySelector('input').onchange=(e)=>{e.target.checked?customSelected.add(key):customSelected.delete(key);runSearch();};customPanel.appendChild(lab);});
   buildLineToggles();
   // すべて選択/解除（ワンタップで全カテゴリ切替）
@@ -2613,7 +2615,7 @@ window.ogNearby=function(lat,lng){infoWindow.close();map.setCenter({lat,lng});ma
 // ===== 温泉郷の紹介・観光特集（guide/：紹介文と写真。tools/build-travel-guide.py で作る） =====
 // 写真は「取得済み・被写体の目視確認済み」のものだけ。未取得の項目は無地の代替表示（別の写真で代用しない）
 // 写真の近くに撮影者・ライセンス・出典（Wikimedia Commons のファイル説明ページ）を出し、全点の一覧は「写真の出典一覧」で見られる
-const GUIDE_V=1;                                   // guide/*.json を作り直したら上げる（Service Worker が古い版を使い続けないように）
+const GUIDE_V=2;                                   // guide/*.json を作り直したら上げる（Service Worker が古い版を使い続けないように）
 const GUIDE_PH=/^photos\/[0-9a-f]{16}\.webp$/;     // 写真のパス（中身のハッシュ名）以外は使わない
 const guide={onsen:null,tour:null,_p:{}};
 function guideLoad(name){
@@ -2706,8 +2708,7 @@ function tourCard(it){const d=guide.tour;const el=document.createElement('articl
   const de=document.createElement('div');de.className='tg-d';de.textContent=it.d;b.appendChild(de);
   if(it.h&&it.h.length){const hl=document.createElement('div');hl.className='tg-hl';it.h.forEach(t=>{const s=document.createElement('span');s.textContent=t;hl.appendChild(s);});b.appendChild(hl);}
   const note=(lab,txt)=>{if(!txt)return;const n=document.createElement('div');n.className='tg-note';const bb=document.createElement('b');bb.textContent=lab+'：';n.append(bb,txt);b.appendChild(n);};
-  note('時季',it.s);note('移動',it.a);
-  note('確認状況',it.sc?'公式の個別ページで所在地と主な特徴を確認（2026年10月）':'県の公式観光サイトの一覧を参照した紹介（施設の個別ページは未確認）');
+  note('時季',it.s);
   if(it.x){const w=document.createElement('div');w.className='tg-warn';w.textContent='注意：'+it.x;b.appendChild(w);}
   const acts=document.createElement('div');acts.className='tg-acts';
   const go=document.createElement('button');go.type='button';go.className='tg-go';go.textContent='地図で見る';go.onclick=()=>tourLocate(it);acts.appendChild(go);
@@ -3025,6 +3026,11 @@ function restoreState(){
   if(points.length>=2)computeRoute();
 }
 function toggleOnsenLayer(){onsenLayerOn=!onsenLayerOn;if(onsenLayerOn)renderOnsenGo();else clearArr(onsengoMarkers);renderLayerPanel();}
+// カスタムタブの「温泉郷」：表示するときは全国が見えるように引く（温泉の多い所から順に、ズームで増える）
+function setOnsenLayer(on){onsenLayerOn=on;
+  if(on){renderOnsenGo();map.fitBounds(llBounds(ONSEN_GO),40);showStatus('温泉郷 '+ONSEN_GO.length+'件（レイヤーで管理）',false);hideStatusLater();}
+  else clearArr(onsengoMarkers);
+  renderLayerPanel();}
 function toggleSavedRoute(i){const r=savedRoutes[i];if(!r)return;r.visible=!r.visible;r.polys.forEach(p=>p.setMap(r.visible?map:null));r.markers.forEach(m=>m.setMap(r.visible?map:null));renderLayerPanel();}
 function deleteSavedRoute(i){const r=savedRoutes[i];if(!r)return;r.polys.forEach(p=>p.setMap(null));r.markers.forEach(m=>m.setMap(null));savedRoutes.splice(i,1);renderLayerPanel();renderSettlePanel();persistState();}
 // ===== 複数車両モード：全車両の費用合計を全同行者で均等割り勘 =====
@@ -3064,6 +3070,7 @@ function openColorPalette(anchorEl,current,onPick){
   setTimeout(()=>document.addEventListener('click',closeColorPalette,{once:true}),0); // 外側クリックで閉じる
 }
 function renderLayerPanel(){
+  const og=document.getElementById('cOnsenGo');if(og)og.checked=onsenLayerOn;   // カスタムタブの切り替えと表示を合わせる
   const list=document.getElementById('layerList');if(!list)return;
   // 温泉郷は「表示中(onsenLayerOn)」のときだけレイヤーに出す。通常時のレイヤーは空。
   let h=onsenLayerOn?`<div class="ly-item"><span class="ly-sw on" id="lyOnsen" style="border:1px solid #e64980;"></span><span class="ly-name">♨ 温泉郷 (${ONSEN_GO.length})</span><button class="ly-del" id="lyOnsenDel"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button></div>`:'';
@@ -3092,7 +3099,7 @@ function renderLayerPanel(){
     h=`<div class="ly-item ly-grp"><span class="ly-sw fw-all${festWayOn?' on':''}" style="border:1px solid #f76707;cursor:pointer;" title="構内の動線を${festWayOn?'消す':'表示'}"></span><span class="ly-name">構内の動線 <small style="color:var(--muted);font-weight:500;">${festWayOn?nOn+'/'+FEST_WAYL.length+'要素':'非表示（左のスイッチ・各要素で表示）'}</small></span>`+(festWayOn?`<button class="ly-del" id="lyFestWayDel" title="構内の動線をすべて消す"><svg class="svgi" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2m3 0-1 13a1 1 0 0 1-1 1H8a1 1 0 0 1-1-1L6 7"/><path d="M10 11v6M14 11v6"/></svg></button>`:'')+`</div>`
       +FEST_WAYL.map(([k,lab,col])=>`<div class="ly-item" style="padding-left:14px;"><span class="ly-sw fw-sw${festWayOn&&festWayL[k]?' on':''}" data-k="${k}" style="border:1px solid ${col};"></span><span class="ly-name">${lab}</span></div>`).join('')+h;
   }
-  if(!savedRoutes.length&&!isoShapes.length&&!onsenLayerOn&&!poiCats.length&&!lineKeys.length&&!savedPins.length&&!bufferLayers.length&&!FEST)h+='<div class="ly-empty">レイヤーは空です。カスタムタブでPOI・高速/鉄道の全国強調を表示、温泉郷タブ、到達圏、検索して「ピンを残す」、ピンの「距離円」、ルートの「保存」などで要素を地図に重ねられます（タブを切り替えても残ります）。</div>';
+  if(!savedRoutes.length&&!isoShapes.length&&!onsenLayerOn&&!poiCats.length&&!lineKeys.length&&!savedPins.length&&!bufferLayers.length&&!FEST)h+='<div class="ly-empty">レイヤーは空です。カスタムタブで温泉郷・POI・高速/鉄道の全国強調を表示、到達圏、検索して「ピンを残す」、ピンの「距離円」、ルートの「保存」などで要素を地図に重ねられます（タブを切り替えても残ります）。</div>';
   list.innerHTML=h;
   const lyOnsen=document.getElementById('lyOnsen');if(lyOnsen)lyOnsen.onclick=toggleOnsenLayer;
   const fwDel=document.getElementById('lyFestWayDel');if(fwDel)fwDel.onclick=()=>festDrawWays(false);

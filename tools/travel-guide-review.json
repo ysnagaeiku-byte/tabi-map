@@ -1,0 +1,6 @@
+{
+  "note": "素材集（japan_travel_handoff_2026-10-28）で被写体の目視が済んでいなかった写真の、実装時の目視の記録。ok＝一覧シートで被写体と名称・所在地の対応を確かめて載せる写真、rejected＝載せない写真と理由",
+  "reviewedAt": "2026-10-28",
+  "ok": ["img-1a0b47059ed0bc", "img-520a06fd7464e0", "img-9224b706e7b05b", "img-b03fe2bfb5aa47", "img-ca6d8ad4dfc172", "img-f370b7a594d786", "img-f5f60ce9ba540f"],
+  "rejected": {}
+}
