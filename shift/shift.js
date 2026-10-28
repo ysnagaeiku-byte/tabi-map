@@ -114,6 +114,8 @@
   const okId = v => typeof v === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(v);
   const isObj = v => !!v && typeof v === 'object';
   const nk = v => String(v == null ? '' : v).normalize('NFKC');   // 全角・半角の違いをならす（３年＝3年）
+  // 日本語入力で変換を確定する Enter（これに反応すると、欄を抜けたときに文字が二重に入ったり、変換の途中で保存されたりする）
+  const imeEnter = e => e.isComposing || e.keyCode === 229;
   function cleanBreaks(br, s, e) {
     const out = (Array.isArray(br) ? br : []).filter(isObj).map(b => ({ s: Math.max(s, Math.round(+b.s)), e: Math.min(e, Math.round(+b.e)) }))
       .filter(b => isFinite(b.s) && isFinite(b.e) && b.e > b.s).sort((x, y) => x.s - y.s);
@@ -539,7 +541,7 @@
     const headNow = head + (showNow ? `<span class="nowtag" style="left:${(now.min - a) / 60 * hp}px">${fmt(now.min)}</span>` : '') + `</div></div>`;
     head += `</div></div>`;
     // イベントの行は時刻の見出しと一緒に上に貼り付ける。スマホは表の高さが足りないので、見出しだけ貼り付けてイベントは一緒に流す
-    const band = V.evHide ? '' : evBandHtml(evs), pin = printing || !narrowScreen();
+    const band = V.evHide ? '' : `<div class="tl-evs">${evBandHtml(evs)}</div>`, pin = printing || !narrowScreen();
     const top = `<div class="tl-top">${headNow}${pin ? band : ''}</div>${pin ? '' : band}`;
 
     const groups = V.grp === 'all' ? D.groups : D.groups.filter(g => g.id === V.grp);
@@ -586,18 +588,21 @@
     }
   }
   // イベントの行：区分（会場）ごとに1行。重なるものは段を分ける。時刻だけのものは小さな旗
-  function evBandHtml(evs) {
-    const g = G, cats = [...new Set(evs.map(ev => ev.cat))].sort((x, y) => evCatRank(x) - evCatRank(y) || x.localeCompare(y, 'ja'));
+  function evBandHtml(evs, keep) {   // keep：イベントがなくても残す行（ドラッグ中に行が消えて表が動かないように）
+    const g = G, cats = [...new Set(evs.map(ev => ev.cat).concat(keep || []))].sort((x, y) => evCatRank(x) - evCatRank(y) || x.localeCompare(y, 'ja'));
     if (!cats.length) return `<div class="tl-evrow empty"><div class="tl-name evn">イベント</div><div class="tl-evlane" data-cat="" style="width:${g.W}px"><button type="button" class="evadd">＋ イベントを追加</button></div></div>`;
     return cats.map(c => {
       const list = evs.filter(ev => ev.cat === c).sort((x, y) => x.s - y.s || x.e - y.e);
       const tr = tracks(list.map(ev => ({ id: ev.id, s: ev.s, e: Math.max(ev.e, ev.s + Math.ceil(60 * 70 / g.hp)) }))), n = Math.max(1, ...[...tr.values()].map(x => x.n));
       const items = list.map(ev => {
         const t = tr.get(ev.id), x = (ev.s - g.a) / 60 * g.hp, top = 2 + t.k * 20, dk = isDark(ev.color);
+        const st = (ev.dragging ? ' drag' : '') + (ev.ghost ? ' ghost' : '');
         const tip = esc(`${ev.name}${ev.cat ? '（' + ev.cat + '）' : ''}\n${fmt(ev.s)}${ev.e > ev.s ? '〜' + fmt(ev.e) : ''}${ev.note ? '\n' + ev.note : ''}`);
-        if (ev.e === ev.s) return `<div class="evpt${dk ? ' dk' : ''}" data-ev="${ev.id}" style="left:${x}px;top:${top}px;--ec:${ev.color}" title="${tip}"><b>${fmt(ev.s)}</b> ${esc(ev.name)}</div>`;
-        const w = Math.max(6, (ev.e - ev.s) / 60 * g.hp), lab = w >= 120 ? `${esc(ev.name)} <b>${fmt(ev.s)}–${fmt(ev.e)}</b>` : esc(ev.name);
-        return `<div class="evbar${dk ? ' dk' : ''}" data-ev="${ev.id}" style="left:${x}px;width:${w}px;top:${top}px;background:${ev.color}" title="${tip}">${lab}</div>`;
+        if (ev.e === ev.s) return `<div class="evpt${dk ? ' dk' : ''}${st}" data-ev="${ev.id}" style="left:${x}px;top:${top}px;--ec:${ev.color}" title="${tip}"><b>${fmt(ev.s)}</b> ${esc(ev.name)}</div>`;
+        const w = Math.max(6, (ev.e - ev.s) / 60 * g.hp), tm = `<b>${fmt(ev.s)}–${fmt(ev.e)}</b>`;
+        const lab = ev.ghost || ev.dragging ? `${esc(ev.name)} ${tm}` : w >= 120 ? `${esc(ev.name)} ${tm}` : esc(ev.name);   // 動かしている間は時刻を出す
+        const hdl = !printing && w >= 22 ? '<i class="hdl l"></i><i class="hdl r"></i>' : '';
+        return `<div class="evbar${dk ? ' dk' : ''}${st}" data-ev="${ev.id}" style="left:${x}px;width:${w}px;top:${top}px;background:${ev.color}" title="${tip}">${lab}${hdl}</div>`;
       }).join('');
       return `<div class="tl-evrow"><div class="tl-name evn" title="${esc(evCatName(c))}">${esc(evCatName(c))}</div><div class="tl-evlane" data-cat="${esc(c)}" style="width:${g.W}px;height:${4 + n * 20}px">${items}</div></div>`;
     }).join('');
@@ -641,7 +646,7 @@
   }
   function laneHtml(mId) {
     let list = D.shifts.filter(s => s.m === mId && s.d === G.day);
-    if (drag && drag.moved) {
+    if (drag && !drag.ev && drag.moved) {
       list = list.filter(s => s.id !== drag.id);
       if (drag.cur.m === mId) list.push(Object.assign({ ghost: drag.kind === 'new', dragging: true }, drag.cur));
     }
@@ -781,6 +786,8 @@
   function paintLanes(ids) { ids.forEach(id => { const ln = tl.querySelector(`.tl-lane[data-m="${id}"]`); if (ln) ln.innerHTML = laneHtml(id); }); }
   tl.addEventListener('pointerdown', e => {
     if (e.button !== 0 || e.pointerType === 'touch' || !G) return;
+    const evLane = e.target.closest('.tl-evlane');
+    if (evLane) { startEvDrag(e, evLane); return; }
     const lane = e.target.closest('.tl-lane');
     if (!lane || e.target.closest('.bar-out')) return;     // 短い棒の横の時刻は、押すとその棒の編集（click で）
     const bar = e.target.closest('.bar'), st = D.opt.snap;
@@ -798,12 +805,48 @@
     window.addEventListener('pointerup', onDragEnd);
     window.addEventListener('pointercancel', onDragEnd);
   });
+  // イベントの行：棒（旗）をドラッグで移動（上下で会場・区分の行を移る）、棒の端で始まり・終わり、空いている所をドラッグで追加
+  function startEvDrag(e, lane) {
+    if (e.target.closest('.evadd')) return;
+    const el = e.target.closest('[data-ev]'), st = D.opt.snap;
+    if (el) {
+      const ev = D.events.find(x => x.id === el.dataset.ev);
+      if (!ev) return;
+      const hd = e.target.closest('.hdl');
+      drag = { ev: true, kind: hd ? (hd.classList.contains('l') ? 'l' : 'r') : 'move', id: ev.id, orig: clone(ev), cur: clone(ev), x0: e.clientX, y0: e.clientY, t0: minAt(e.clientX), moved: false };
+    } else {
+      const t = clamp(snapTo(minAt(e.clientX), st), G.a, G.b - st);
+      drag = { ev: true, kind: 'new', id: '__new', t0: t, cur: { id: '__new', d: G.day, s: t, e: t + st, name: '', cat: lane.dataset.cat || '', color: EV_COLORS[0], line: false, note: '', ghost: true }, x0: e.clientX, y0: e.clientY, moved: false };
+    }
+    e.preventDefault();
+    window.addEventListener('pointermove', onDragMove);
+    window.addEventListener('pointerup', onDragEnd);
+    window.addEventListener('pointercancel', onDragEnd);
+  }
+  function evDragMove(e) {
+    const st = D.opt.snap, o = drag.orig, c = drag.cur, t = minAt(e.clientX);
+    if (drag.kind === 'new') {
+      const p = clamp(snapTo(t, st), G.a, G.b);
+      c.s = Math.min(drag.t0, p); c.e = Math.max(drag.t0, p);
+      if (c.e - c.s < st) c.e = Math.min(G.b, c.s + st);
+    } else if (drag.kind === 'move') {
+      const len = o.e - o.s, s = clamp(o.s + snapTo(t - drag.t0, st), G.a, G.b - len);
+      c.s = s; c.e = s + len;
+      const el = document.elementFromPoint(e.clientX, e.clientY), ln = el && el.closest && el.closest('.tl-evlane');
+      if (ln) c.cat = ln.dataset.cat || '';
+    } else if (drag.kind === 'l') c.s = clamp(o.s + snapTo(t - drag.t0, st), G.a, o.e - st);
+    else c.e = clamp(o.e + snapTo(t - drag.t0, st), o.s + st, G.b);
+    const box = tl.querySelector('.tl-evs');
+    if (!drag.cats) drag.cats = [...new Set(D.events.filter(ev => ev.d === G.day).map(ev => ev.cat))];
+    if (box) box.innerHTML = evBandHtml(D.events.filter(ev => ev.d === G.day && ev.id !== drag.id).concat([Object.assign({ dragging: drag.kind !== 'new' }, c)]), drag.cats);
+  }
   function onDragMove(e) {
     if (!drag) return;
     if (!drag.moved && Math.hypot(e.clientX - drag.x0, e.clientY - drag.y0) < 5) return;
     drag.moved = true;
     const r = tlWrap.getBoundingClientRect();     // 端に寄せたら自動でスクロール
     if (e.clientX > r.right - 36) tlWrap.scrollLeft += 14; else if (e.clientX < r.left + G.nameW + 30) tlWrap.scrollLeft -= 14;
+    if (drag.ev) { evDragMove(e); return; }       // イベントは上に貼り付いているので、縦には送らない
     if (e.clientY > r.bottom - 40) tlWrap.scrollTop += 12; else if (e.clientY < r.top + 40) tlWrap.scrollTop -= 12;
     const st = D.opt.snap, o = drag.orig, c = drag.cur, t = minAt(e.clientX);
     if (drag.kind === 'new') {
@@ -832,6 +875,20 @@
     suppressClick = true; setTimeout(() => { suppressClick = false; }, 0);
     if (e.type === 'pointercancel') { render(); return; }
     const c = d.cur;
+    if (d.ev) {
+      if (d.kind === 'new') {
+        render();
+        // 少し手がぶれただけ（12px未満）はクリックと同じ扱い（押した時刻から1時間で下書き）
+        const s0 = Math.abs(e.clientX - d.x0) < 12 ? Math.floor(d.t0 / 15) * 15 : c.s, e0 = Math.abs(e.clientX - d.x0) < 12 ? Math.min(DAY_MAX, s0 + 60) : c.e;
+        openEventEditor({ d: G.day, s: s0, e: e0, cat: c.cat, name: '', color: EV_COLORS[0], line: false });
+        return;
+      }
+      const o = d.orig;
+      if (c.s === o.s && c.e === o.e && c.cat === o.cat) { render(); return; }
+      commit(D2 => { const x = D2.events.find(y => y.id === o.id); if (x) { x.s = c.s; x.e = c.e; x.cat = c.cat; } },
+        `イベント「${o.name}」を ${fmt(c.s)}${c.e > c.s ? '〜' + fmt(c.e) : ''}${c.cat !== o.cat ? '・' + evCatName(c.cat) + 'の行' : ''} にしました`);
+      return;
+    }
     if (d.kind === 'new') {
       render();
       // 少し手がぶれただけ（12px未満・30分未満）はクリックと同じ扱い（いつもの長さで下書き）
@@ -988,7 +1045,7 @@
       if (e.target.closest('[data-duok]') && add().contains(e.target)) addNew();
       else if (e.target.closest('[data-ducancel]') && add().contains(e.target)) add().hidden = true;
     });
-    root.addEventListener('keydown', e => { if (e.key === 'Enter' && add().contains(e.target)) { e.preventDefault(); e.stopPropagation(); addNew(); } }, true);
+    root.addEventListener('keydown', e => { if (e.key === 'Enter' && !imeEnter(e) && add().contains(e.target)) { e.preventDefault(); e.stopPropagation(); addNew(); } }, true);
     return redraw;
   }
 
@@ -1057,7 +1114,16 @@
       upd();
     });
     b.addEventListener('click', e => { const c = e.target.closest('.evc'); if (c) { dr.color = c.dataset.c; upd(); } });
-    b.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type !== 'checkbox') { e.preventDefault(); save(); } });
+    // Enter：名前 → 会場・区分 → メモ と次の欄へ進み、メモで押すと保存（Ctrl/⌘+Enter はどこでも保存）。候補（datalist）を Enter で選んでも閉じない
+    b.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' || imeEnter(e)) return;
+      if (e.ctrlKey || e.metaKey) { e.preventDefault(); if (!q('evSave').disabled) save(); return; }
+      const order = ['evN', 'evC', 'evM'], i = order.indexOf(e.target.id);
+      if (i < 0) return;
+      e.preventDefault();
+      if (i < order.length - 1) { const n = q(order[i + 1]); n.focus(); n.select(); }
+      else if (!q('evSave').disabled) save();
+    });
     q('evSave').addEventListener('click', save);
     const del = q('evDel');
     if (del) del.addEventListener('click', () => { commit(D2 => { D2.events = D2.events.filter(x => x.id !== dr.id); }, `イベント「${dr.name}」を削除しました`); closeDlg(); });
@@ -1171,7 +1237,7 @@
       const del = e.target.closest('[data-del]');
       if (del) { dr.br.splice(+del.closest('[data-i]').dataset.i, 1); dr.autoBr = false; upd(); }
     });
-    dlg.querySelector('.dlg-b').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.id === 'edN') { e.preventDefault(); save(); } });
+    dlg.querySelector('.dlg-b').addEventListener('keydown', e => { if (e.key === 'Enter' && !imeEnter(e) && e.target.id === 'edN') { e.preventDefault(); save(); } });
     q('edSave').addEventListener('click', save);
     const del = q('edDel');
     if (del) del.addEventListener('click', () => {
@@ -1331,7 +1397,7 @@
       commit(D2 => { const x = D2.members.find(y => y.id === tr.dataset.m); if (x) x[t.dataset.f] = v; });
       if (t.dataset.f !== 'name') { redraw(); const row = b.querySelector(`tr[data-m="${tr.dataset.m}"]`); if (row) row.classList.add('hi'); }
     });
-    b.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.dataset && e.target.dataset.f === 'name') e.target.blur(); });
+    b.addEventListener('keydown', e => { if (e.key === 'Enter' && !imeEnter(e) && e.target.dataset && e.target.dataset.f === 'name') e.target.blur(); });
     b.addEventListener('input', e => { if (e.target.id === 'rsText') preview(); });
     b.addEventListener('click', e => {
       const rm = e.target.closest('[data-rm]');
