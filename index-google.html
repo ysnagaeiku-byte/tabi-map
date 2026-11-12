@@ -21,7 +21,7 @@
   if(!m||(/[?&]m=senshu(?:&|$)/.test(s)&&!K.test(s)))return;
   location.replace(location.pathname+'?m=senshu#key='+m[1]);})();</script>
 <script>/* 本祭支援ツール（?m=senshu）はドライブ版と別のアプリとして追加できるよう、アプリ情報・アイコン・名前を差し替える */
-(function(){if(!/[?&]m=senshu(?:&|$)/.test(location.search))return;var q=function(s){return document.querySelector(s);};
+(function(){if(!/[?&]m=senshu(?:&|$)/.test(location.search))return;document.documentElement.classList.add('fest');var q=function(s){return document.querySelector(s);};
   q('link[rel="manifest"]').href='manifest-senshu.json';q('link[rel="apple-touch-icon"]').href='apple-touch-icon-senshu.png';q('link[rel="icon"]').href='icon-senshu-192.png';
   q('meta[name="apple-mobile-web-app-title"]').content='本祭支援';q('meta[name="theme-color"]').content='#000000';})();</script>
 <!-- 配信時にGitHub ActionsがSecretからキーを注入（リポジトリ本体には実キーを置かない）。未注入時はプレースホルダのまま→端末ごとの手入力にフォールバック -->
@@ -576,6 +576,14 @@
   #festBaseBar .seg{margin:0;gap:2px;padding:2px;border-radius:999px;background:var(--panel);border:1px solid var(--line);box-shadow:0 3px 12px var(--shadow);}
   #festBaseBar .seg button{flex:none;position:relative;min-height:0;height:24px;padding:0 10px;border-radius:999px;font-size:11.5px;letter-spacing:0;}
   #festBaseBar .seg button::after{content:"";position:absolute;inset:-7px 0;}   /* 見た目は細く、押せる範囲は上下に広く */
+  /* ドライブ版：地図の種類（標準・白地図・航空）。本祭支援ツールのバーと同じ形で、右上の丸ボタンの下に置く。時計はその下 */
+  #baseBar{display:none;position:fixed;top:calc(56px + var(--qk,0px) + env(safe-area-inset-top));right:12px;z-index:1245;}
+  #baseBar.show{display:block;} html.fest #baseBar{display:none !important;}
+  #baseBar .seg{margin:0;gap:2px;padding:2px;border-radius:999px;background:var(--panel);border:1px solid var(--line);box-shadow:0 3px 12px var(--shadow);}
+  #baseBar .seg button{flex:none;position:relative;min-height:0;height:24px;padding:0 10px;border-radius:999px;font-size:11.5px;letter-spacing:0;}
+  #baseBar .seg button::after{content:"";position:absolute;inset:-7px 0;}
+  @media(min-width:601px){html:not(.fest) #liveClock{top:calc(90px + var(--qk,0px) + env(safe-area-inset-top));}}
+  @media(max-width:600px){#baseBar{top:calc(96px + var(--qk,0px) + env(safe-area-inset-top));right:10px;} #baseBar .seg button{padding:0 8px;font-size:11px;}}
   html.fest #liveClock{top:calc(92px + env(safe-area-inset-top));}
   /* 本祭支援ツール：短距離向けにルートタブを簡略化（休憩・割り勘を出さない） */
   html.fest #restSec,html.fest #splitRow,html.fest .rs-inputs label:has(#splitN){display:none !important;}
@@ -1235,6 +1243,387 @@
     html.fest body:has(#taxiMeter.open) #lcEv .lc-rot .lc-wx{opacity:0;visibility:hidden;}
     html.fest body:has(#taxiMeter.open) #lcEv .lc-rot.wx .lc-ev-a{opacity:1;}
   }
+  /* <<< DRIVE-UI */
+  /* ===== ドライブ版の見た目（2026-11）：iOS に近い配色・質感・文字。本祭支援ツール（html.fest）には当てない =====
+     ・色は上の変数を置き換える（システムブルー、グレーの階調、半透明の面）
+     ・浮いている部品は枠線をやめ、ごく薄い輪郭＋やわらかい影。大きな面は背景をぼかす
+     ・文字は太すぎる指定（800/900）を 700 に、700 を 600 に下げる（この層の最後の自動生成部分） */
+  html:not(.fest){
+    --bg:#f2f2f7; --panel:rgba(255,255,255,.86); --panel-blur:rgba(255,255,255,.72);
+    --surface:#ffffff; --surface-2:#f2f2f7; --fg:#1c1c1e; --muted:#6e6e73;
+    --line:rgba(60,60,67,.14); --accent:#007aff; --accent-btn:#007aff; --accent-weak:rgba(0,122,255,.12); --shadow:rgba(0,0,0,.12);
+    --c-onsen:#ff9500; --c-parking:#007aff; --c-hotel:#af52de;
+    --c-conveni:#34c759; --c-food:#ff6b22; --c-fuel:#f5a300; --c-sapa:#00b3a4; --c-michi:#ff3b30; --c-onsengo:#ff2d55; --route:#007aff;
+    --open:#248a3d; --closed:#ff3b30; --c-tour:#1a9cb4;
+    --chip:rgba(255,255,255,.96); --fill:rgba(120,120,128,.12); --fill-2:rgba(120,120,128,.2); --sep:rgba(60,60,67,.12); --tert:#8e8e93;
+    --green:#34c759; --red:#ff3b30; --thumb:#ffffff; --thumb-sh:0 3px 8px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.05);
+    --mat:saturate(180%) blur(22px);
+    --elev:0 0 0 .5px rgba(0,0,0,.08),0 10px 30px rgba(0,0,0,.13);
+    --elev-sm:0 0 0 .5px rgba(0,0,0,.08),0 2px 10px rgba(0,0,0,.10);
+  }
+  html:not(.fest)[data-theme="dark"]{
+    --bg:#000000; --panel:rgba(30,30,32,.84); --panel-blur:rgba(30,30,32,.72);
+    --surface:#1c1c1e; --surface-2:#2c2c2e; --fg:#f5f5f7; --muted:#a1a1a6;
+    --line:rgba(84,84,88,.6); --accent:#0a84ff; --accent-btn:#0a84ff; --accent-weak:rgba(10,132,255,.24); --shadow:rgba(0,0,0,.5);
+    --c-onsen:#ff9f0a; --c-parking:#0a84ff; --c-hotel:#bf5af2;
+    --c-conveni:#30d158; --c-food:#ff7a3d; --c-fuel:#ffc21a; --c-sapa:#2ec4b6; --c-michi:#ff453a; --c-onsengo:#ff375f; --route:#0a84ff;
+    --open:#30d158; --closed:#ff453a; --c-tour:#2aa9c0;
+    --chip:rgba(44,44,46,.96); --fill:rgba(120,120,128,.24); --fill-2:rgba(120,120,128,.36); --sep:rgba(84,84,88,.55); --tert:#8e8e93;
+    --green:#30d158; --red:#ff453a; --thumb:#636366; --thumb-sh:0 3px 8px rgba(0,0,0,.3);
+    --elev:0 0 0 .5px rgba(255,255,255,.1),0 12px 34px rgba(0,0,0,.55);
+    --elev-sm:0 0 0 .5px rgba(255,255,255,.1),0 2px 12px rgba(0,0,0,.45);
+  }
+  /* 文字の太さ（自動生成）：800・900 → 700、700 → 600 */
+  html:not(.fest) #liveClock.evac-armed #evacLabel,html:not(.fest) .evac-h,html:not(.fest) .evac-dest,html:not(.fest) .evac-modes button,html:not(.fest) .evac-addroute,html:not(.fest) #lcTime,html:not(.fest) #speedChip,html:not(.fest) #toolMenu .tm-sec,html:not(.fest) .tm-item .tm-ex,html:not(.fest) #disasterBanner,html:not(.fest) #mapLegend .lg-ttl,html:not(.fest) .pin-label{font-weight:700;}
+  html:not(.fest) #guideCr .gc-h,html:not(.fest) .oh,html:not(.fest) .popup .links button.pin-clr-btn,html:not(.fest) .popup .route-act .ra-lab,html:not(.fest) .popup .route-act button,html:not(.fest) .popup .fac .fac-x,html:not(.fest) .popup .fac .fac-24,html:not(.fest) .popup .sapa-score,html:not(.fest) .rs-peek .pk-main,html:not(.fest) .rs-peek .pk-cost,html:not(.fest) .rs-peek .pk-x,html:not(.fest) .sh-head{font-weight:700;}
+  html:not(.fest) .sh-head .sh-clr,html:not(.fest) .pin-save-btn,html:not(.fest) .pt-badge,html:not(.fest) .rs-label,html:not(.fest) .dep-now,html:not(.fest) .dep-lab,html:not(.fest) #costDetails>.cd-header,html:not(.fest) .ver-switch a,html:not(.fest) .ro-tag,html:not(.fest) .rs-card .val,html:not(.fest) .itin-time,html:not(.fest) .itin-badge{font-weight:700;}
+  html:not(.fest) .times-toggle,html:not(.fest) .adv-toggle,html:not(.fest) .detail-btn,html:not(.fest) .set-label,html:not(.fest) .share-code-in,html:not(.fest) .share-code-box .code,html:not(.fest) .wx-chips-lab,html:not(.fest) .wx-sec-t,html:not(.fest) .wx-wd-day,html:not(.fest) .wx-wd-t,html:not(.fest) .wx-hday,html:not(.fest) .wx-hr-t{font-weight:700;}
+  html:not(.fest) .wx-hr-tm,html:not(.fest) #myLocFab small,html:not(.fest) #trackFab small,html:not(.fest) #layerBtn small,html:not(.fest) #settleBtn small,html:not(.fest) .iso-lab,html:not(.fest) .rest-item .rest-t,html:not(.fest) .rest-item .rest-k,html:not(.fest) .sch-t,html:not(.fest) .sch-t .dep-in,html:not(.fest) .sch-t .restdep-in,html:not(.fest) .sch-badge{font-weight:700;}
+  html:not(.fest) .sch-tag,html:not(.fest) .itf.off .itf-x,html:not(.fest) .itf .itf-24,html:not(.fest) .itin-score,html:not(.fest) #imgBtn small,html:not(.fest) .stl-total,html:not(.fest) .ly-head,html:not(.fest) .ly-save-set,html:not(.fest) .ls-load,html:not(.fest) .ly-btn,html:not(.fest) .ly-grp .ly-name,html:not(.fest) .txm-lamp{font-weight:700;}
+  html:not(.fest) .txm-cur,html:not(.fest) #txmFare,html:not(.fest) .txm-yen,html:not(.fest) .txm-pop,html:not(.fest) .txm-acts button,html:not(.fest) .txm-tbl-h,html:not(.fest) .txm-ft td b,html:not(.fest) .txm-seg button,html:not(.fest) .txm-rc-h,html:not(.fest) .txm-rc-t,html:not(.fest) .fp-lb,html:not(.fest) .nv-d b{font-weight:700;}
+  html:not(.fest) .nv-d span,html:not(.fest) .nv-stat b,html:not(.fest) .nv-btn,html:not(.fest) .nav-start-btn,html:not(.fest) .lc-ev-u span,html:not(.fest) .lc-ev-u b,html:not(.fest) .lc-wx-in .wx-t,html:not(.fest) .lc-wx-in b,html:not(.fest) .ff-tabs button,html:not(.fest) .ff-one,html:not(.fest) .ff-zoom span,html:not(.fest) .ff-zoom button{font-weight:700;}
+  html:not(.fest) #ffPdf,html:not(.fest) .fa-no,html:not(.fest) #fsMsg.err,html:not(.fest) .fad-msg.err,html:not(.fest) .fad-row button,html:not(.fest) #qkBand .qk-tag,html:not(.fest) #qkBand .qk-it b{font-weight:700;}
+  html:not(.fest) .evac-warn,html:not(.fest) .evac-meta,html:not(.fest) #lcDate,html:not(.fest) .tm-item .tm-lab,html:not(.fest) #mapLegend .lg-scale,html:not(.fest) #attrBtn,html:not(.fest) .tab,html:not(.fest) .tg-top button,html:not(.fest) .tg-cat,html:not(.fest) .tg-note b,html:not(.fest) .tg-acts button,html:not(.fest) .tg-acts a{font-weight:600;}
+  html:not(.fest) .tg-more,html:not(.fest) .tg-foot button,html:not(.fest) .og-ph .g-crl,html:not(.fest) .fab,html:not(.fest) .popup .links a,html:not(.fest) .popup .links button,html:not(.fest) .rk-slot a,html:not(.fest) .popup .sapa-24,html:not(.fest) .popup .sapa-park,html:not(.fest) .rs-head .clear,html:not(.fest) .rs-search button,html:not(.fest) .sh-item .sh-tx b{font-weight:600;}
+  html:not(.fest) .pin-row .pin-go,html:not(.fest) .pin-grp .pin-grp-draw,html:not(.fest) .pt-stay,html:not(.fest) .rs-btns button,html:not(.fest) .gmaps-btn,html:not(.fest) .seg button,html:not(.fest) .rs-inputs label,html:not(.fest) #cdChip,html:not(.fest) #ocdChip,html:not(.fest) .rs-card .k,html:not(.fest) .set-save,html:not(.fest) .set-msg{font-weight:600;}
+  html:not(.fest) .share-guide summary,html:not(.fest) .sapa-attr,html:not(.fest) .sapa-count,html:not(.fest) .sapa-card .sc-lv,html:not(.fest) .sapa-card .sc-g,html:not(.fest) .popup .links button.wx-btn,html:not(.fest) .wx-chip,html:not(.fest) .wx-wd-w,html:not(.fest) .wx-wd-t span,html:not(.fest) .wx-wd-p,html:not(.fest) .wx-hr-w,html:not(.fest) .wx-hr-p{font-weight:600;}
+  html:not(.fest) #bufClear,html:not(.fest) #isoClearFab,html:not(.fest) .iso-chip,html:not(.fest) .iso-leg,html:not(.fest) details.tbt summary,html:not(.fest) #routeLegend,html:not(.fest) .rest-item .rest-n,html:not(.fest) .sch-row.evt .sch-t,html:not(.fest) .sch-stay,html:not(.fest) .rest-reset-btn,html:not(.fest) .alt-chip,html:not(.fest) .stl-name{font-weight:600;}
+  html:not(.fest) .stl-cost,html:not(.fest) .stl-add,html:not(.fest) .ls-count,html:not(.fest) .ls-name,html:not(.fest) #topActions .icon-btn .ib-lab,html:not(.fest) .txm-ft th,html:not(.fest) .txm-rc-l b,html:not(.fest) .fq,html:not(.fest) .nv-next,html:not(.fest) .nv-warn,html:not(.fest) .nav-gmap-btn,html:not(.fest) #fbMeasure{font-weight:600;}
+  html:not(.fest) .lc-wx-in i,html:not(.fest) .fa-back,html:not(.fest) .fa-src>span,html:not(.fest) .fa-seq-row button,html:not(.fest) .fa-row button,html:not(.fest) .fa-presets button,html:not(.fest) .fa-msg-ops button,html:not(.fest) .fa-row-t label,html:not(.fest) .fa-acts-h button,html:not(.fest) .fa-msg-ops label,html:not(.fest) .fs-tabs>button,html:not(.fest) .fs-grid>span:not(.fs-fac){font-weight:600;}
+  html:not(.fest) .fs-fac,html:not(.fest) #qkBand .qk-row,html:not(.fest) #mapLegend .qk-lg span{font-weight:600;}
+  html:not(.fest) [style*="font-weight:800"],html:not(.fest) [style*="font-weight:900"],html:not(.fest) [style*="font-weight: 800"]{font-weight:700 !important;}
+  html:not(.fest) [style*="font-weight:700"]{font-weight:600 !important;}
+  /* --- 文字 --- */
+  html:not(.fest) body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;}
+  html:not(.fest) button, html:not(.fest) input, html:not(.fest) select, html:not(.fest) textarea{font-family:inherit;}
+  html:not(.fest) ::selection{background:var(--accent-weak);}
+  html:not(.fest) :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  html:not(.fest) input:focus-visible, html:not(.fest) select:focus-visible, html:not(.fest) textarea:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-weak);}
+
+  /* --- 上のバー：検索・丸ボタン・タブ --- */
+  html:not(.fest) .searchbar{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev-sm);gap:9px;}
+  html:not(.fest) .searchbar .s-ic{color:var(--tert);}
+  html:not(.fest) .searchbar .s-ic .svgi{width:18px;height:18px;stroke-width:2.2;}
+  html:not(.fest) .searchbar input{font-size:16px;letter-spacing:.01em;}
+  html:not(.fest) .searchbar input::placeholder{color:var(--tert);}
+  html:not(.fest) .searchbar .s-clr{width:22px;height:22px;margin-right:8px;background:var(--fill-2);color:var(--surface);font-size:11px;line-height:1;}
+  html:not(.fest) .icon-btn{border:none;background:var(--chip);box-shadow:var(--elev-sm);}
+  html:not(.fest) .icon-btn .svgi{stroke-width:1.9;}
+  html:not(.fest) #reloadBtn{border:none;background:var(--chip);box-shadow:var(--elev-sm);color:var(--tert);}
+  html:not(.fest) #toolBtn.on{background:var(--accent);color:#fff;}
+  html:not(.fest) .tab{border:none;background:var(--chip);box-shadow:var(--elev-sm);letter-spacing:.01em;}
+  html:not(.fest) .tab .dot{width:8px;height:8px;}
+  html:not(.fest) .tab.active{text-shadow:none;box-shadow:0 4px 14px rgba(0,0,0,.2);}
+  html:not(.fest) .tab.active .dot{background:rgba(255,255,255,.9) !important;}
+  @media(min-width:901px){   /* PC：検索バーは左に寄せて幅をおさえる（地図を広く見せる）。候補の一覧も同じ幅 */
+    html:not(.fest) .searchbar{flex:0 1 520px;}
+    html:not(.fest) .top-actions{margin-left:auto;}
+    html:not(.fest) .top-results{width:min(560px,calc(100% - 24px));}
+  }
+  @media(min-width:601px){
+    html:not(.fest) #customPanel, html:not(.fest) #isoPanel{max-width:760px;}   /* PC：右上の地図の切り替え・時計に重ならない幅まで */
+    html:not(.fest) .tab{font-size:13px;padding:7px 14px;min-height:34px;}
+    html:not(.fest) .toprow{gap:9px;}
+    html:not(.fest) .top-actions{gap:8px;}
+  }
+  /* 検索の候補・履歴 */
+  html:not(.fest) .top-results{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev);border-radius:18px;}
+  html:not(.fest) .tr-item{border-bottom-color:var(--sep);padding:11px 16px;}
+  html:not(.fest) .tr-item:active, html:not(.fest) .sh-item:active{background:var(--fill);}
+  html:not(.fest) .tr-item .tr-ic{width:30px;height:30px;border-radius:8px;background:var(--fill);color:var(--muted);font-size:13px;display:flex;align-items:center;justify-content:center;}
+  html:not(.fest) .tr-item .tr-tx b{font-size:15px;letter-spacing:.01em;}
+  html:not(.fest) .tr-item .tr-tx small{font-size:12px;}
+  html:not(.fest) .tr-star{color:var(--tert);}
+  html:not(.fest) .sh-item{border-top-color:var(--sep);}
+  html:not(.fest) .sh-item .sh-ic{background:var(--fill);}
+  html:not(.fest) .sh-item .sh-tx b{font-size:14.5px;}
+  html:not(.fest) .geo-results{border:none;background:var(--fill);border-radius:12px;}
+  html:not(.fest) .geo-item{background:none;border-bottom-color:var(--sep);font-size:14px;}
+
+  /* --- 地図の種類のバー・時計 --- */
+  html:not(.fest) #baseBar .seg{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev-sm);padding:2px;gap:0;}
+  html:not(.fest) #baseBar .seg button{height:26px;padding:0 12px;font-size:12px;color:var(--muted);}
+  html:not(.fest) #baseBar .seg button.on{color:var(--fg);}
+  html:not(.fest) #liveClock{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev-sm);}
+  html:not(.fest) #lcTime{font-family:inherit;font-variant-numeric:tabular-nums;letter-spacing:.03em;}
+  html:not(.fest) #lcDate{letter-spacing:.03em;}
+  html:not(.fest) #liveClock.sync #lcDate::after{background:var(--green);}
+  html:not(.fest) #speedChip{background:var(--accent);}
+  @media(min-width:601px){
+    html:not(.fest) #liveClock{top:calc(92px + var(--qk,0px) + env(safe-area-inset-top));border-radius:14px;padding:7px 13px 8px;}
+    html:not(.fest) #lcTime{font-size:17px;}
+  }
+
+  /* --- 浮いている面（パネル） --- */
+  html:not(.fest) #customPanel, html:not(.fest) #isoPanel, html:not(.fest) #tourPanel, html:not(.fest) #toolMenu, html:not(.fest) #layerPanel, html:not(.fest) #settlePanel, html:not(.fest) #evacPanel, html:not(.fest) #guideCr{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev);border-radius:20px;}
+  html:not(.fest) .cpal{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev);border-radius:14px;padding:9px;gap:7px;width:214px;}
+  html:not(.fest) .cpal-sw{border-radius:50%;width:27px;height:27px;border:2px solid transparent;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);}
+  html:not(.fest) .cpal-sw.on{border-color:var(--surface);box-shadow:0 0 0 2px var(--fg);}
+  html:not(.fest) #mapLegend{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev-sm);border-radius:12px;}
+  html:not(.fest) #attrBtn, html:not(.fest) #bufClear, html:not(.fest) #isoClearFab{border:none;background:var(--chip);box-shadow:var(--elev-sm);}
+  html:not(.fest) #status{background:rgba(44,44,46,.92);color:#fff;-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:0 8px 24px rgba(0,0,0,.22);padding:9px 18px;letter-spacing:.01em;}
+  html:not(.fest)[data-theme="dark"] #status{background:rgba(72,72,74,.94);}
+
+  /* 切り替え（セグメント）：グレーの溝に白いつまみ */
+  html:not(.fest) .seg{background:var(--fill);padding:2px;gap:0;border-radius:10px;}
+  html:not(.fest) .seg button{min-height:32px;border-radius:8px;color:var(--fg);}
+  html:not(.fest) .seg button.on{background:var(--thumb);color:var(--fg);box-shadow:var(--thumb-sh);}
+  html:not(.fest) #baseBar .seg, html:not(.fest) #baseBar .seg button{border-radius:999px;}
+  /* チップ（カスタムタブ・到達圏・天気など） */
+  html:not(.fest) .chk{border:none;background:var(--fill);padding:7px 14px;position:relative;}
+  @supports selector(:has(*)){   /* 選んだチップは色で示す（四角いチェックは出さない） */
+    html:not(.fest) label.chk input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none;}
+    html:not(.fest) label.chk:has(input:checked){background:var(--accent-weak);color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent);}
+    html:not(.fest) label.chk:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px;}
+  }
+  html:not(.fest) #customPanel>button:not([class]){border:none !important;background:var(--fill) !important;color:var(--accent) !important;min-height:32px !important;padding:0 14px !important;font-size:13px !important;}
+  html:not(.fest) .iso-chip, html:not(.fest) .wx-chip, html:not(.fest) .tg-cat{border:none;background:var(--fill);}
+  html:not(.fest) .iso-chip.on, html:not(.fest) .wx-chip.on{background:var(--accent);color:#fff;}
+  html:not(.fest) .alt-chip{border:none;background:var(--fill);border-radius:12px;}
+  html:not(.fest) .alt-chip.on{background:var(--accent);color:#fff;}
+  html:not(.fest) .opt{border:none;background:var(--fill);border-radius:12px;}
+  html:not(.fest) .iso-lab{letter-spacing:0;font-size:12px;}
+  html:not(.fest) #isoSearchBtn, html:not(.fest) #isoAdd{color:var(--accent);}
+  html:not(.fest) #isoLoc{background:var(--accent) !important;border-radius:12px !important;min-height:44px !important;font-size:14.5px !important;}
+  html:not(.fest) #isoClear{border:none !important;background:var(--fill) !important;color:var(--red) !important;border-radius:12px !important;min-height:44px !important;font-size:14.5px !important;}
+
+  /* 入力欄：枠線なしの塗り */
+  html:not(.fest) .rs-search input, html:not(.fest) .rs-inputs input, html:not(.fest) .dep-row input, html:not(.fest) .set-sec input, html:not(.fest) .tg-row select, html:not(.fest) .tg-row input, html:not(.fest) .sapa-search-box input, html:not(.fest) .sapa-search-box select, html:not(.fest) .seg-sel, html:not(.fest) #isoPanel input[type="text"], html:not(.fest) #isoPanel input[type="number"]{border-color:transparent !important;background:var(--fill) !important;border-radius:11px;}
+  html:not(.fest) .rs-inputs input.ro-field{border-style:solid;background:transparent !important;border-color:var(--sep) !important;}
+  html:not(.fest) .pt-stay input, html:not(.fest) .sch-stay input{border-color:transparent;background:var(--fill-2);border-radius:7px;}
+
+  /* ボタン：主＝塗り、副＝グレーの面に青い文字 */
+  html:not(.fest) .rs-search button, html:not(.fest) .set-save, html:not(.fest) .gmaps-btn{background:var(--accent);border-radius:12px;letter-spacing:.01em;}
+  html:not(.fest) .set-save.ghost{background:var(--fill);border:none;color:var(--accent);}
+  html:not(.fest) .rs-btns button{border:none;background:var(--fill);border-radius:12px;color:var(--accent);}
+  html:not(.fest) .rs-btns button:active, html:not(.fest) .set-save.ghost:active{background:var(--fill-2);}
+  html:not(.fest) .rs-btns button:disabled{color:var(--tert);}
+  html:not(.fest) #saveRouteBtn{background:var(--accent) !important;border-radius:12px !important;min-height:44px !important;font-size:14.5px !important;}
+  html:not(.fest) #schedBtn{border:none !important;background:var(--fill) !important;color:var(--accent) !important;border-radius:12px !important;min-height:44px !important;font-size:14.5px !important;}
+  html:not(.fest) .nav-start-btn{background:var(--green);border-radius:12px;box-shadow:none;font-size:14.5px;}
+  html:not(.fest) .fab{box-shadow:var(--elev);letter-spacing:.01em;}
+  html:not(.fest) .fab.primary{background:var(--accent);}
+  html:not(.fest) .fab.ghost{border:none;background:var(--chip);}
+  html:not(.fest) .dep-now, html:not(.fest) .pin-save-btn, html:not(.fest) .ly-save-set{border-color:transparent !important;background:var(--accent-weak);}
+  html:not(.fest) .detail-btn{border-color:transparent !important;background:var(--accent-weak) !important;}
+  html:not(.fest) .adv-toggle{border:none;background:var(--accent-weak);border-radius:12px;}
+  html:not(.fest) .adv-toggle.on{background:var(--accent);}
+  html:not(.fest) .pin-del-btn{border-color:transparent !important;background:rgba(255,59,48,.12) !important;color:var(--red) !important;}
+  html:not(.fest) .ver-switch{background:var(--fill);padding:2px;border-radius:10px;gap:0;}
+  html:not(.fest) .ver-switch a{border:none;background:none;border-radius:8px;padding:8px 4px;}
+  html:not(.fest) .ver-switch a.on{background:var(--thumb);color:var(--fg);box-shadow:var(--thumb-sh);}
+
+  /* --- 機能メニュー（レンチ）：設定アプリのような並び --- */
+  html:not(.fest) #toolMenu{padding:12px 12px 14px;width:min(320px,92vw);}
+  html:not(.fest) #toolMenu .tm-head b{font-size:17px;letter-spacing:.01em;}
+  html:not(.fest) #toolMenu .tm-head button, html:not(.fest) .modal-h button, html:not(.fest) .ly-head button#layerClose, html:not(.fest) .ly-head button#settleClose, html:not(.fest) #guideCr .gc-h button, html:not(.fest) .evac-h button{width:28px;height:28px;border-radius:50%;background:var(--fill);color:var(--muted);font-size:12px;line-height:1;padding:0;display:inline-flex;align-items:center;justify-content:center;flex:none;}
+  html:not(.fest) #toolMenu .tm-sec{font-size:12px;letter-spacing:0;margin:12px 4px 6px;}
+  html:not(.fest) .tm-item{border:none;background:var(--surface);border-radius:13px;padding:9px 12px 9px 10px;margin-bottom:5px;gap:11px;}
+  html:not(.fest)[data-theme="dark"] .tm-item{background:var(--fill);}
+  html:not(.fest) .tm-item:active{background:var(--fill-2);}
+  html:not(.fest) .tm-item .tm-ic{width:30px;height:30px;border-radius:8px;background:var(--fill);color:var(--fg);}
+  html:not(.fest) .tm-item .tm-ic .svgi{width:18px;height:18px;stroke-width:1.9;}
+  html:not(.fest) .tm-item .tm-lab{font-size:14.5px;letter-spacing:.01em;}
+  html:not(.fest) .tm-item .tm-lab small{font-size:11.5px;font-weight:400;margin-top:2px;line-height:1.35;}
+  html:not(.fest) .tm-item .tm-ex{border:none;padding:0 2px;font-size:13.5px;}
+  html:not(.fest) .tm-item .tm-sw{width:46px;height:28px;border:none;background:var(--fill-2);}
+  html:not(.fest) .tm-item .tm-sw::after{top:2px;left:2px;width:24px;height:24px;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.2),0 0 0 .5px rgba(0,0,0,.05);}
+  html:not(.fest) .tm-item.on{border:none;}
+  html:not(.fest) .tm-item.on .tm-ic{background:var(--accent);color:#fff;}
+  html:not(.fest) .tm-item.on .tm-sw{background:var(--green);}
+  html:not(.fest) .tm-item.on .tm-sw::after{transform:translateX(18px);}
+  html:not(.fest) #toolMenu .tm-note{border-top:none;padding:6px 4px 0;font-size:11.5px;line-height:1.55;}
+
+  /* --- ルート・費用のシート --- */
+  html:not(.fest) #routeSheet{border-top:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:0 0 0 .5px rgba(0,0,0,.08),0 -10px 36px rgba(0,0,0,.14);border-radius:22px 22px 0 0;}
+  html:not(.fest) .rs-grab{width:36px;height:5px;background-color:var(--fill-2);margin-bottom:8px;}
+  html:not(.fest) .rs-head b{font-size:19px;letter-spacing:.01em;}
+  html:not(.fest) .rs-head .clear{font-size:15px;}
+  html:not(.fest) .rs-peek .pk-main{font-size:16px;}
+  html:not(.fest) .rs-peek .pk-x{border:none;background:var(--fill);padding:5px 11px;}
+  html:not(.fest) .rs-label, html:not(.fest) .set-label{text-transform:none;letter-spacing:0;font-size:12.5px;}
+  html:not(.fest) .rs-section{border-top-color:var(--sep);}
+  html:not(.fest) .rs-result{border-top-color:var(--sep);}
+  html:not(.fest) .pt-row{border:none;background:var(--fill);border-radius:12px;padding:10px 12px;}
+  html:not(.fest) .pt-badge{border-radius:8px;}
+  html:not(.fest) .pt-label{font-size:14px;}
+  html:not(.fest) .rs-card{background:var(--fill);border-radius:14px;padding:9px 10px 10px;}
+  html:not(.fest) .rs-card .k{font-size:11px;}
+  html:not(.fest) .rs-card .val{font-size:18px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;}
+  html:not(.fest) .rs-card.cost{background:var(--accent-weak);}
+  html:not(.fest) #costDetails{border:none;background:var(--fill);border-radius:14px;}
+  html:not(.fest) .ro-tag{border:none;background:var(--fill-2);border-radius:5px;}
+  html:not(.fest) .itin-badge, html:not(.fest) .sch-badge{border-radius:6px;}
+  html:not(.fest) .sch-row{border-bottom-color:var(--sep);}
+  html:not(.fest) .rs-hint, html:not(.fest) .rs-note{font-size:12px;}
+  html:not(.fest) details.tbt{border-color:transparent;background:var(--fill);border-radius:12px;}
+
+  /* --- 右下の縦ボタン --- */
+  html:not(.fest) #myLocFab, html:not(.fest) #trackFab, html:not(.fest) #layerBtn, html:not(.fest) #settleBtn, html:not(.fest) #imgBtn{border:none;background:var(--chip);box-shadow:var(--elev-sm);}
+  html:not(.fest) #myLocFab, html:not(.fest) #trackFab{color:var(--accent);}
+  html:not(.fest) #myLocFab.on, html:not(.fest) #trackFab.on{background:var(--accent);color:#fff;}
+  html:not(.fest) #myLocFab small, html:not(.fest) #trackFab small, html:not(.fest) #layerBtn small, html:not(.fest) #settleBtn small, html:not(.fest) #imgBtn small{letter-spacing:0;font-size:9px;}
+  html:not(.fest) #myLocFab .svgi, html:not(.fest) #trackFab .svgi, html:not(.fest) #layerBtn .svgi, html:not(.fest) #settleBtn .svgi, html:not(.fest) #imgBtn .svgi{stroke-width:1.9;}
+  @media(min-width:601px){   /* PC：少し小さくして間をつめる（ルートのシートを開いたとき、上の時計に重ならないように） */
+    html:not(.fest) #myLocFab, html:not(.fest) #trackFab, html:not(.fest) #layerBtn, html:not(.fest) #settleBtn, html:not(.fest) #imgBtn{width:48px;height:48px;border-radius:14px;gap:2px;}
+    html:not(.fest) #trackFab{bottom:calc(154px + env(safe-area-inset-bottom));}
+    html:not(.fest) #layerBtn{bottom:calc(210px + env(safe-area-inset-bottom));}
+    html:not(.fest) #settleBtn{bottom:calc(266px + env(safe-area-inset-bottom));}
+    html:not(.fest) #imgBtn{bottom:calc(322px + env(safe-area-inset-bottom));}
+    html:not(.fest) body:has(#routeSheet.open:not(.collapsed)) #myLocFab{bottom:calc(46dvh + 16px);}
+    html:not(.fest) body:has(#routeSheet.open:not(.collapsed)) #trackFab{bottom:calc(46dvh + 72px);}
+    html:not(.fest) body:has(#routeSheet.open:not(.collapsed)) #layerBtn{bottom:calc(46dvh + 128px);}
+    html:not(.fest) body:has(#routeSheet.open:not(.collapsed)) #settleBtn{bottom:calc(46dvh + 184px);}
+    html:not(.fest) body:has(#routeSheet.open:not(.collapsed)) #imgBtn{bottom:calc(46dvh + 240px);}
+  }
+
+  /* --- レイヤー・割り勘のパネル --- */
+  html:not(.fest) #layerPanel, html:not(.fest) #settlePanel{padding:14px 16px;}
+  html:not(.fest) .ly-head{font-size:17px;margin-bottom:10px;}
+  html:not(.fest) .ly-item, html:not(.fest) .stl-item, html:not(.fest) .ly-acts{border-bottom-color:var(--sep);}
+  html:not(.fest) .ly-item{padding:9px 0;font-size:14px;}
+  html:not(.fest) .ly-sw{border-radius:5px;}
+  html:not(.fest) .ly-color{border:none;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1);}
+  html:not(.fest) .ly-btn{border:none;background:var(--fill);border-radius:8px;}
+  html:not(.fest) .ly-btn.ly-reedit{background:var(--accent-weak);}
+  html:not(.fest) .ly-subwrap{border-left-color:var(--sep);}
+
+  /* --- 設定などのモーダル --- */
+  html:not(.fest) .overlay{background:rgba(0,0,0,.32);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
+  html:not(.fest) .modal{border:none;background:var(--surface);box-shadow:0 24px 70px rgba(0,0,0,.3);border-radius:22px;padding:20px;}
+  html:not(.fest)[data-theme="dark"] .modal{background:#1c1c1e;box-shadow:0 0 0 .5px rgba(255,255,255,.1),0 24px 70px rgba(0,0,0,.6);}
+  html:not(.fest) .modal-h b{font-size:19px;letter-spacing:.01em;}
+  html:not(.fest) .set-help{font-size:12px;}
+  html:not(.fest) .sapa-card{border:none;background:var(--fill);border-radius:14px;}
+  html:not(.fest) .sapa-attr{border:none;background:var(--fill);border-radius:999px;padding:7px 14px;position:relative;}
+  @supports selector(:has(*)){
+    html:not(.fest) .sapa-attr input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none;}
+    html:not(.fest) .sapa-attr:has(input:checked){background:var(--accent-weak);color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent);}
+  }
+  html:not(.fest) .wx-wd{border-color:transparent;background:var(--fill);border-radius:12px;}
+  html:not(.fest) .wx-hr{border-bottom-color:var(--sep);}
+
+  /* --- 観光特集 --- */
+  html:not(.fest) .tg-head{border-bottom-color:var(--sep);padding:12px 14px 10px;gap:9px;}
+  html:not(.fest) .tg-top b{font-size:17px;color:var(--fg);letter-spacing:.01em;}
+  html:not(.fest) .tg-top .tg-sum{font-size:12px;}
+  html:not(.fest) .tg-top button{border:none;background:var(--fill);color:var(--accent);border-radius:999px;padding:6px 12px;font-size:13px;}
+  html:not(.fest) .tg-cat{padding:6px 12px;font-size:13px;}
+  html:not(.fest) .tg-cat.on{background:var(--fg);color:var(--surface);}
+  html:not(.fest) .tg-cat.on small{color:inherit;opacity:.7;}
+  html:not(.fest) .tg-list{padding:12px 14px 14px;gap:12px;}
+  html:not(.fest) .tg-card{border:none;border-radius:16px;box-shadow:0 0 0 .5px rgba(0,0,0,.06),0 1px 4px rgba(0,0,0,.06);}
+  html:not(.fest)[data-theme="dark"] .tg-card{background:var(--surface-2);box-shadow:none;}
+  html:not(.fest) .tg-body{padding:11px 13px 13px;}
+  html:not(.fest) .tg-body h4{font-size:16px;letter-spacing:.01em;}
+  html:not(.fest) .tg-meta{font-size:12px;margin-top:3px;}
+  html:not(.fest) .tg-d{font-size:13.5px;line-height:1.65;margin:8px 0 6px;}
+  html:not(.fest) .tg-hl span{background:var(--fill);font-size:11.5px;padding:3px 9px;}
+  html:not(.fest) .tg-note{font-size:12px;}
+  html:not(.fest) .tg-acts{margin-top:11px;gap:8px;}
+  html:not(.fest) .tg-acts button, html:not(.fest) .tg-acts a{border:none;background:var(--fill);color:var(--accent);border-radius:999px;padding:8px 15px;font-size:13.5px;}
+  html:not(.fest) .tg-acts .tg-go{background:var(--accent);color:#fff;}
+  html:not(.fest) .tg-more{border:none;background:var(--fill);color:var(--accent);border-radius:12px;padding:11px;font-size:14px;}
+  html:not(.fest) .tg-noph{font-size:11.5px;}
+  html:not(.fest) .tg-warn{border:none;background:rgba(255,59,48,.1);color:var(--red);border-radius:10px;padding:7px 10px;}
+  html:not(.fest) #guideCr .gc-h{border-bottom-color:var(--sep);font-size:17px;padding:14px 16px;}
+  html:not(.fest) #guideCr .gc-i{border-top-color:var(--sep);}
+  /* ピンの一覧（カスタムタブ） */
+  html:not(.fest) .pin-row .pin-go, html:not(.fest) .pin-grp .pin-grp-draw{border:none;background:var(--fill);border-radius:11px;}
+  html:not(.fest) .pin-x, html:not(.fest) .pin-grp-x{border:none;background:var(--fill);border-radius:9px;}
+
+  /* --- 吹き出し（地図のピンを押したとき）。色は --p-* で持ち、暗いテーマでは吹き出しも暗くする --- */
+  html:not(.fest){--p-bg:#ffffff;--p-fg:#1c1c1e;--p-muted:#6e6e73;--p-tert:#8e8e93;--p-fill:#f2f2f7;--p-fill2:#e5e5ea;--p-card:#ffffff;--p-line:rgba(60,60,67,.12);
+    --p-accent:#007aff;--p-tint:rgba(0,122,255,.12);--p-red:#ff3b30;--p-redtint:rgba(255,59,48,.12);--p-green:#248a3d;}
+  html:not(.fest)[data-theme="dark"]{--p-bg:#242426;--p-fg:#f5f5f7;--p-muted:#a1a1a6;--p-tert:#8e8e93;--p-fill:#343436;--p-fill2:#48484a;--p-card:#48484a;--p-line:rgba(120,120,128,.3);
+    --p-accent:#0a84ff;--p-tint:rgba(10,132,255,.26);--p-red:#ff453a;--p-redtint:rgba(255,69,58,.22);--p-green:#30d158;}
+  html:not(.fest) .gm-style .gm-style-iw-c{background:var(--p-bg);border-radius:18px;box-shadow:0 0 0 .5px rgba(0,0,0,.08),0 12px 36px rgba(0,0,0,.2);padding:14px 4px 4px 16px !important;}
+  html:not(.fest)[data-theme="dark"] .gm-style .gm-style-iw-c{box-shadow:0 0 0 .5px rgba(255,255,255,.12),0 14px 40px rgba(0,0,0,.6);}
+  html:not(.fest) .gm-style .gm-style-iw-tc::after{background:var(--p-bg);}
+  html:not(.fest) .gm-style .gm-style-iw-d{padding:0 12px 12px 0 !important;scrollbar-width:thin;scrollbar-color:var(--p-fill2) transparent;}
+  html:not(.fest) .gm-style .gm-style-iw-ch{padding-top:0;}
+  html:not(.fest) .gm-style .gm-style-iw-chr{height:0;}
+  html:not(.fest) .gm-style .gm-style-iw-chr button.gm-ui-hover-effect{position:absolute !important;top:8px !important;right:8px !important;width:28px !important;height:28px !important;border-radius:50% !important;background:var(--p-fill) !important;opacity:1 !important;z-index:2;}
+  html:not(.fest) .gm-style .gm-style-iw-chr button.gm-ui-hover-effect>span{width:16px !important;height:16px !important;margin:6px !important;background-color:var(--p-muted) !important;}
+  html:not(.fest) .gm-style .gm-style-iw, html:not(.fest) .popup{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif;-webkit-font-smoothing:antialiased;}
+  html:not(.fest) .gm-style .gm-style-iw, html:not(.fest) .popup{color:var(--p-fg);}
+  html:not(.fest) .gm-style-iw .popup h3, html:not(.fest) .popup h3{font-size:17px;letter-spacing:.01em;color:var(--p-fg);margin:0 34px 5px 0;line-height:1.3;}
+  html:not(.fest) .popup .meta{font-size:13px;color:var(--p-muted);line-height:1.5;}
+  html:not(.fest) .popup .meta a, html:not(.fest) .rk-slot a, html:not(.fest) .og-ph .g-crl{color:var(--p-accent);}
+  html:not(.fest) .popup .pin-note{border-color:transparent;background:var(--p-fill);border-radius:10px;font-size:13px;padding:8px 10px;color:var(--p-fg);}
+  html:not(.fest) .popup .pin-note::placeholder{color:var(--p-tert);}
+  html:not(.fest) .oh.open{color:var(--p-green);} html:not(.fest) .oh.closed{color:var(--p-red);}
+  html:not(.fest) .popup .links{gap:7px;margin-top:12px;}
+  html:not(.fest) .popup .links a, html:not(.fest) .popup .links button{border:none;background:var(--p-fill);color:var(--p-accent);border-radius:999px;padding:8px 14px;font-size:13.5px;}
+  html:not(.fest) .popup .links a:active, html:not(.fest) .popup .links button:active{background:var(--p-fill2);}
+  html:not(.fest) .popup .links button.dest, html:not(.fest) .popup .links a.nav{background:var(--p-accent);color:#fff;}
+  html:not(.fest) .popup .links a.rakuten{background:#bf0000;color:#fff;}
+  html:not(.fest) .popup .links a.official{color:var(--p-fg);}
+  html:not(.fest) .popup .links button.wx-btn{background:var(--p-tint);color:var(--p-accent);}
+  html:not(.fest) .popup .links button.pin-clr-btn{color:#fff;text-shadow:none;min-width:48px;}
+  html:not(.fest) .popup .links button.pin-del-btn{background:var(--p-redtint) !important;color:var(--p-red) !important;}
+  html:not(.fest) .popup .route-act{border:none;background:var(--p-fill);border-radius:14px;padding:9px 10px 10px;gap:6px;margin:11px 0 2px;}
+  html:not(.fest) .popup .route-act .ra-lab{font-size:12px;color:var(--p-muted);}
+  html:not(.fest) .popup .route-act button{border:none;background:var(--p-card);color:var(--p-accent);border-radius:10px;padding:8px 4px;font-size:13.5px;box-shadow:0 0 0 .5px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.06);}
+  html:not(.fest) .popup .route-act button:active{background:var(--p-accent);color:#fff;}
+  /* SA/PA の施設案内 */
+  html:not(.fest) .popup .sapa-info{border:none;background:var(--p-fill);border-radius:14px;}
+  html:not(.fest) .popup .fac{border-color:var(--p-line);background:var(--p-card);color:var(--p-tert);}
+  html:not(.fest) .popup .fac .fac-x{color:var(--p-tert);}
+  html:not(.fest) .popup .fac .fac-24{border-color:var(--p-bg);background:#34c759;}
+  html:not(.fest) .popup .sapa-24{color:var(--p-green);}
+  html:not(.fest) .popup .sapa-score, html:not(.fest) .popup .sapa-park{color:var(--p-fg);}
+  html:not(.fest) .popup .sapa-score b{color:var(--p-green);}
+  html:not(.fest) .popup .sapa-score small, html:not(.fest) .popup .sapa-park small, html:not(.fest) .popup .sapa-src, html:not(.fest) .popup .sapa-note{color:var(--p-tert);}
+  html:not(.fest) .popup .sapa-sub{color:var(--p-muted);}
+  html:not(.fest)[data-theme="dark"] .popup .fac.on.fac-bath{color:#ff6b8b;border-color:rgba(255,55,95,.5);background:rgba(255,55,95,.16);}
+  html:not(.fest)[data-theme="dark"] .popup .fac.on.fac-conv{color:#30d158;border-color:rgba(48,209,88,.5);background:rgba(48,209,88,.14);}
+  html:not(.fest)[data-theme="dark"] .popup .fac.on.fac-gas{color:#ffb340;border-color:rgba(255,159,10,.5);background:rgba(255,159,10,.14);}
+  html:not(.fest)[data-theme="dark"] .popup .fac.on.fac-rest{color:#ff8a52;border-color:rgba(255,122,61,.5);background:rgba(255,122,61,.14);}
+  /* 温泉郷の写真・紹介 */
+  html:not(.fest) .og-ph img{border-radius:12px;background:var(--p-fill);}
+  html:not(.fest) .og-ph figcaption{color:var(--p-tert);} html:not(.fest) .og-ph .g-cr a{color:var(--p-muted);}
+  html:not(.fest) .og-d{font-size:13.5px;line-height:1.6;color:var(--p-fg);}
+  html:not(.fest) .og-noph{border-radius:12px;background:var(--p-fill);color:var(--p-tert);}
+
+  /* --- Googleの拡大・縮小ボタン：角を丸く、テーマに合わせる。スマホでは出さない（指で拡大・縮小できるため。右下のボタンと重なっていた） --- */
+  html:not(.fest) .gm-style .gm-bundled-control .gmnoprint>div{border-radius:14px !important;background-color:var(--chip) !important;box-shadow:var(--elev-sm) !important;overflow:hidden;}
+  html:not(.fest) .gm-style .gm-bundled-control button.gm-control-active{background:none !important;}
+  html:not(.fest)[data-theme="dark"] .gm-style .gm-bundled-control button.gm-control-active img{filter:invert(1) brightness(1.5);}
+  html:not(.fest)[data-theme="dark"] .gm-style .gm-bundled-control .gmnoprint>div>div{background-color:rgba(255,255,255,.16) !important;}
+  @media(max-width:600px){ html:not(.fest) .gm-style .gm-bundled-control{display:none !important;} }
+
+  /* --- 走行支援ナビの案内カード：濃い色の帯に白い文字 --- */
+  html:not(.fest) #navCard{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev);border-radius:20px;}
+  html:not(.fest) .nv-main{background:#1c1c1e;padding:12px 14px;}
+  html:not(.fest)[data-theme="dark"] .nv-main{background:#3a3a3c;}
+  html:not(.fest) .nv-next{background:var(--fill);}
+  html:not(.fest) .nv-btn{border:none;background:var(--fill);border-radius:10px;}
+  html:not(.fest) .nv-btn.on{background:var(--accent-weak);color:var(--accent);}
+  html:not(.fest) .nv-warn{background:var(--c-onsen);}
+
+  /* --- 写真の出典・緊急避難など --- */
+  html:not(.fest) .evac-h{font-size:17px;color:var(--red);}
+  html:not(.fest) .evac-modes button{border:none;background:var(--fill);border-radius:10px;}
+  html:not(.fest) .evac-modes button.on{background:var(--accent);color:#fff;}
+  html:not(.fest) .evac-addroute{background:var(--red);border-radius:12px;box-shadow:none;}
+  html:not(.fest) .evac-warn{border:none;background:rgba(255,59,48,.1);color:var(--red);border-radius:10px;}
+  html:not(.fest) #nokey h2{font-size:22px;letter-spacing:.01em;}
+  /* スクロールバーは細く */
+  html:not(.fest) #customPanel, html:not(.fest) #isoPanel, html:not(.fest) .tg-list, html:not(.fest) #toolMenu, html:not(.fest) #layerPanel, html:not(.fest) #settlePanel, html:not(.fest) #routeSheet, html:not(.fest) .modal, html:not(.fest) .top-results, html:not(.fest) #guideCr .gc-b{scrollbar-width:thin;scrollbar-color:var(--fill-2) transparent;}
+
+  /* --- スマホ --- */
+  @media(max-width:600px){
+    html:not(.fest) .tab{font-size:12.5px;padding:6px 12px;min-height:32px;}
+    html:not(.fest) #topActions{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev);border-radius:16px;}
+    html:not(.fest) #topActions .icon-btn .ib-lab{font-size:15px;}
+    html:not(.fest) #toolBtn.on{background:var(--accent-weak);color:var(--accent);}
+    html:not(.fest) #customPanel, html:not(.fest) #isoPanel, html:not(.fest) #tourPanel{border-radius:18px;}
+    html:not(.fest) #routeSheet{border-radius:20px 20px 0 0;}
+    html:not(.fest) .rs-head b{font-size:18px;}
+    html:not(.fest) #baseBar .seg button{height:26px;padding:0 11px;font-size:12px;}
+  }
+  /* DRIVE-UI >>> */
 </style>
 </head>
 <body>
@@ -1262,6 +1651,7 @@
   <div id="tourPanel" aria-label="観光特集"></div>
 </div>
 <div id="festBaseBar"></div>
+<div id="baseBar"><div class="seg" id="baseSeg" role="group" aria-label="地図の種類"><button type="button" data-b="map" class="on">標準</button><button type="button" data-b="white">白地図</button><button type="button" data-b="sat">航空</button></div></div>
 <div id="liveClock" title="現在時刻（NTP同期・JST）／タップで緊急避難"><div id="lcMain"><span id="lcTime">--:--:--</span><span id="lcDate"></span><div id="speedChip"><b id="spdVal">--</b><span class="spd-u">km/h</span></div></div><div id="lcEv"></div><span id="evacLabel">緊急避難</span></div>
 <div id="festHq" aria-hidden="true">本部統括用</div><div id="festPv" role="status">配布版を確認中（このタブだけ）<button type="button" onclick="festStore.back()">本部版に戻る</button></div>
 <div id="qkBand" role="alert" aria-live="assertive"><div class="qk-row qk-r1"><span class="qk-in"></span></div><div class="qk-row qk-r2"><span class="qk-in"></span></div></div>
@@ -1713,6 +2103,22 @@ function openInfo(m,html){
   return true;
 }
 function closeInfo(){if(infoWindow)infoWindow.close();curInfoMarker=null;}
+// ドライブ版：吹き出しが上のバー（検索・タブ・開いているパネル・右上の地図の切り替えや時計）に隠れないよう、開いたら地図を下へずらす。
+// 地図の移動が落ち着いてから中心を直接ずらす（移動のアニメーションに打ち消されないように）
+let iwFixTok=0;
+function iwClearTop(){if(FEST||!map)return;const tok=++iwFixTok;
+  const fix=()=>{if(tok!==iwFixTok)return;const iw=document.querySelector('.gm-style-iw-c');if(!iw||!map.getProjection())return;
+    const r=iw.getBoundingClientRect(),vh=window.innerHeight,tabsB=document.getElementById('tabs').getBoundingClientRect().bottom;
+    let top=document.getElementById('topbar').getBoundingClientRect().bottom;
+    if(vh-top<r.height+70)top=tabsB;                                  // 開いているパネルの下には入りきらない → タブの下まで
+    ['baseBar','liveClock'].forEach(id=>{const el=document.getElementById(id),b=el&&el.getBoundingClientRect();
+      if(b&&b.width&&b.top<vh/2&&r.right>b.left-6&&r.left<b.right+6&&b.bottom>top&&vh-b.bottom>=r.height+70)top=b.bottom;});
+    const over=Math.min(top+10-r.top,vh-r.bottom-24);                 // 下にはみ出すほどは動かさない
+    if(over<=4)return;
+    const pr=map.getProjection(),sc=Math.pow(2,map.getZoom()),w=pr.fromLatLngToPoint(map.getCenter());
+    map.setCenter(pr.fromPointToLatLng(new google.maps.Point(w.x,w.y-over/sc)));};
+  let t=null;const L=google.maps.event.addListener(map,'idle',()=>{clearTimeout(t);t=setTimeout(()=>{google.maps.event.removeListener(L);fix();},200);});
+  setTimeout(()=>{if(t===null){google.maps.event.removeListener(L);fix();}},900);}
 let activeTab=null;
 const customSelected=new Set();
 let poiMarkers=[], onsengoMarkers=[], routeMarkers=[], searchMarkers=[], bufferShapes=[], routeLine=null, routeCasing=null, routeSegs=[], customSearchPins=[], isoShapes=[], locShapes=[], restMarkers=[];
@@ -1746,15 +2152,94 @@ const LINE_DEFS={
   ferry:{label:'航路（船）', swatch:'#1c7ed6', overpass:true, color:'#1c7ed6',
     q:b=>`way["route"="ferry"](${b});`},
 };
+// ===== 地図の種類（ドライブ版）：標準・白地図・航空写真。右上の細いバーで切り替える（本祭支援ツールのバーと同じ形） =====
+const BASE_KEY='tabi_base', BASE_NAMES={map:'標準の地図',white:'白地図',sat:'航空写真'};
+let baseType='map';
+try{const b=localStorage.getItem(BASE_KEY);if(!FEST&&(b==='white'||b==='sat'))baseType=b;}catch(e){}
+// 白地図：色を使わず、陸は白・水域は薄い灰・道路は白ぬきの線。地名と県境だけを残す（施設・駅・国道番号の印は出さない）
+const WHITE_STYLE=[
+  {elementType:'labels.text.fill',stylers:[{color:'#4b5563'}]},
+  {elementType:'labels.text.stroke',stylers:[{color:'#ffffff'},{weight:3}]},
+  {featureType:'landscape',elementType:'geometry',stylers:[{color:'#ffffff'}]},
+  {featureType:'landscape.man_made',elementType:'geometry.stroke',stylers:[{color:'#c9ced5'}]},
+  {featureType:'poi',stylers:[{visibility:'off'}]},
+  {featureType:'water',elementType:'geometry',stylers:[{color:'#dfe5ec'}]},
+  {featureType:'water',elementType:'labels.text.fill',stylers:[{color:'#8a94a3'}]},
+  {featureType:'road',elementType:'geometry.fill',stylers:[{color:'#ffffff'}]},
+  {featureType:'road',elementType:'geometry.stroke',stylers:[{color:'#b9c0c9'}]},
+  {featureType:'road.arterial',elementType:'geometry.stroke',stylers:[{color:'#a3abb5'}]},
+  {featureType:'road.highway',elementType:'geometry.stroke',stylers:[{color:'#7f8894'}]},
+  {featureType:'road',elementType:'labels.icon',stylers:[{visibility:'off'}]},
+  {featureType:'road',elementType:'labels.text.fill',stylers:[{color:'#6b7280'}]},
+  {featureType:'transit',stylers:[{visibility:'off'}]},
+  {featureType:'transit.line',elementType:'geometry',stylers:[{visibility:'on'},{color:'#c2c8d0'}]},
+  {featureType:'administrative',elementType:'geometry.stroke',stylers:[{color:'#6b7280'}]},
+  {featureType:'administrative.land_parcel',stylers:[{visibility:'off'}]},
+];
+const SAT_STYLE=[{featureType:'poi',elementType:'labels',stylers:[{visibility:'off'}]},{featureType:'transit.station',stylers:[{visibility:'off'}]}];
+// 地図の上に重ねる線・文字の色を決めるための「いま地図は暗いか」（航空写真は暗い側、白地図はテーマにかかわらず明るい側）
+function mapIsDark(){return FEST?currentTheme==='dark':(baseType==='sat'||(baseType==='map'&&currentTheme==='dark'));}
+// 都道府県の境界（Googleの地図にある線・正確だが破線）：拡大したときにも見えるよう濃くする
+function prefStrokeStyle(){
+  const c=baseType==='sat'?'#ffffff':baseType==='white'?'#4b5563':(currentTheme==='dark'?'#b3bdcc':'#566173');
+  return [{featureType:'administrative.province',elementType:'geometry.stroke',stylers:[{visibility:'on'},{color:c},{weight:1}]}];
+}
+function baseSegUi(){const seg=document.getElementById('baseSeg');if(seg)seg.querySelectorAll('button').forEach(x=>{const on=x.dataset.b===baseType;x.classList.toggle('on',on);x.setAttribute('aria-pressed',on?'true':'false');});}
+// 地図の暗さに合わせて、重ねてある線・文字の色を直す（テーマや地図の種類を変えたとき）
+function mapToneSync(){const cs=mapIsDark()?'#000':'#ffffff';
+  if(routeCasing)routeCasing.setOptions({strokeColor:cs});
+  try{savedRoutes.forEach(r=>{if(r.polys&&r.polys[0])r.polys[0].setOptions({strokeColor:cs});});}catch(e){}
+  try{Object.keys(pinLabels).forEach(k=>{if(pinLabels[k]&&pinLabels[k].draw)pinLabels[k].draw();});}catch(e){}
+  try{prefLineSync();}catch(e){}
+}
+function setBase(b,quiet){
+  baseType=(b==='white'||b==='sat')?b:'map';
+  try{localStorage.setItem(BASE_KEY,baseType);}catch(e){}
+  baseSegUi();
+  if(!map)return;
+  map.setMapTypeId(baseType==='sat'?'hybrid':'roadmap');
+  applyMapStyles();mapToneSync();updateMapOverlayInfo();
+  if(!quiet){showStatus(BASE_NAMES[baseType]+'に切り替えました',false);hideStatusLater();}
+}
+function baseBarInit(){   // ドライブ版だけ。地図の準備ができたら呼ぶ
+  const bar=document.getElementById('baseBar'),seg=document.getElementById('baseSeg');if(!bar||!seg)return;
+  seg.querySelectorAll('button').forEach(x=>x.onclick=()=>{if(x.dataset.b!==baseType)setBase(x.dataset.b);});
+  bar.classList.add('show');setBase(baseType,true);
+}
+// ===== 都道府県の境界（ドライブ版）：県と県の境だけを極細の実線で常に描く（海岸線は描かない）。
+// 形は地震のぬり分け・天気予報モードと同じ簡略データ（約280mきざみ）なので、拡大したら消して Google の地図の線に任せる
+let prefLine=null, prefLineKey='';
+const PREF_LINE_MAXZ=10;
+function tjBorders(topo){   // 2つ以上の都道府県が使っている辺＝県境
+  const t=topo.transform,use=new Map();
+  const mark=(a,gi)=>{const i=a<0?~a:a;let u=use.get(i);if(!u)use.set(i,u=new Set());u.add(gi);};
+  const walk=(x,gi)=>{if(typeof x==='number')mark(x,gi);else x.forEach(y=>walk(y,gi));};
+  topo.objects[Object.keys(topo.objects)[0]].geometries.forEach((g,gi)=>{if(g.arcs)walk(g.arcs,gi);});
+  const lines=[];
+  use.forEach((u,i)=>{if(u.size<2)return;let x=0,y=0;lines.push(topo.arcs[i].map(p=>{x+=p[0];y+=p[1];return [x*t.scale[0]+t.translate[0],y*t.scale[1]+t.translate[1]];}));});
+  return lines;
+}
+function prefLineStyle(){const z=map?(map.getZoom()||5):5;
+  const c=baseType==='sat'?'#ffffff':baseType==='white'?'#374151':(currentTheme==='dark'?'#c5cedb':'#4b5767');
+  return {strokeColor:c,strokeWeight:z>=8?0.9:0.7,strokeOpacity:z>PREF_LINE_MAXZ?0:(baseType==='sat'?0.85:0.75),clickable:false,zIndex:0};}
+function prefLineSync(){if(!prefLine||!map)return;const z=map.getZoom()||5,k=baseType+'|'+currentTheme+'|'+(z>PREF_LINE_MAXZ?'x':z>=8?'b':'a');
+  if(k===prefLineKey)return;prefLineKey=k;prefLine.setStyle(prefLineStyle());}
+function prefLineInit(){if(FEST||prefLine||!map)return;
+  ensureQuakeTopo().then(()=>{if(prefLine||!quakePrefRaw)return;
+    prefLine=new google.maps.Data();
+    prefLine.addGeoJson({type:'Feature',properties:{},geometry:{type:'MultiLineString',coordinates:tjBorders(quakePrefRaw)}});
+    prefLineSync();prefLine.setMap(map);map.addListener('zoom_changed',prefLineSync);
+  }).catch(()=>{});}
 // 現在のテーマ基本スタイル＋有効な「スタイル方式」路線を合成して適用（後勝ち・より詳細なfeatureが優先）
 function applyMapStyles(){
   if(!map)return;
   if(FEST){try{festTerrCache=null;festB3dDirty=true;if(festB3d)festB3d.requestRedraw();}catch(e){}}   // 鉄道・高速の強調は3Dの上にも描く
-  let s=(currentTheme==='dark'?DARK_STYLE:LIGHT_STYLE).slice();
+  let s=(FEST||baseType==='map'?(currentTheme==='dark'?DARK_STYLE:LIGHT_STYLE):(baseType==='white'?WHITE_STYLE:SAT_STYLE)).slice();
   if(FEST){
     if(festMapId)return;                           // ベクター地図（Map ID）のときは配色はCloud側のスタイルに従う
     if(festBase==='map')s=s.concat(currentTheme==='dark'?FEST_EMPH_DARK:FEST_EMPH_LIGHT);
   }
+  else s=s.concat(prefStrokeStyle());              // ドライブ版：県境を濃く
   Object.keys(lineLayers).forEach(k=>{const L=lineLayers[k];if(L&&L.visible&&LINE_DEFS[k]&&LINE_DEFS[k].stylers)s=s.concat(LINE_DEFS[k].stylers);});
   map.setOptions({styles:s});
 }
@@ -1808,6 +2293,7 @@ function buildLineToggles(){
   customPanel.appendChild(wrap);
 }
 let tempPin=null; // 検索時の「仮ピン」（地図に残さない／ポップアップを閉じると消える）
+const LOC_BLUE=FEST?'#1a73e8':'#007aff';   // 現在地の印の青
 const IS_TOUCH=window.matchMedia('(hover:none) and (pointer:coarse)').matches; // スマホ/タブレット判定（マウスPCはfalse）
 let points=[], lastDistanceKm=null, lastDurationSec=null, lastEngine='', lastNexcoKm=0, lastShutokoKm=0, lastLegs=[];
 let lastTrafficSec=null, lastLegsTrafficSec=null, lastGBaseSec=null, lastLegSteps=[], lastFlatYen=0, lastFlatNames=[], lastRouteTimeline=[];
@@ -1867,11 +2353,13 @@ window.initGMap=function(){
       colorScheme:(th==='dark'?'DARK':'LIGHT')});
   }
   else mapOpt.styles=LIGHT_STYLE;
+  if(!FEST&&baseType==='sat')mapOpt.mapTypeId='hybrid';   // ドライブ版：前回が航空写真なら最初から航空写真で開く
   map=new google.maps.Map(document.getElementById('map'),mapOpt);
   infoWindow=new google.maps.InfoWindow();
   if(FEST){infoWindow.setOptions({disableAutoPan:true});
     ['domready','closeclick','close'].forEach(ev=>infoWindow.addListener(ev,()=>{festIwOpen=(ev==='domready');if(festB3d)setTimeout(()=>festB3d&&festB3d.requestRedraw(),30);}));}   // 試験用：建物などを押しても吹き出しに合わせて地図を動かさない
   infoWindow.addListener('closeclick',()=>{curInfoMarker=null;removeTempPin();}); // ×で閉じたら状態リセット＋仮ピンも消す
+  if(!FEST)infoWindow.addListener('domready',iwClearTop);   // ドライブ版：吹き出しが上のバーに隠れない位置まで地図をずらす
   placesSvc=new google.maps.places.PlacesService(map);
   map.addListener('click',(e)=>{const tr=document.getElementById('topResults');if(tr)tr.classList.remove('show');closeInfo();removeTempPin();if(activeTab==='iso')setIsoCenter(e.latLng.lat(),e.latLng.lng());}); // 地図タップでポップアップも閉じる（×が上部UIに隠れても確実に閉じられる）
   // 詳細（InfoWindow）の余白＝ボタン/リンク以外をクリックしても閉じる（×が小さく押しにくい対策）
@@ -1892,6 +2380,7 @@ window.initGMap=function(){
     if(localStorage.getItem(TSU_KEY)!=='0')setTsunami(true,true);
     if(localStorage.getItem(QK_KEY)!=='0')setQuake(true,true);
     if(!FEST&&localStorage.getItem(WXM_KEY)!=='0')toggleWeatherMode(true);   // ドライブ版は天気予報（都道府県を押すと天気）も既定でON
+    if(!FEST){baseBarInit();prefLineInit();}                                  // 地図の種類（標準・白地図・航空）と、都道府県の境界の極細線
   });
 };
 // キー取得：端末localStorage（個別上書き）→ 配信時注入の共有キー の順。未置換プレースホルダ(__xxx__)は無視。
@@ -1968,7 +2457,7 @@ function bootGoogle(){
 (function(){const b=document.getElementById('attrBtn');if(b)b.onclick=()=>{document.body.classList.toggle('attr-open');};})();
 const SVG_SUN='<svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.2v2.3M12 19.5v2.3M2.2 12h2.3M19.5 12h2.3M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/></svg>';
 const SVG_MOON='<svg class="svgi" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>';
-function applyTheme(t){currentTheme=t;document.documentElement.dataset.theme=t;const ti=document.getElementById('themeIcon');if(ti)ti.innerHTML=(t==='dark'?SVG_SUN:SVG_MOON);const tl=document.querySelector('#themeBtn .ib-lab');if(tl)tl.textContent=(t==='dark'?'ライト':'ダーク');applyMapStyles();if(routeCasing)routeCasing.setOptions({strokeColor:(t==='dark'?'#000':'#ffffff')});localStorage.setItem('tabi_theme',t);
+function applyTheme(t){currentTheme=t;document.documentElement.dataset.theme=t;const ti=document.getElementById('themeIcon');if(ti)ti.innerHTML=(t==='dark'?SVG_SUN:SVG_MOON);const tl=document.querySelector('#themeBtn .ib-lab');if(tl)tl.textContent=(t==='dark'?'ライト':'ダーク');applyMapStyles();mapToneSync();localStorage.setItem('tabi_theme',t);
   try{if(FEST&&festCampusOn)festDrawCampus(true);}catch(e){}}
 document.getElementById('themeBtn').onclick=()=>{
   applyTheme(currentTheme==='dark'?'light':'dark');
@@ -2185,8 +2674,8 @@ function showCurrentLoc(lat,lng,acc){
   if(liveWatchId!=null){updateLiveLoc(lat,lng,acc);return;} // 追跡中は既存ドットを更新（作り直さない）
   clearArr(locShapes);liveMarker=liveCircle=null;
   const r=Math.max(acc||0,15);
-  locShapes.push(new google.maps.Circle({center:{lat,lng},radius:r,strokeColor:'#1a73e8',strokeOpacity:.7,strokeWeight:1.5,fillColor:'#1a73e8',fillOpacity:.18,map,clickable:false,zIndex:50}));
-  const m=new google.maps.Marker({position:{lat,lng},map,icon:{path:google.maps.SymbolPath.CIRCLE,scale:6,fillColor:'#1a73e8',fillOpacity:1,strokeColor:'#ffffff',strokeWeight:2.5},title:'現在地（GPS誤差 ±'+Math.round(acc||0)+'m）',zIndex:60});
+  locShapes.push(new google.maps.Circle({center:{lat,lng},radius:r,strokeColor:LOC_BLUE,strokeOpacity:.7,strokeWeight:1.5,fillColor:LOC_BLUE,fillOpacity:.18,map,clickable:false,zIndex:50}));
+  const m=new google.maps.Marker({position:{lat,lng},map,icon:{path:google.maps.SymbolPath.CIRCLE,scale:6,fillColor:LOC_BLUE,fillOpacity:1,strokeColor:'#ffffff',strokeWeight:2.5},title:'現在地（GPS誤差 ±'+Math.round(acc||0)+'m）',zIndex:60});
   locShapes.push(m);
 }
 // ===== 現在地のリアルタイム追跡（Googleマップ風：青ドット連続更新・追従／ドラッグで追従解除／再タップで再追従／もう一度で停止） =====
@@ -2217,8 +2706,8 @@ function updateLiveLoc(lat,lng,acc){
   const r=Math.max(acc||0,15);
   if(!liveMarker||!liveMarker.getMap()){
     clearArr(locShapes);
-    liveCircle=new google.maps.Circle({center:{lat,lng},radius:r,strokeColor:'#1a73e8',strokeOpacity:.7,strokeWeight:1.5,fillColor:'#1a73e8',fillOpacity:.18,map,clickable:false,zIndex:50});
-    liveMarker=new google.maps.Marker({position:{lat,lng},map,icon:{path:google.maps.SymbolPath.CIRCLE,scale:7,fillColor:'#1a73e8',fillOpacity:1,strokeColor:'#ffffff',strokeWeight:3},title:'現在地（リアルタイム追跡中）',zIndex:60});
+    liveCircle=new google.maps.Circle({center:{lat,lng},radius:r,strokeColor:LOC_BLUE,strokeOpacity:.7,strokeWeight:1.5,fillColor:LOC_BLUE,fillOpacity:.18,map,clickable:false,zIndex:50});
+    liveMarker=new google.maps.Marker({position:{lat,lng},map,icon:{path:google.maps.SymbolPath.CIRCLE,scale:7,fillColor:LOC_BLUE,fillOpacity:1,strokeColor:'#ffffff',strokeWeight:3},title:'現在地（リアルタイム追跡中）',zIndex:60});
     locShapes.push(liveCircle,liveMarker);
   }else{
     liveCircle.setCenter({lat,lng});liveCircle.setRadius(r);liveMarker.setPosition({lat,lng});
@@ -2778,14 +3267,8 @@ function tourNameOk(a,b){const n=s=>tourNorm(String(s||'').replace(/[（(][^（(
   const bg=s=>{const r=new Set();for(let i=0;i<s.length-1;i++)r.add(s.slice(i,i+2));return r;};const A=bg(a),B=bg(b);let c=0;A.forEach(x=>{if(B.has(x))c++;});return A.size+B.size>0&&2*c/(A.size+B.size)>=0.5;}
 // 「地図で見る」：①温泉郷の既存データ ②前回見つけた位置（30日） ③Googleの施設検索（名称＋市町村＋県。同じ県・似た名前の候補だけ）
 // ④資料の参考座標 ⑤上部の検索に名称を入れて候補から選んでもらう。県庁・市役所などの代わりの位置には置かない
-// 置いたピンの吹き出しが上の帯（たたんだ観光特集・検索バー）に隠れないよう、地図を下へずらす
-function tourPin(lat,lng,name,sub){placeTempPin(lat,lng,name,sub);
-  const fix=()=>{const iw=document.querySelector('.gm-style-iw-c');if(!iw||!map||!map.getProjection())return;
-    const over=document.getElementById('topbar').getBoundingClientRect().bottom+10-iw.getBoundingClientRect().top;if(over<=0)return;   // 上部のバー（検索・タブ・たたんだ一覧）の下に出す
-    const pr=map.getProjection(),sc=Math.pow(2,map.getZoom()),w=pr.fromLatLngToPoint(map.getCenter());   // 移動のアニメーションに打ち消されないよう、止まってから中心を直接ずらす
-    map.setCenter(pr.fromPointToLatLng(new google.maps.Point(w.x,w.y-over/sc)));};
-  let t=null;const L=google.maps.event.addListener(map,'idle',()=>{clearTimeout(t);t=setTimeout(()=>{google.maps.event.removeListener(L);fix();},200);});
-  setTimeout(()=>{if(t===null){google.maps.event.removeListener(L);fix();}},900);}
+// 観光特集の「地図で見る」で置くピン（吹き出しが上のバーに隠れないようにする処理は iwClearTop が行う）
+function tourPin(lat,lng,name,sub){placeTempPin(lat,lng,name,sub);}
 function tourLocate(it){const pref=tourPrefName(it.p);tourMin(true);
   const og=it.k==='onsen'&&ONSEN_GO.find(o=>o.name===it.n&&o.area===tourShortPref(pref));
   if(og){tourPin(og.lat,og.lng,it.n,'温泉郷の位置（たびマップの温泉郷データ・温泉地の中心付近）');return;}
@@ -2871,7 +3354,7 @@ function computePointRoles(){
   }
   return roles;
 }
-function roleColor(label){if(label==='出発'||label==='帰宅')return '#2f9e44';if(label.indexOf('目的')===0)return '#e03131';return cssvar('--accent');}
+function roleColor(label){if(label==='出発'||label==='帰宅')return FEST?'#2f9e44':'#34c759';if(label.indexOf('目的')===0)return FEST?'#e03131':'#ff3b30';return cssvar('--accent');}
 function roleShort(label){return label==='出発'?'出':label==='帰宅'?'帰':label.indexOf('目的')===0?'的':label.replace('経由地','');}
 function renderPoints(){
   clearArr(routeMarkers);updateSegExport();renderFavs();
@@ -2935,7 +3418,8 @@ function classifySteps(instrs){
 }
 function gDeparture(){let d=getEffDep();const now=new Date();return d.getTime()<now.getTime()?now:d;}
 // 区間ごとの色（ナビ風）：渋滞=赤 / やや混雑=橙 / 高速=緑 / 一般道=青
-const COL_JAM='#d93025',COL_SLOW='#f9a825',COL_HW='#1e8e3e';
+const COL_JAM=FEST?'#d93025':'#ff3b30',COL_SLOW=FEST?'#f9a825':'#ff9500',COL_HW=FEST?'#1e8e3e':'#2fb350';   // ドライブ版は新しい配色（赤・橙・緑）
+if(!FEST){const lg=document.querySelectorAll('#routeLegend i');[COL_HW,'var(--route)',COL_SLOW,COL_JAM].forEach((c,i)=>{if(lg[i])lg[i].style.background=c;});}   // 凡例も同じ色に
 function parseDur(s){if(s==null)return 0;if(typeof s==='number')return s;const m=String(s).match(/([\d.]+)s/);return m?parseFloat(m[1]):(parseFloat(s)||0);}
 function kmBetween(la1,ln1,la2,ln2){const R=6371,dLa=(la2-la1)*Math.PI/180,dLn=(ln2-ln1)*Math.PI/180,a=Math.sin(dLa/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dLn/2)**2;return 2*R*Math.asin(Math.sqrt(a));}
 // 大都市近郊区間（東京圏・大阪圏）：実際の境界IC（東名=厚木/中央=八王子/関越=東松山/東北=加須/常磐=谷田部/東関東=成田、大阪圏=京都南/天理/岸和田/神戸/西宮北）を頂点とするポリゴンで内外判定 → 割増29.52円/km・長距離逓減/休日割引対象外
@@ -2968,7 +3452,7 @@ function applyRoute(d){
   lastNexcoKm=d.legArr.reduce((a,l)=>a+l.nexcoKm,0);lastShutokoKm=d.legArr.reduce((a,l)=>a+l.shutokoKm,0);lastNexcoKinkoKm=d.legArr.reduce((a,l)=>a+(l.nexcoKinkoKm||0),0);
   lastLegs=d.legArr;lastLegSteps=d.legSteps;lastFlatYen=d.flatYen;lastFlatNames=d.flatNames;lastRouteTimeline=d.timeline;lastEvents=d.events||[];lastPointT=d.pointT||[];lastNexRuns=d.nexRuns||[];lastShuRuns=d.shuRuns||[];lastEngine=d.engine;lastFullPath=(d.fullPath||[]).map(p=>((typeof p.lat==='function')?{lat:p.lat(),lng:p.lng()}:{lat:p.lat,lng:p.lng}));
   clearRouteLine();
-  routeCasing=new google.maps.Polyline({path:d.fullPath,strokeColor:(currentTheme==='dark'?'#000':'#ffffff'),strokeOpacity:.85,strokeWeight:11,map,zIndex:1});
+  routeCasing=new google.maps.Polyline({path:d.fullPath,strokeColor:(mapIsDark()?'#000':'#ffffff'),strokeOpacity:.85,strokeWeight:11,map,zIndex:1});
   d.segs.forEach(sg=>{routeSegs.push(new google.maps.Polyline({path:sg.path,strokeColor:sg.color,strokeOpacity:.97,strokeWeight:6,map,zIndex:3}));});
   const b=new google.maps.LatLngBounds();d.fullPath.forEach(p=>b.extend(p));if(!b.isEmpty())map.fitBounds(b,60);
   statusEl.classList.remove('show');
@@ -2991,7 +3475,7 @@ function saveCurrentRoute(){
   const d=routeAlts[altIndex];
   if(!d||lastDistanceKm==null||points.length<2){showStatus('保存できるルートがありません',false);hideStatusLater();return;}
   const color=ROUTE_COLORS[savedRoutes.length%ROUTE_COLORS.length];
-  const polys=[new google.maps.Polyline({path:d.fullPath,strokeColor:(currentTheme==='dark'?'#000':'#ffffff'),strokeOpacity:.7,strokeWeight:9,map,zIndex:2}),
+  const polys=[new google.maps.Polyline({path:d.fullPath,strokeColor:(mapIsDark()?'#000':'#ffffff'),strokeOpacity:.7,strokeWeight:9,map,zIndex:2}),
                new google.maps.Polyline({path:d.fullPath,strokeColor:color,strokeOpacity:.95,strokeWeight:5,map,zIndex:3})];
   const ends=[points[0],points[points.length-1]];
   const markers=ends.map((p,k)=>new google.maps.Marker({position:{lat:p.lat,lng:p.lng},map,icon:pinIcon(color,1.4),label:{text:k===0?'出':'着',fontSize:'10px',color:'#fff',fontWeight:'700'},zIndex:4}));
@@ -3063,7 +3547,7 @@ function restoreState(){
     (st.saved||[]).forEach(r=>{
       let polys=[],markers=[];
       if(r.path&&r.path.length){
-        polys=[new google.maps.Polyline({path:r.path,strokeColor:(currentTheme==='dark'?'#000':'#ffffff'),strokeOpacity:.7,strokeWeight:9,map,zIndex:2}),
+        polys=[new google.maps.Polyline({path:r.path,strokeColor:(mapIsDark()?'#000':'#ffffff'),strokeOpacity:.7,strokeWeight:9,map,zIndex:2}),
                new google.maps.Polyline({path:r.path,strokeColor:r.color,strokeOpacity:.95,strokeWeight:5,map,zIndex:3})];
         const a=r.path[0],b=r.path[r.path.length-1];
         markers=[a,b].map((p,k)=>new google.maps.Marker({position:p,map,icon:pinIcon(r.color,1.4),label:{text:k===0?'出':'着',fontSize:'10px',color:'#fff',fontWeight:'700'},zIndex:4}));
@@ -3218,7 +3702,7 @@ async function saveCurrentLayerSet(){
 function rebuildSavedRouteObj(r){ // 保存ルート1件を地図に復元（restoreStateの再構築と同等）
   let polys=[],markers=[];
   if(r.path&&r.path.length){
-    polys=[new google.maps.Polyline({path:r.path,strokeColor:(currentTheme==='dark'?'#000':'#ffffff'),strokeOpacity:.7,strokeWeight:9,map,zIndex:2}),
+    polys=[new google.maps.Polyline({path:r.path,strokeColor:(mapIsDark()?'#000':'#ffffff'),strokeOpacity:.7,strokeWeight:9,map,zIndex:2}),
            new google.maps.Polyline({path:r.path,strokeColor:r.color,strokeOpacity:.95,strokeWeight:5,map,zIndex:3})];
     const a=r.path[0],b=r.path[r.path.length-1];
     markers=[a,b].map((p,k)=>new google.maps.Marker({position:p,map,icon:pinIcon(r.color,1.4),label:{text:k===0?'出':'着',fontSize:'10px',color:'#fff',fontWeight:'700'},zIndex:4}));
@@ -3572,7 +4056,7 @@ function computeRouteLegacy(fellback){
     lastLegs=legArr;lastLegSteps=legStepArr;lastFlatYen=flatTotal;lastFlatNames=[...flatNames];lastRouteTimeline=timeline;lastEvents=events;lastPointT=pointT;lastNexRuns=nexRuns;lastShuRuns=shuRuns;lastEngine='Google';lastFullPath=(fullPath||[]).map(p=>((typeof p.lat==='function')?{lat:p.lat(),lng:p.lng()}:{lat:p.lat,lng:p.lng}));
     clearRouteLine();
     // 高精度ジオメトリ：overview_path（簡略）ではなく各ステップの詳細パスを連結
-    routeCasing=new google.maps.Polyline({path:fullPath,strokeColor:(currentTheme==='dark'?'#000':'#ffffff'),strokeOpacity:.85,strokeWeight:11,map,zIndex:1});
+    routeCasing=new google.maps.Polyline({path:fullPath,strokeColor:(mapIsDark()?'#000':'#ffffff'),strokeOpacity:.85,strokeWeight:11,map,zIndex:1});
     segs.forEach(sg=>{routeSegs.push(new google.maps.Polyline({path:sg.path,strokeColor:sg.color,strokeOpacity:.97,strokeWeight:6,map,zIndex:3}));});
     if(r.bounds)map.fitBounds(r.bounds,60);
     statusEl.classList.remove('show');
@@ -4824,7 +5308,8 @@ function tjDecode(topo){ // TopoJSON→GeoJSON（transform+デルタ復号）。
   const gc=topo.objects[Object.keys(topo.objects)[0]];
   return {type:'FeatureCollection',features:gc.geometries.map(g=>{let coords;if(g.type==='Polygon')coords=poly(g.arcs);else if(g.type==='MultiPolygon')coords=g.arcs.map(poly);else coords=null;return {type:'Feature',properties:g.properties||{},geometry:coords?{type:g.type,coordinates:coords}:null};})};
 }
-async function ensureQuakeTopo(){if(quakePrefTopo)return quakePrefTopo;const topo=await (await fetch('https://raw.githubusercontent.com/dataofjapan/land/master/japan.topojson',{cache:'force-cache'})).json();quakePrefTopo=tjDecode(topo);return quakePrefTopo;}
+let quakePrefRaw=null;   // 復号前のデータ（県境の線＝2県が共有する辺を取り出すのに使う）
+async function ensureQuakeTopo(){if(quakePrefTopo)return quakePrefTopo;const topo=await (await fetch('https://raw.githubusercontent.com/dataofjapan/land/master/japan.topojson',{cache:'force-cache'})).json();quakePrefRaw=topo;quakePrefTopo=tjDecode(topo);return quakePrefTopo;}
 function ensureQuakeLayer(){if(!quakeData){quakeData=new google.maps.Data();quakeData.setStyle(f=>({fillColor:f.getProperty('col'),fillOpacity:0.5,strokeColor:'#6c757d',strokeWeight:1.6,strokeOpacity:0.95,clickable:false,zIndex:5}));}quakeData.setMap(map);}
 function clearQuake(){if(quakeData){quakeData.forEach(f=>quakeData.remove(f));quakeData.setMap(null);}clearQuake.seq=(clearQuake.seq||0)+1;}
 /** 都道府県を震度でぬる（prefScale：{'石川県':55,…}。震度は P2P地震情報の数値） */
@@ -5535,7 +6020,7 @@ function makePinLabel(pin){
     const pinPx=proj.fromLatLngToDivPixel(new google.maps.LatLng(pin.lat,pin.lng));
     if(!pin.label.ll){const ll=proj.fromDivPixelToLatLng(new google.maps.Point(pinPx.x+54,pinPx.y-36));pin.label.ll={lat:ll.lat(),lng:ll.lng()};persistPins();}
     const lPx=proj.fromLatLngToDivPixel(new google.maps.LatLng(pin.label.ll.lat,pin.label.ll.lng));
-    const design=(pin.label.design||1),dark=(currentTheme==='dark'),st=labelStyle(design,dark);
+    const design=(pin.label.design||1),dark=mapIsDark(),st=labelStyle(design,dark);
     const box=this._box,conn=this._conn,ring=this._ring;
     box.textContent=labelText(pin);box.className='pin-label pl-d'+design+(dark?' pl-dark':' pl-light');
     box.style.left=lPx.x+'px';box.style.top=lPx.y+'px';
@@ -6222,7 +6707,7 @@ function openWxPref(prefName){
   showWeather(pts[0][1],pts[0][2],pref+'・'+pts[0][0]);
 }
 const WXM_KEY='tabi_wxmode_on';
-const WX_STYLE={fillColor:'#1c7ed6',fillOpacity:0.06,strokeColor:'#1c7ed6',strokeWeight:1,strokeOpacity:0.55,zIndex:1};
+const WX_STYLE={fillColor:'#1c7ed6',fillOpacity:0.01,strokeColor:'#1c7ed6',strokeWeight:0.5,strokeOpacity:0,zIndex:1};   // 押せる範囲だけ（線は「都道府県の境界」の極細線が描く）
 // 都道府県の区切りは、ルート・到達圏のタブを開いている間は押せないようにする（地図を押して地点を置く操作を受け取らない）
 function wxClickSync(){if(wxData)wxData.setStyle(Object.assign({},WX_STYLE,{clickable:!(activeTab==='route'||activeTab==='iso')}));}
 function toggleWeatherMode(quiet){
@@ -6236,7 +6721,7 @@ function toggleWeatherMode(quiet){
       wxData=new google.maps.Data();
       wxData.addGeoJson(fc);
       wxData.addListener('click',ev=>{const id=ev.feature.getProperty('id');const nam=ev.feature.getProperty('nam_ja')||WX_PREF_BY_ID[id]||'';openWxPref(nam);});
-      wxData.addListener('mouseover',ev=>wxData.overrideStyle(ev.feature,{fillOpacity:0.2}));
+      wxData.addListener('mouseover',ev=>wxData.overrideStyle(ev.feature,{fillOpacity:0.14,strokeOpacity:0.5}));
       wxData.addListener('mouseout',()=>wxData.revertStyle());
     }
     wxClickSync();wxData.setMap(map);wxOn=true;renderToolMenu();

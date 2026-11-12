@@ -1,0 +1,359 @@
+  /* ===== ドライブ版の見た目（2026-11）：iOS に近い配色・質感・文字。本祭支援ツール（html.fest）には当てない =====
+     ・色は上の変数を置き換える（システムブルー、グレーの階調、半透明の面）
+     ・浮いている部品は枠線をやめ、ごく薄い輪郭＋やわらかい影。大きな面は背景をぼかす
+     ・文字は太すぎる指定（800/900）を 700 に、700 を 600 に下げる（この層の最後の自動生成部分） */
+  html:not(.fest){
+    --bg:#f2f2f7; --panel:rgba(255,255,255,.86); --panel-blur:rgba(255,255,255,.72);
+    --surface:#ffffff; --surface-2:#f2f2f7; --fg:#1c1c1e; --muted:#6e6e73;
+    --line:rgba(60,60,67,.14); --accent:#007aff; --accent-btn:#007aff; --accent-weak:rgba(0,122,255,.12); --shadow:rgba(0,0,0,.12);
+    --c-onsen:#ff9500; --c-parking:#007aff; --c-hotel:#af52de;
+    --c-conveni:#34c759; --c-food:#ff6b22; --c-fuel:#f5a300; --c-sapa:#00b3a4; --c-michi:#ff3b30; --c-onsengo:#ff2d55; --route:#007aff;
+    --open:#248a3d; --closed:#ff3b30; --c-tour:#1a9cb4;
+    --chip:rgba(255,255,255,.96); --fill:rgba(120,120,128,.12); --fill-2:rgba(120,120,128,.2); --sep:rgba(60,60,67,.12); --tert:#8e8e93;
+    --green:#34c759; --red:#ff3b30; --thumb:#ffffff; --thumb-sh:0 3px 8px rgba(0,0,0,.12),0 1px 1px rgba(0,0,0,.05);
+    --mat:saturate(180%) blur(22px);
+    --elev:0 0 0 .5px rgba(0,0,0,.08),0 10px 30px rgba(0,0,0,.13);
+    --elev-sm:0 0 0 .5px rgba(0,0,0,.08),0 2px 10px rgba(0,0,0,.10);
+  }
+  html:not(.fest)[data-theme="dark"]{
+    --bg:#000000; --panel:rgba(30,30,32,.84); --panel-blur:rgba(30,30,32,.72);
+    --surface:#1c1c1e; --surface-2:#2c2c2e; --fg:#f5f5f7; --muted:#a1a1a6;
+    --line:rgba(84,84,88,.6); --accent:#0a84ff; --accent-btn:#0a84ff; --accent-weak:rgba(10,132,255,.24); --shadow:rgba(0,0,0,.5);
+    --c-onsen:#ff9f0a; --c-parking:#0a84ff; --c-hotel:#bf5af2;
+    --c-conveni:#30d158; --c-food:#ff7a3d; --c-fuel:#ffc21a; --c-sapa:#2ec4b6; --c-michi:#ff453a; --c-onsengo:#ff375f; --route:#0a84ff;
+    --open:#30d158; --closed:#ff453a; --c-tour:#2aa9c0;
+    --chip:rgba(44,44,46,.96); --fill:rgba(120,120,128,.24); --fill-2:rgba(120,120,128,.36); --sep:rgba(84,84,88,.55); --tert:#8e8e93;
+    --green:#30d158; --red:#ff453a; --thumb:#636366; --thumb-sh:0 3px 8px rgba(0,0,0,.3);
+    --elev:0 0 0 .5px rgba(255,255,255,.1),0 12px 34px rgba(0,0,0,.55);
+    --elev-sm:0 0 0 .5px rgba(255,255,255,.1),0 2px 12px rgba(0,0,0,.45);
+  }
+  /* --- 文字 --- */
+  § body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;text-rendering:optimizeLegibility;}
+  § button, § input, § select, § textarea{font-family:inherit;}
+  § ::selection{background:var(--accent-weak);}
+  § :focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  § input:focus-visible, § select:focus-visible, § textarea:focus-visible{outline:none;box-shadow:0 0 0 3px var(--accent-weak);}
+
+  /* --- 上のバー：検索・丸ボタン・タブ --- */
+  § .searchbar{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev-sm);gap:9px;}
+  § .searchbar .s-ic{color:var(--tert);}
+  § .searchbar .s-ic .svgi{width:18px;height:18px;stroke-width:2.2;}
+  § .searchbar input{font-size:16px;letter-spacing:.01em;}
+  § .searchbar input::placeholder{color:var(--tert);}
+  § .searchbar .s-clr{width:22px;height:22px;margin-right:8px;background:var(--fill-2);color:var(--surface);font-size:11px;line-height:1;}
+  § .icon-btn{border:none;background:var(--chip);box-shadow:var(--elev-sm);}
+  § .icon-btn .svgi{stroke-width:1.9;}
+  § #reloadBtn{border:none;background:var(--chip);box-shadow:var(--elev-sm);color:var(--tert);}
+  § #toolBtn.on{background:var(--accent);color:#fff;}
+  § .tab{border:none;background:var(--chip);box-shadow:var(--elev-sm);letter-spacing:.01em;}
+  § .tab .dot{width:8px;height:8px;}
+  § .tab.active{text-shadow:none;box-shadow:0 4px 14px rgba(0,0,0,.2);}
+  § .tab.active .dot{background:rgba(255,255,255,.9) !important;}
+  @media(min-width:901px){   /* PC：検索バーは左に寄せて幅をおさえる（地図を広く見せる）。候補の一覧も同じ幅 */
+    § .searchbar{flex:0 1 520px;}
+    § .top-actions{margin-left:auto;}
+    § .top-results{width:min(560px,calc(100% - 24px));}
+  }
+  @media(min-width:601px){
+    § #customPanel, § #isoPanel{max-width:760px;}   /* PC：右上の地図の切り替え・時計に重ならない幅まで */
+    § .tab{font-size:13px;padding:7px 14px;min-height:34px;}
+    § .toprow{gap:9px;}
+    § .top-actions{gap:8px;}
+  }
+  /* 検索の候補・履歴 */
+  § .top-results{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev);border-radius:18px;}
+  § .tr-item{border-bottom-color:var(--sep);padding:11px 16px;}
+  § .tr-item:active, § .sh-item:active{background:var(--fill);}
+  § .tr-item .tr-ic{width:30px;height:30px;border-radius:8px;background:var(--fill);color:var(--muted);font-size:13px;display:flex;align-items:center;justify-content:center;}
+  § .tr-item .tr-tx b{font-size:15px;letter-spacing:.01em;}
+  § .tr-item .tr-tx small{font-size:12px;}
+  § .tr-star{color:var(--tert);}
+  § .sh-item{border-top-color:var(--sep);}
+  § .sh-item .sh-ic{background:var(--fill);}
+  § .sh-item .sh-tx b{font-size:14.5px;}
+  § .geo-results{border:none;background:var(--fill);border-radius:12px;}
+  § .geo-item{background:none;border-bottom-color:var(--sep);font-size:14px;}
+
+  /* --- 地図の種類のバー・時計 --- */
+  § #baseBar .seg{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev-sm);padding:2px;gap:0;}
+  § #baseBar .seg button{height:26px;padding:0 12px;font-size:12px;color:var(--muted);}
+  § #baseBar .seg button.on{color:var(--fg);}
+  § #liveClock{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev-sm);}
+  § #lcTime{font-family:inherit;font-variant-numeric:tabular-nums;letter-spacing:.03em;}
+  § #lcDate{letter-spacing:.03em;}
+  § #liveClock.sync #lcDate::after{background:var(--green);}
+  § #speedChip{background:var(--accent);}
+  @media(min-width:601px){
+    § #liveClock{top:calc(92px + var(--qk,0px) + env(safe-area-inset-top));border-radius:14px;padding:7px 13px 8px;}
+    § #lcTime{font-size:17px;}
+  }
+
+  /* --- 浮いている面（パネル） --- */
+  § #customPanel, § #isoPanel, § #tourPanel, § #toolMenu, § #layerPanel, § #settlePanel, § #evacPanel, § #guideCr{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev);border-radius:20px;}
+  § .cpal{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev);border-radius:14px;padding:9px;gap:7px;width:214px;}
+  § .cpal-sw{border-radius:50%;width:27px;height:27px;border:2px solid transparent;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);}
+  § .cpal-sw.on{border-color:var(--surface);box-shadow:0 0 0 2px var(--fg);}
+  § #mapLegend{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev-sm);border-radius:12px;}
+  § #attrBtn, § #bufClear, § #isoClearFab{border:none;background:var(--chip);box-shadow:var(--elev-sm);}
+  § #status{background:rgba(44,44,46,.92);color:#fff;-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:0 8px 24px rgba(0,0,0,.22);padding:9px 18px;letter-spacing:.01em;}
+  §[data-theme="dark"] #status{background:rgba(72,72,74,.94);}
+
+  /* 切り替え（セグメント）：グレーの溝に白いつまみ */
+  § .seg{background:var(--fill);padding:2px;gap:0;border-radius:10px;}
+  § .seg button{min-height:32px;border-radius:8px;color:var(--fg);}
+  § .seg button.on{background:var(--thumb);color:var(--fg);box-shadow:var(--thumb-sh);}
+  § #baseBar .seg, § #baseBar .seg button{border-radius:999px;}
+  /* チップ（カスタムタブ・到達圏・天気など） */
+  § .chk{border:none;background:var(--fill);padding:7px 14px;position:relative;}
+  @supports selector(:has(*)){   /* 選んだチップは色で示す（四角いチェックは出さない） */
+    § label.chk input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none;}
+    § label.chk:has(input:checked){background:var(--accent-weak);color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent);}
+    § label.chk:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:2px;}
+  }
+  § #customPanel>button:not([class]){border:none !important;background:var(--fill) !important;color:var(--accent) !important;min-height:32px !important;padding:0 14px !important;font-size:13px !important;}
+  § .iso-chip, § .wx-chip, § .tg-cat{border:none;background:var(--fill);}
+  § .iso-chip.on, § .wx-chip.on{background:var(--accent);color:#fff;}
+  § .alt-chip{border:none;background:var(--fill);border-radius:12px;}
+  § .alt-chip.on{background:var(--accent);color:#fff;}
+  § .opt{border:none;background:var(--fill);border-radius:12px;}
+  § .iso-lab{letter-spacing:0;font-size:12px;}
+  § #isoSearchBtn, § #isoAdd{color:var(--accent);}
+  § #isoLoc{background:var(--accent) !important;border-radius:12px !important;min-height:44px !important;font-size:14.5px !important;}
+  § #isoClear{border:none !important;background:var(--fill) !important;color:var(--red) !important;border-radius:12px !important;min-height:44px !important;font-size:14.5px !important;}
+
+  /* 入力欄：枠線なしの塗り */
+  § .rs-search input, § .rs-inputs input, § .dep-row input, § .set-sec input, § .tg-row select, § .tg-row input, § .sapa-search-box input, § .sapa-search-box select, § .seg-sel, § #isoPanel input[type="text"], § #isoPanel input[type="number"]{border-color:transparent !important;background:var(--fill) !important;border-radius:11px;}
+  § .rs-inputs input.ro-field{border-style:solid;background:transparent !important;border-color:var(--sep) !important;}
+  § .pt-stay input, § .sch-stay input{border-color:transparent;background:var(--fill-2);border-radius:7px;}
+
+  /* ボタン：主＝塗り、副＝グレーの面に青い文字 */
+  § .rs-search button, § .set-save, § .gmaps-btn{background:var(--accent);border-radius:12px;letter-spacing:.01em;}
+  § .set-save.ghost{background:var(--fill);border:none;color:var(--accent);}
+  § .rs-btns button{border:none;background:var(--fill);border-radius:12px;color:var(--accent);}
+  § .rs-btns button:active, § .set-save.ghost:active{background:var(--fill-2);}
+  § .rs-btns button:disabled{color:var(--tert);}
+  § #saveRouteBtn{background:var(--accent) !important;border-radius:12px !important;min-height:44px !important;font-size:14.5px !important;}
+  § #schedBtn{border:none !important;background:var(--fill) !important;color:var(--accent) !important;border-radius:12px !important;min-height:44px !important;font-size:14.5px !important;}
+  § .nav-start-btn{background:var(--green);border-radius:12px;box-shadow:none;font-size:14.5px;}
+  § .fab{box-shadow:var(--elev);letter-spacing:.01em;}
+  § .fab.primary{background:var(--accent);}
+  § .fab.ghost{border:none;background:var(--chip);}
+  § .dep-now, § .pin-save-btn, § .ly-save-set{border-color:transparent !important;background:var(--accent-weak);}
+  § .detail-btn{border-color:transparent !important;background:var(--accent-weak) !important;}
+  § .adv-toggle{border:none;background:var(--accent-weak);border-radius:12px;}
+  § .adv-toggle.on{background:var(--accent);}
+  § .pin-del-btn{border-color:transparent !important;background:rgba(255,59,48,.12) !important;color:var(--red) !important;}
+  § .ver-switch{background:var(--fill);padding:2px;border-radius:10px;gap:0;}
+  § .ver-switch a{border:none;background:none;border-radius:8px;padding:8px 4px;}
+  § .ver-switch a.on{background:var(--thumb);color:var(--fg);box-shadow:var(--thumb-sh);}
+
+  /* --- 機能メニュー（レンチ）：設定アプリのような並び --- */
+  § #toolMenu{padding:12px 12px 14px;width:min(320px,92vw);}
+  § #toolMenu .tm-head b{font-size:17px;letter-spacing:.01em;}
+  § #toolMenu .tm-head button, § .modal-h button, § .ly-head button#layerClose, § .ly-head button#settleClose, § #guideCr .gc-h button, § .evac-h button{width:28px;height:28px;border-radius:50%;background:var(--fill);color:var(--muted);font-size:12px;line-height:1;padding:0;display:inline-flex;align-items:center;justify-content:center;flex:none;}
+  § #toolMenu .tm-sec{font-size:12px;letter-spacing:0;margin:12px 4px 6px;}
+  § .tm-item{border:none;background:var(--surface);border-radius:13px;padding:9px 12px 9px 10px;margin-bottom:5px;gap:11px;}
+  §[data-theme="dark"] .tm-item{background:var(--fill);}
+  § .tm-item:active{background:var(--fill-2);}
+  § .tm-item .tm-ic{width:30px;height:30px;border-radius:8px;background:var(--fill);color:var(--fg);}
+  § .tm-item .tm-ic .svgi{width:18px;height:18px;stroke-width:1.9;}
+  § .tm-item .tm-lab{font-size:14.5px;letter-spacing:.01em;}
+  § .tm-item .tm-lab small{font-size:11.5px;font-weight:400;margin-top:2px;line-height:1.35;}
+  § .tm-item .tm-ex{border:none;padding:0 2px;font-size:13.5px;}
+  § .tm-item .tm-sw{width:46px;height:28px;border:none;background:var(--fill-2);}
+  § .tm-item .tm-sw::after{top:2px;left:2px;width:24px;height:24px;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.2),0 0 0 .5px rgba(0,0,0,.05);}
+  § .tm-item.on{border:none;}
+  § .tm-item.on .tm-ic{background:var(--accent);color:#fff;}
+  § .tm-item.on .tm-sw{background:var(--green);}
+  § .tm-item.on .tm-sw::after{transform:translateX(18px);}
+  § #toolMenu .tm-note{border-top:none;padding:6px 4px 0;font-size:11.5px;line-height:1.55;}
+
+  /* --- ルート・費用のシート --- */
+  § #routeSheet{border-top:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:0 0 0 .5px rgba(0,0,0,.08),0 -10px 36px rgba(0,0,0,.14);border-radius:22px 22px 0 0;}
+  § .rs-grab{width:36px;height:5px;background-color:var(--fill-2);margin-bottom:8px;}
+  § .rs-head b{font-size:19px;letter-spacing:.01em;}
+  § .rs-head .clear{font-size:15px;}
+  § .rs-peek .pk-main{font-size:16px;}
+  § .rs-peek .pk-x{border:none;background:var(--fill);padding:5px 11px;}
+  § .rs-label, § .set-label{text-transform:none;letter-spacing:0;font-size:12.5px;}
+  § .rs-section{border-top-color:var(--sep);}
+  § .rs-result{border-top-color:var(--sep);}
+  § .pt-row{border:none;background:var(--fill);border-radius:12px;padding:10px 12px;}
+  § .pt-badge{border-radius:8px;}
+  § .pt-label{font-size:14px;}
+  § .rs-card{background:var(--fill);border-radius:14px;padding:9px 10px 10px;}
+  § .rs-card .k{font-size:11px;}
+  § .rs-card .val{font-size:18px;letter-spacing:-.01em;font-variant-numeric:tabular-nums;}
+  § .rs-card.cost{background:var(--accent-weak);}
+  § #costDetails{border:none;background:var(--fill);border-radius:14px;}
+  § .ro-tag{border:none;background:var(--fill-2);border-radius:5px;}
+  § .itin-badge, § .sch-badge{border-radius:6px;}
+  § .sch-row{border-bottom-color:var(--sep);}
+  § .rs-hint, § .rs-note{font-size:12px;}
+  § details.tbt{border-color:transparent;background:var(--fill);border-radius:12px;}
+
+  /* --- 右下の縦ボタン --- */
+  § #myLocFab, § #trackFab, § #layerBtn, § #settleBtn, § #imgBtn{border:none;background:var(--chip);box-shadow:var(--elev-sm);}
+  § #myLocFab, § #trackFab{color:var(--accent);}
+  § #myLocFab.on, § #trackFab.on{background:var(--accent);color:#fff;}
+  § #myLocFab small, § #trackFab small, § #layerBtn small, § #settleBtn small, § #imgBtn small{letter-spacing:0;font-size:9px;}
+  § #myLocFab .svgi, § #trackFab .svgi, § #layerBtn .svgi, § #settleBtn .svgi, § #imgBtn .svgi{stroke-width:1.9;}
+  @media(min-width:601px){   /* PC：少し小さくして間をつめる（ルートのシートを開いたとき、上の時計に重ならないように） */
+    § #myLocFab, § #trackFab, § #layerBtn, § #settleBtn, § #imgBtn{width:48px;height:48px;border-radius:14px;gap:2px;}
+    § #trackFab{bottom:calc(154px + env(safe-area-inset-bottom));}
+    § #layerBtn{bottom:calc(210px + env(safe-area-inset-bottom));}
+    § #settleBtn{bottom:calc(266px + env(safe-area-inset-bottom));}
+    § #imgBtn{bottom:calc(322px + env(safe-area-inset-bottom));}
+    § body:has(#routeSheet.open:not(.collapsed)) #myLocFab{bottom:calc(46dvh + 16px);}
+    § body:has(#routeSheet.open:not(.collapsed)) #trackFab{bottom:calc(46dvh + 72px);}
+    § body:has(#routeSheet.open:not(.collapsed)) #layerBtn{bottom:calc(46dvh + 128px);}
+    § body:has(#routeSheet.open:not(.collapsed)) #settleBtn{bottom:calc(46dvh + 184px);}
+    § body:has(#routeSheet.open:not(.collapsed)) #imgBtn{bottom:calc(46dvh + 240px);}
+  }
+
+  /* --- レイヤー・割り勘のパネル --- */
+  § #layerPanel, § #settlePanel{padding:14px 16px;}
+  § .ly-head{font-size:17px;margin-bottom:10px;}
+  § .ly-item, § .stl-item, § .ly-acts{border-bottom-color:var(--sep);}
+  § .ly-item{padding:9px 0;font-size:14px;}
+  § .ly-sw{border-radius:5px;}
+  § .ly-color{border:none;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.1);}
+  § .ly-btn{border:none;background:var(--fill);border-radius:8px;}
+  § .ly-btn.ly-reedit{background:var(--accent-weak);}
+  § .ly-subwrap{border-left-color:var(--sep);}
+
+  /* --- 設定などのモーダル --- */
+  § .overlay{background:rgba(0,0,0,.32);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
+  § .modal{border:none;background:var(--surface);box-shadow:0 24px 70px rgba(0,0,0,.3);border-radius:22px;padding:20px;}
+  §[data-theme="dark"] .modal{background:#1c1c1e;box-shadow:0 0 0 .5px rgba(255,255,255,.1),0 24px 70px rgba(0,0,0,.6);}
+  § .modal-h b{font-size:19px;letter-spacing:.01em;}
+  § .set-help{font-size:12px;}
+  § .sapa-card{border:none;background:var(--fill);border-radius:14px;}
+  § .sapa-attr{border:none;background:var(--fill);border-radius:999px;padding:7px 14px;position:relative;}
+  @supports selector(:has(*)){
+    § .sapa-attr input{position:absolute;opacity:0;width:1px;height:1px;margin:0;pointer-events:none;}
+    § .sapa-attr:has(input:checked){background:var(--accent-weak);color:var(--accent);box-shadow:inset 0 0 0 1.5px var(--accent);}
+  }
+  § .wx-wd{border-color:transparent;background:var(--fill);border-radius:12px;}
+  § .wx-hr{border-bottom-color:var(--sep);}
+
+  /* --- 観光特集 --- */
+  § .tg-head{border-bottom-color:var(--sep);padding:12px 14px 10px;gap:9px;}
+  § .tg-top b{font-size:17px;color:var(--fg);letter-spacing:.01em;}
+  § .tg-top .tg-sum{font-size:12px;}
+  § .tg-top button{border:none;background:var(--fill);color:var(--accent);border-radius:999px;padding:6px 12px;font-size:13px;}
+  § .tg-cat{padding:6px 12px;font-size:13px;}
+  § .tg-cat.on{background:var(--fg);color:var(--surface);}
+  § .tg-cat.on small{color:inherit;opacity:.7;}
+  § .tg-list{padding:12px 14px 14px;gap:12px;}
+  § .tg-card{border:none;border-radius:16px;box-shadow:0 0 0 .5px rgba(0,0,0,.06),0 1px 4px rgba(0,0,0,.06);}
+  §[data-theme="dark"] .tg-card{background:var(--surface-2);box-shadow:none;}
+  § .tg-body{padding:11px 13px 13px;}
+  § .tg-body h4{font-size:16px;letter-spacing:.01em;}
+  § .tg-meta{font-size:12px;margin-top:3px;}
+  § .tg-d{font-size:13.5px;line-height:1.65;margin:8px 0 6px;}
+  § .tg-hl span{background:var(--fill);font-size:11.5px;padding:3px 9px;}
+  § .tg-note{font-size:12px;}
+  § .tg-acts{margin-top:11px;gap:8px;}
+  § .tg-acts button, § .tg-acts a{border:none;background:var(--fill);color:var(--accent);border-radius:999px;padding:8px 15px;font-size:13.5px;}
+  § .tg-acts .tg-go{background:var(--accent);color:#fff;}
+  § .tg-more{border:none;background:var(--fill);color:var(--accent);border-radius:12px;padding:11px;font-size:14px;}
+  § .tg-noph{font-size:11.5px;}
+  § .tg-warn{border:none;background:rgba(255,59,48,.1);color:var(--red);border-radius:10px;padding:7px 10px;}
+  § #guideCr .gc-h{border-bottom-color:var(--sep);font-size:17px;padding:14px 16px;}
+  § #guideCr .gc-i{border-top-color:var(--sep);}
+  /* ピンの一覧（カスタムタブ） */
+  § .pin-row .pin-go, § .pin-grp .pin-grp-draw{border:none;background:var(--fill);border-radius:11px;}
+  § .pin-x, § .pin-grp-x{border:none;background:var(--fill);border-radius:9px;}
+
+  /* --- 吹き出し（地図のピンを押したとき）。色は --p-* で持ち、暗いテーマでは吹き出しも暗くする --- */
+  html:not(.fest){--p-bg:#ffffff;--p-fg:#1c1c1e;--p-muted:#6e6e73;--p-tert:#8e8e93;--p-fill:#f2f2f7;--p-fill2:#e5e5ea;--p-card:#ffffff;--p-line:rgba(60,60,67,.12);
+    --p-accent:#007aff;--p-tint:rgba(0,122,255,.12);--p-red:#ff3b30;--p-redtint:rgba(255,59,48,.12);--p-green:#248a3d;}
+  html:not(.fest)[data-theme="dark"]{--p-bg:#242426;--p-fg:#f5f5f7;--p-muted:#a1a1a6;--p-tert:#8e8e93;--p-fill:#343436;--p-fill2:#48484a;--p-card:#48484a;--p-line:rgba(120,120,128,.3);
+    --p-accent:#0a84ff;--p-tint:rgba(10,132,255,.26);--p-red:#ff453a;--p-redtint:rgba(255,69,58,.22);--p-green:#30d158;}
+  § .gm-style .gm-style-iw-c{background:var(--p-bg);border-radius:18px;box-shadow:0 0 0 .5px rgba(0,0,0,.08),0 12px 36px rgba(0,0,0,.2);padding:14px 4px 4px 16px !important;}
+  §[data-theme="dark"] .gm-style .gm-style-iw-c{box-shadow:0 0 0 .5px rgba(255,255,255,.12),0 14px 40px rgba(0,0,0,.6);}
+  § .gm-style .gm-style-iw-tc::after{background:var(--p-bg);}
+  § .gm-style .gm-style-iw-d{padding:0 12px 12px 0 !important;scrollbar-width:thin;scrollbar-color:var(--p-fill2) transparent;}
+  § .gm-style .gm-style-iw-ch{padding-top:0;}
+  § .gm-style .gm-style-iw-chr{height:0;}
+  § .gm-style .gm-style-iw-chr button.gm-ui-hover-effect{position:absolute !important;top:8px !important;right:8px !important;width:28px !important;height:28px !important;border-radius:50% !important;background:var(--p-fill) !important;opacity:1 !important;z-index:2;}
+  § .gm-style .gm-style-iw-chr button.gm-ui-hover-effect>span{width:16px !important;height:16px !important;margin:6px !important;background-color:var(--p-muted) !important;}
+  § .gm-style .gm-style-iw, § .popup{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue","Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif;-webkit-font-smoothing:antialiased;}
+  § .gm-style .gm-style-iw, § .popup{color:var(--p-fg);}
+  § .gm-style-iw .popup h3, § .popup h3{font-size:17px;letter-spacing:.01em;color:var(--p-fg);margin:0 34px 5px 0;line-height:1.3;}
+  § .popup .meta{font-size:13px;color:var(--p-muted);line-height:1.5;}
+  § .popup .meta a, § .rk-slot a, § .og-ph .g-crl{color:var(--p-accent);}
+  § .popup .pin-note{border-color:transparent;background:var(--p-fill);border-radius:10px;font-size:13px;padding:8px 10px;color:var(--p-fg);}
+  § .popup .pin-note::placeholder{color:var(--p-tert);}
+  § .oh.open{color:var(--p-green);} § .oh.closed{color:var(--p-red);}
+  § .popup .links{gap:7px;margin-top:12px;}
+  § .popup .links a, § .popup .links button{border:none;background:var(--p-fill);color:var(--p-accent);border-radius:999px;padding:8px 14px;font-size:13.5px;}
+  § .popup .links a:active, § .popup .links button:active{background:var(--p-fill2);}
+  § .popup .links button.dest, § .popup .links a.nav{background:var(--p-accent);color:#fff;}
+  § .popup .links a.rakuten{background:#bf0000;color:#fff;}
+  § .popup .links a.official{color:var(--p-fg);}
+  § .popup .links button.wx-btn{background:var(--p-tint);color:var(--p-accent);}
+  § .popup .links button.pin-clr-btn{color:#fff;text-shadow:none;min-width:48px;}
+  § .popup .links button.pin-del-btn{background:var(--p-redtint) !important;color:var(--p-red) !important;}
+  § .popup .route-act{border:none;background:var(--p-fill);border-radius:14px;padding:9px 10px 10px;gap:6px;margin:11px 0 2px;}
+  § .popup .route-act .ra-lab{font-size:12px;color:var(--p-muted);}
+  § .popup .route-act button{border:none;background:var(--p-card);color:var(--p-accent);border-radius:10px;padding:8px 4px;font-size:13.5px;box-shadow:0 0 0 .5px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.06);}
+  § .popup .route-act button:active{background:var(--p-accent);color:#fff;}
+  /* SA/PA の施設案内 */
+  § .popup .sapa-info{border:none;background:var(--p-fill);border-radius:14px;}
+  § .popup .fac{border-color:var(--p-line);background:var(--p-card);color:var(--p-tert);}
+  § .popup .fac .fac-x{color:var(--p-tert);}
+  § .popup .fac .fac-24{border-color:var(--p-bg);background:#34c759;}
+  § .popup .sapa-24{color:var(--p-green);}
+  § .popup .sapa-score, § .popup .sapa-park{color:var(--p-fg);}
+  § .popup .sapa-score b{color:var(--p-green);}
+  § .popup .sapa-score small, § .popup .sapa-park small, § .popup .sapa-src, § .popup .sapa-note{color:var(--p-tert);}
+  § .popup .sapa-sub{color:var(--p-muted);}
+  §[data-theme="dark"] .popup .fac.on.fac-bath{color:#ff6b8b;border-color:rgba(255,55,95,.5);background:rgba(255,55,95,.16);}
+  §[data-theme="dark"] .popup .fac.on.fac-conv{color:#30d158;border-color:rgba(48,209,88,.5);background:rgba(48,209,88,.14);}
+  §[data-theme="dark"] .popup .fac.on.fac-gas{color:#ffb340;border-color:rgba(255,159,10,.5);background:rgba(255,159,10,.14);}
+  §[data-theme="dark"] .popup .fac.on.fac-rest{color:#ff8a52;border-color:rgba(255,122,61,.5);background:rgba(255,122,61,.14);}
+  /* 温泉郷の写真・紹介 */
+  § .og-ph img{border-radius:12px;background:var(--p-fill);}
+  § .og-ph figcaption{color:var(--p-tert);} § .og-ph .g-cr a{color:var(--p-muted);}
+  § .og-d{font-size:13.5px;line-height:1.6;color:var(--p-fg);}
+  § .og-noph{border-radius:12px;background:var(--p-fill);color:var(--p-tert);}
+
+  /* --- Googleの拡大・縮小ボタン：角を丸く、テーマに合わせる。スマホでは出さない（指で拡大・縮小できるため。右下のボタンと重なっていた） --- */
+  § .gm-style .gm-bundled-control .gmnoprint>div{border-radius:14px !important;background-color:var(--chip) !important;box-shadow:var(--elev-sm) !important;overflow:hidden;}
+  § .gm-style .gm-bundled-control button.gm-control-active{background:none !important;}
+  §[data-theme="dark"] .gm-style .gm-bundled-control button.gm-control-active img{filter:invert(1) brightness(1.5);}
+  §[data-theme="dark"] .gm-style .gm-bundled-control .gmnoprint>div>div{background-color:rgba(255,255,255,.16) !important;}
+  @media(max-width:600px){ § .gm-style .gm-bundled-control{display:none !important;} }
+
+  /* --- 走行支援ナビの案内カード：濃い色の帯に白い文字 --- */
+  § #navCard{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev);border-radius:20px;}
+  § .nv-main{background:#1c1c1e;padding:12px 14px;}
+  §[data-theme="dark"] .nv-main{background:#3a3a3c;}
+  § .nv-next{background:var(--fill);}
+  § .nv-btn{border:none;background:var(--fill);border-radius:10px;}
+  § .nv-btn.on{background:var(--accent-weak);color:var(--accent);}
+  § .nv-warn{background:var(--c-onsen);}
+
+  /* --- 写真の出典・緊急避難など --- */
+  § .evac-h{font-size:17px;color:var(--red);}
+  § .evac-modes button{border:none;background:var(--fill);border-radius:10px;}
+  § .evac-modes button.on{background:var(--accent);color:#fff;}
+  § .evac-addroute{background:var(--red);border-radius:12px;box-shadow:none;}
+  § .evac-warn{border:none;background:rgba(255,59,48,.1);color:var(--red);border-radius:10px;}
+  § #nokey h2{font-size:22px;letter-spacing:.01em;}
+  /* スクロールバーは細く */
+  § #customPanel, § #isoPanel, § .tg-list, § #toolMenu, § #layerPanel, § #settlePanel, § #routeSheet, § .modal, § .top-results, § #guideCr .gc-b{scrollbar-width:thin;scrollbar-color:var(--fill-2) transparent;}
+
+  /* --- スマホ --- */
+  @media(max-width:600px){
+    § .tab{font-size:12.5px;padding:6px 12px;min-height:32px;}
+    § #topActions{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev);border-radius:16px;}
+    § #topActions .icon-btn .ib-lab{font-size:15px;}
+    § #toolBtn.on{background:var(--accent-weak);color:var(--accent);}
+    § #customPanel, § #isoPanel, § #tourPanel{border-radius:18px;}
+    § #routeSheet{border-radius:20px 20px 0 0;}
+    § .rs-head b{font-size:18px;}
+    § #baseBar .seg button{height:26px;padding:0 11px;font-size:12px;}
+  }
