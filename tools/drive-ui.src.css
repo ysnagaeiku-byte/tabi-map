@@ -47,8 +47,11 @@
   § #toolBtn.on{background:var(--accent);color:#fff;}
   § .tab{border:none;background:var(--chip);box-shadow:var(--elev-sm);letter-spacing:.01em;}
   § .tab .dot{width:8px;height:8px;}
+  § .tab .tab-ic{display:flex;flex:none;margin-left:-2px;}
+  § .tab .tab-ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;display:block;}
   § .tab.active{text-shadow:none;box-shadow:0 4px 14px rgba(0,0,0,.2);}
   § .tab.active .dot{background:rgba(255,255,255,.9) !important;}
+  § .tab.active .tab-ic{color:#fff !important;}
   @media(min-width:901px){   /* PC：検索バーは左に寄せて幅をおさえる（地図を広く見せる）。候補の一覧も同じ幅 */
     § .searchbar{flex:0 1 520px;}
     § .top-actions{margin-left:auto;}
@@ -191,6 +194,18 @@
   § .sch-row{border-bottom-color:var(--sep);}
   § .rs-hint, § .rs-note{font-size:12px;}
   § details.tbt{border-color:transparent;background:var(--fill);border-radius:12px;}
+  § .pt-del, § .pt-mv{border:none;background:var(--fill-2);border-radius:8px;}
+  § .pt-del{background:none;}
+  § .times-toggle{border:none;background:rgba(255,149,0,.15);color:#b85f00;}
+  §[data-theme="dark"] .times-toggle{color:#ff9f0a;}
+  § .times-toggle.on{background:#ff9500;color:#fff;}
+  § .itin-note{border:none;background:var(--fill);border-radius:12px;font-size:11.5px;}
+  § .sch-t .dep-in, § .sch-t .restdep-in{border-color:transparent;background:var(--accent-weak);border-radius:7px;padding:2px 4px;}
+  § .rest-reset-btn{border:none;background:var(--fill);color:var(--accent);border-radius:12px;padding:11px 10px;font-size:13.5px;}
+  § .rest-reset-btn:hover{color:var(--accent);}
+  § .rest-del:hover{color:var(--red);}
+  § .stl-add{border:none;background:var(--fill);color:var(--accent);border-radius:12px;min-height:42px;font-size:14px;}
+  § #segBtn{background:var(--accent) !important;border-radius:10px !important;}
 
   /* --- 右下の縦ボタン --- */
   § #myLocFab, § #trackFab, § #layerBtn, § #settleBtn, § #imgBtn{border:none;background:var(--chip);box-shadow:var(--elev-sm);}
