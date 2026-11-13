@@ -2473,6 +2473,7 @@ function bootGoogle(){
 const SVG_SUN='<svg class="svgi" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.2v2.3M12 19.5v2.3M2.2 12h2.3M19.5 12h2.3M4.9 4.9l1.7 1.7M17.4 17.4l1.7 1.7M19.1 4.9l-1.7 1.7M6.6 17.4l-1.7 1.7"/></svg>';
 const SVG_MOON='<svg class="svgi" viewBox="0 0 24 24"><path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z"/></svg>';
 function applyTheme(t){currentTheme=t;document.documentElement.dataset.theme=t;const ti=document.getElementById('themeIcon');if(ti)ti.innerHTML=(t==='dark'?SVG_SUN:SVG_MOON);const tl=document.querySelector('#themeBtn .ib-lab');if(tl)tl.textContent=(t==='dark'?'ライト':'ダーク');applyMapStyles();mapToneSync();localStorage.setItem('tabi_theme',t);
+  if(!FEST){const mt=document.querySelector('meta[name="theme-color"]');if(mt)mt.content=(t==='dark'?'#000000':'#f2f2f7');}   // ドライブ版：ブラウザの上のバーの色も画面に合わせる（以前は青）
   try{if(FEST&&festCampusOn)festDrawCampus(true);}catch(e){}}
 document.getElementById('themeBtn').onclick=()=>{
   applyTheme(currentTheme==='dark'?'light':'dark');
