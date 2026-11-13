@@ -1627,9 +1627,12 @@
   /* スクロールバーは細く */
   html:not(.fest) #customPanel, html:not(.fest) #isoPanel, html:not(.fest) .tg-list, html:not(.fest) #toolMenu, html:not(.fest) #layerPanel, html:not(.fest) #settlePanel, html:not(.fest) #routeSheet, html:not(.fest) .modal, html:not(.fest) .top-results, html:not(.fest) #guideCr .gc-b{scrollbar-width:thin;scrollbar-color:var(--fill-2) transparent;}
 
+  @media(max-width:374px){ html:not(.fest) .tab .tab-ic{display:none;} html:not(.fest) .tab{padding:6px 11px;} }   /* 幅の狭い端末は文字だけ */
   /* --- スマホ --- */
   @media(max-width:600px){
-    html:not(.fest) .tab{font-size:12.5px;padding:6px 12px;min-height:32px;}
+    html:not(.fest) .tabs{gap:4px;padding-left:8px;padding-right:8px;}
+    html:not(.fest) .tab{font-size:12px;padding:6px 9px;min-height:32px;gap:4px;letter-spacing:0;}   /* 4つが1行に入るように詰める */
+    html:not(.fest) .tab .tab-ic{margin-left:-1px;} html:not(.fest) .tab .tab-ic svg{width:14px;height:14px;}
     html:not(.fest) #topActions{border:none;background:var(--panel);-webkit-backdrop-filter:var(--mat);backdrop-filter:var(--mat);box-shadow:var(--elev);border-radius:16px;}
     html:not(.fest) #topActions .icon-btn .ib-lab{font-size:15px;}
     html:not(.fest) #toolBtn.on{background:var(--accent-weak);color:var(--accent);}
