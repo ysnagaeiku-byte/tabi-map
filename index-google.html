@@ -1561,7 +1561,7 @@
     --tx-2:rgba(235,235,245,.64);--tx-3:rgba(235,235,245,.34);--tx-fill:rgba(118,118,128,.26);--tx-sep:rgba(84,84,88,.62);--tx-y:#ffd60a;
     background:rgba(28,28,30,.84);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);
     border-radius:22px;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.16),0 0 0 .5px rgba(0,0,0,.35),0 14px 40px rgba(0,0,0,.36);
-    color:#fff;padding:0 14px 12px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;}
+    color:#fff;padding:0 14px 14px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;}
   #taxiMeter.open{display:block;}
   #taxiMeter.dock-b{bottom:calc(26px + env(safe-area-inset-bottom));}
   #taxiMeter.dock-t{top:calc(136px + var(--qk,0px) + env(safe-area-inset-top));}
@@ -1606,8 +1606,13 @@
   #taxiMeter:has(.txm-lamp[data-l="hire"].on) #txmPay{background:var(--tx-y);color:#1c1c1e;}
   .txm-acts button.ic{flex:0 0 40px;border-radius:50%;padding:0;color:var(--tx-2);display:flex;align-items:center;justify-content:center;}
   .txm-acts button.ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;display:block;}
-  .txm-disc{font-size:10px;color:var(--tx-3);line-height:1.5;margin-top:9px;text-align:center;text-wrap:balance;}
-  .txm-disc b{font-weight:600;color:var(--tx-2);}
+  /* 表示した瞬間だけ出る注意の通知（メーターの上。上に置いているときは下） */
+  .txm-toast{position:absolute;left:50%;bottom:calc(100% + 10px);transform:translate(-50%,6px);max-width:calc(100% - 16px);width:max-content;padding:8px 14px;border-radius:12px;
+    background:rgba(28,28,30,.9);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.16),0 8px 24px rgba(0,0,0,.3);
+    color:#fff;font-size:12px;font-weight:500;line-height:1.45;text-align:center;opacity:0;pointer-events:none;}
+  #taxiMeter.dock-t .txm-toast{bottom:auto;top:calc(100% + 10px);transform:translate(-50%,-6px);}
+  .txm-toast.go{animation:txmToast 3.2s ease forwards;}
+  @keyframes txmToast{0%{opacity:0;}10%,78%{opacity:1;transform:translate(-50%,0);}100%{opacity:0;transform:translate(-50%,0);}}
   /* 運賃表・設定 */
   .txm-tbl{display:none;margin-top:2px;background:rgba(118,118,128,.18);border-radius:14px;padding:11px 12px 6px;max-height:30dvh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(235,235,245,.3) transparent;}
   #taxiMeter.show-tbl .txm-subs{display:none;}   /* 運賃表を開いている間は画面を取りすぎないようにする */
@@ -1647,7 +1652,7 @@
   #taxiMeter.mini .txm-grip{flex:0 0 100%;}
   #taxiMeter.mini .txm-lamps{flex:1 1 auto;min-width:0;margin-bottom:0;}
   #taxiMeter.mini .txm-lamp:not(.on),#taxiMeter.mini .txm-cur{display:none;}
-  #taxiMeter.mini .txm-subs,#taxiMeter.mini .txm-acts,#taxiMeter.mini .txm-disc,#taxiMeter.mini .txm-tbl,#taxiMeter.mini .txm-rcpt,#taxiMeter.mini .txm-area{display:none;}
+  #taxiMeter.mini .txm-subs,#taxiMeter.mini .txm-acts,#taxiMeter.mini .txm-tbl,#taxiMeter.mini .txm-rcpt,#taxiMeter.mini .txm-area{display:none;}
   #taxiMeter.mini .txm-lcd{display:block;flex:none;}
   #taxiMeter.mini .txm-fare{padding:0;}
   #taxiMeter.mini #txmFare{font-size:28px;}
@@ -1664,7 +1669,7 @@
     .txm-acts{gap:6px;margin-top:10px;}
     .txm-acts button{font-size:13px;min-height:38px;}
     .txm-acts button.ic{flex-basis:38px;}
-    .txm-disc{margin-top:8px;font-size:8.7px;letter-spacing:-.01em;}
+    .txm-toast,#taxiMeter.dock-t .txm-toast{top:24px;bottom:auto;font-size:11.5px;transform:translate(-50%,-4px);}   /* スマホは上に時計が来るので、メーターの表示灯の上に重ねる */
     .txm-set-r{font-size:12px;}
     .txm-seg button{padding:0 9px;}
   }
@@ -1808,7 +1813,7 @@
     <button id="txmDock" class="ic" title="上／下に移動" aria-label="上／下に移動"><svg viewBox="0 0 24 24"><path d="M8 4v15M4.5 15.5L8 19l3.5-3.5M16 20V5M12.5 8.5L16 5l3.5 3.5"/></svg></button>
     <button id="txmClose" class="ic" title="メーターを閉じる" aria-label="メーターを閉じる"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   </div>
-  <div class="txm-disc">※タクシーメーターの<b>パロディ演出</b>です。運賃の収受には使用できません。</div>
+  <div class="txm-toast" id="txmToast" role="status">パロディ演出です。運賃の収受には使えません</div>
 </div>
 
 <div id="routeSheet">
@@ -2567,7 +2572,7 @@ function buildIsoPanel(){
   ISO_MIN_OPTS.forEach(m=>{h+=`<button class="iso-chip${isoMinutes.includes(m)?' on':''}" data-m="${m}">${isoLabel(m)}</button>`;});
   if(!FEST)h+='</div><div class="iso-lab">任意の時間（分）</div><div class="iso-row"><input id="isoCustom" type="number" min="1" max="600" placeholder="例: 90" style="flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;background:var(--surface);color:var(--fg);padding:8px 10px;font-size:13px;"><button class="iso-chip" id="isoAdd">＋ 追加</button></div>';
   h+='<div class="iso-leg" id="isoLeg"></div>';
-  h+='<div class="iso-hint">地図を<b>タップ</b>、または下のボタンで基準地点を設定すると、各時間で到達できる範囲を描画します。'+(FEST?'':'<b>60分超</b>は平均速度（車60/自転車15/徒歩5 km/h）から距離換算した<b>概算リング</b>です。')+'</div>';
+  if(FEST)h+='<div class="iso-hint">地図を<b>タップ</b>、または下のボタンで基準地点を設定すると、各時間で到達できる範囲を描画します。</div>';
   h+='<button id="isoLoc" style="width:100%;margin-top:10px;min-height:40px;border:none;border-radius:10px;background:#1a73e8;color:#fff;font-weight:700;font-size:13px;cursor:pointer;">現在地を基準にする</button>';
   h+='<button id="isoClear" style="width:100%;margin-top:8px;min-height:38px;border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:10px;font-weight:700;font-size:12.5px;cursor:pointer;">到達圏を消去</button>';
   p.innerHTML=h;
@@ -5173,7 +5178,7 @@ function finalizeRests(list,box){
     rest._marker=m;restMarkers.push(m); // 削除時にこのピンを消せるよう休憩に紐付け
   });
   const cnt=lastRests.length;
-  box.innerHTML=restHead()+`<div class="rest-note">${cnt>0?`${cnt}件の休憩を行程に反映（休ピン）。高速はSA/PA・下道はコンビニ/道の駅。各休憩時間は下の「行程」で変更できます。`:'周辺に休憩スポットが見つかりませんでした。'}</div>`;
+  box.innerHTML=restHead()+`${cnt>0?(FEST?`<div class="rest-note">${cnt}件の休憩を行程に反映（休ピン）。高速はSA/PA・下道はコンビニ/道の駅。各休憩時間は下の「行程」で変更できます。</div>`:''):'<div class="rest-note">周辺に休憩スポットが見つかりませんでした。</div>'}`;
   wireRestCtl();renderItinerary();updateCost();
 }
 window.insertWp=function(lat,lng,enc){points.splice(Math.max(points.length-1,1),0,{lat:+(+lat).toFixed(6),lng:+(+lng).toFixed(6),label:enc?decodeURIComponent(enc):null});infoWindow.close();renderPoints();computeRoute();};
@@ -5764,7 +5769,7 @@ function renderItinerary(){
 const SCHED_CSS_T=`
 *{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
 html,body{margin:0;padding:0;}
-:root{--ink:#1c2a44;--sub:#5d6880;--faint:#98a1b1;--line:#dfe3ea;--hair:#e9ecf1;--sand:#f9f5ec;--sand-l:#ebe4d3;--gold:#f1d08f;--dest:#e2552d;--go:#1f9d6b;--km:#2a6fb8;--blue:#007aff;
+:root{--ink:#1d1d1f;--blk:#141414;--sub:#6b6b70;--faint:#9a9aa0;--line:#d9d9de;--hair:#ececef;--sand:#f9f5ec;--sand-l:#ebe4d3;--gold:#f1d08f;--dest:#e2552d;--go:#1f9d6b;--km:#2a6fb8;--blue:#007aff;
   --cap:"Avenir Next","Helvetica Neue","Segoe UI",Arial,sans-serif;}
 body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif;color:var(--ink);font-size:12px;line-height:1.4;background:#eceae5;padding:70px 0 30px;-webkit-font-smoothing:antialiased;}
 #stage{display:none;}
@@ -5780,79 +5785,77 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Hiragino Kaku
 .col-left .budget-slot{flex:0 0 auto;}
 .pgno{position:absolute;left:0;right:0;bottom:9mm;text-align:center;font-family:var(--cap);font-size:8px;font-weight:600;letter-spacing:.3em;color:var(--faint);}
 /* 見出し＝きっぷ（左2/3：題名／右1/3：期間・車両。切り取り線と切り欠きは下のメモ欄の線につながる） */
-.hdr{position:relative;display:flex;align-items:stretch;background:linear-gradient(to right,var(--dest) 6px,var(--ink) 6px);color:#fff;border-radius:14px;margin-bottom:13px;}
+.hdr{position:relative;display:flex;align-items:stretch;background:linear-gradient(to right,var(--dest) 5px,var(--blk) 5px);color:#fff;border-radius:8px;margin-bottom:13px;}
 .hdr::before,.hdr::after{content:"";position:absolute;left:calc(66.6% - 7px);width:16px;height:16px;border-radius:50%;background:#fff;}
 .hdr::before{top:-8px;} .hdr::after{bottom:-8px;}
 .hdr-bar{flex:0 0 66.6%;max-width:66.6%;min-width:0;padding:11px 18px 12px 24px;display:flex;flex-direction:column;justify-content:center;}
 .tk-top{display:flex;align-items:center;gap:9px;font-family:var(--cap);font-size:8.5px;font-weight:700;letter-spacing:.26em;color:var(--gold);white-space:nowrap;}
 .tk-dots{flex:1;border-top:1.5px dotted rgba(255,255,255,.34);}
 .tk-car{flex:none;width:17px;height:17px;color:#fff;display:flex;} .tk-car svg{width:100%;height:100%;display:block;}
-.tk-main{display:flex;align-items:baseline;gap:12px;margin-top:5px;}
+.tk-main{display:flex;align-items:baseline;gap:12px;margin-top:4px;}
 .tk-jp{flex:none;font-size:11.5px;font-weight:700;letter-spacing:.34em;color:rgba(255,255,255,.74);}
-.tk-title{flex:0 1 auto;min-width:60px;font-size:20px;font-weight:700;line-height:1.25;letter-spacing:.01em;}
+.tk-title{flex:0 1 auto;min-width:60px;font-size:29px;font-weight:700;line-height:1.2;letter-spacing:.01em;}
 .hdr-right{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;justify-content:center;gap:5px;padding:9px 10px 10px 16px;border-left:2px dotted rgba(255,255,255,.5);}
 .tk-f{min-width:0;font-size:12.5px;font-weight:700;line-height:1.3;}
 .tk-lbl{display:block;font-family:var(--cap);font-size:7.5px;font-weight:700;letter-spacing:.22em;line-height:1.3;color:var(--gold);margin-bottom:1px;}
-.tk-lbl small{font-family:inherit;font-size:7.5px;font-weight:600;letter-spacing:.14em;color:rgba(255,255,255,.62);margin-left:6px;}
 .ed{display:inline-block;min-width:56px;padding:0 4px;border-radius:5px;outline:none;border-bottom:1px dashed rgba(255,255,255,.42);}
 .tk-f .ed{max-width:100%;min-width:70px;margin-left:-4px;overflow-wrap:anywhere;}
 .veh-ed:empty::before{content:attr(data-ph);color:rgba(255,255,255,.42);font-weight:500;}
 /* 行程＝点線の道のり。左の線は各行が自分の高さぶんを描き、行どうしでつながる（1行目は印から下だけ、最後は印まで） */
 .stop-box,.seg,.rest{position:relative;margin-left:32px;}
-.stop-box::before,.seg::before,.rest::before{content:"";position:absolute;left:-22px;width:4px;top:0;bottom:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cline x1='2' y1='3' x2='2' y2='100%25' stroke='%23a3adbe' stroke-width='3.2' stroke-linecap='round' stroke-dasharray='0 8'/%3E%3C/svg%3E") no-repeat 0 calc(-1 * var(--ph,0px))/4px calc(100% + 8px);}
+.stop-box::before,.seg::before,.rest::before{content:"";position:absolute;left:-22px;width:4px;top:0;bottom:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cline x1='2' y1='3' x2='2' y2='100%25' stroke='%23b4b4ba' stroke-width='3.2' stroke-linecap='round' stroke-dasharray='0 8'/%3E%3C/svg%3E") no-repeat 0 calc(-1 * var(--ph,0px))/4px calc(100% + 8px);}
 .stop-box::before{top:-7px;bottom:-7px;}
 .stop-box.is-first::before{top:50%;} .stop-box.is-last::before{bottom:50%;}
-.stop-box{display:flex;align-items:center;gap:11px;margin-top:7px;margin-bottom:7px;padding:9px 12px;border-radius:12px;}
+.stop-box{display:flex;align-items:center;gap:11px;margin-top:7px;margin-bottom:7px;padding:9px 12px;border-radius:7px;}
 .stop-box::after{content:"";position:absolute;left:-26.5px;top:50%;width:13px;height:13px;margin-top:-6.5px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 2.5px var(--ink),0 0 0 3px #fff;}
 .sb-via{background:#fff;box-shadow:inset 0 0 0 1px var(--line);}
-.sb-dest{background:var(--sand);box-shadow:inset 0 0 0 1px var(--sand-l);}
+.sb-dest{background:#fff;box-shadow:inset 0 0 0 1px var(--line);}
 .sb-dest::after{left:-29.5px;width:19px;height:24px;margin-top:-14px;border-radius:0;box-shadow:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 26'%3E%3Cpath d='M10 1.2C5.1 1.2 1.3 5 1.3 9.7c0 6.2 8.7 15 8.7 15s8.7-8.8 8.7-15C18.7 5 14.9 1.2 10 1.2z' fill='%23e2552d' stroke='%23fff' stroke-width='1.8'/%3E%3Ccircle cx='10' cy='9.7' r='3.2' fill='%23fff'/%3E%3C/svg%3E") center/contain no-repeat;}
-.sb-plain{background:none;box-shadow:none;padding:3px 12px 3px 0;}
+.sb-plain{background:#fff;box-shadow:inset 0 0 0 1px var(--line);padding:4px 12px 4px 10px;border-radius:6px;}
 .sb-plain::after{left:-27.5px;width:15px;height:15px;margin-top:-7.5px;border-radius:50%;background:var(--go);box-shadow:inset 0 0 0 3.5px var(--go),inset 0 0 0 5.5px #fff,0 0 0 3px #fff;}
 .sb-plain.is-first::after{box-shadow:0 0 0 3px #fff;}
-.sb-badge{flex:0 0 50px;text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.02em;line-height:1.2;border-radius:99px;padding:4px 0;background:#edf0f5;color:var(--ink);}
+.sb-badge{flex:0 0 50px;text-align:center;font-size:10.5px;font-weight:700;letter-spacing:.02em;line-height:1.2;border-radius:5px;padding:4px 0;background:#efeff2;color:var(--ink);}
 .sb-dest .sb-badge{background:var(--dest);color:#fff;}
 .sb-start .sb-badge{background:#e3f4ec;color:#11794f;}
 .sb-times{flex:0 0 57px;font-size:13.5px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.45;white-space:nowrap;}
 .sb-times i,.r-t i{font-style:normal;font-size:9px;font-weight:600;color:var(--faint);margin-right:3px;}
-.sb-place{flex:1 1 auto;min-width:0;font-size:26px;font-weight:700;line-height:1.18;letter-spacing:.01em;word-break:break-word;word-break:auto-phrase;overflow-wrap:anywhere;}
+.sb-place{flex:1 1 auto;min-width:0;font-size:24px;font-weight:700;line-height:1.18;letter-spacing:.01em;word-break:break-word;word-break:auto-phrase;overflow-wrap:anywhere;}
 .sb-plain .sb-place{font-size:14px;}
-.sb-stay,.r-stay{flex:0 0 auto;display:flex;align-items:center;gap:4px;margin-left:6px;font-size:10.5px;font-weight:600;color:var(--sub);background:#fff;box-shadow:inset 0 0 0 1px var(--line);border-radius:99px;padding:3px 9px 3px 7px;white-space:nowrap;}
-.sb-stay::before,.r-stay::before{content:"";width:10px;height:10px;flex:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235d6880' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5.2l3.2 2'/%3E%3C/svg%3E") center/contain no-repeat;}
-.sb-dest .sb-stay{box-shadow:inset 0 0 0 1px var(--sand-l);}
+.sb-stay,.r-stay{flex:0 0 auto;display:flex;align-items:center;gap:4px;margin-left:auto;min-width:64px;justify-content:center;font-size:10.5px;font-weight:600;color:var(--sub);background:#fff;box-shadow:inset 0 0 0 1px var(--line);border-radius:5px;padding:3px 8px 3px 6px;white-space:nowrap;}
+.sb-stay::before,.r-stay::before{content:"";width:10px;height:10px;flex:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6b70' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 7v5.2l3.2 2'/%3E%3C/svg%3E") center/contain no-repeat;}
 .seg{display:flex;align-items:center;gap:8px;padding:5px 0 5px 12px;color:var(--sub);font-size:11.5px;}
-.seg-ar{flex:none;width:15px;height:15px;font-size:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235d6880' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 11l1.5-4.2A2 2 0 0 1 8.4 5.5h7.2a2 2 0 0 1 1.9 1.3L19 11'/%3E%3Crect x='3' y='11' width='18' height='6.5' rx='2'/%3E%3Cpath d='M6.2 17.5v1.6M17.8 17.5v1.6M7 14.2h.01M17 14.2h.01'/%3E%3C/svg%3E") center/contain no-repeat;}
+.seg-ar{flex:none;width:15px;height:15px;font-size:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6b70' stroke-width='1.9' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 11l1.5-4.2A2 2 0 0 1 8.4 5.5h7.2a2 2 0 0 1 1.9 1.3L19 11'/%3E%3Crect x='3' y='11' width='18' height='6.5' rx='2'/%3E%3Cpath d='M6.2 17.5v1.6M17.8 17.5v1.6M7 14.2h.01M17 14.2h.01'/%3E%3C/svg%3E") center/contain no-repeat;}
 .seg-info{flex:none;white-space:nowrap;font-variant-numeric:tabular-nums;} .seg-info b{color:var(--ink);font-weight:700;}
-.seg-note{flex:1;min-width:20px;min-height:16px;border-bottom:1px dotted #cdd3dd;outline:none;color:var(--ink);padding:0 3px;border-radius:3px 3px 0 0;}
-.rest{display:flex;align-items:center;gap:9px;padding:3px 0 3px 12px;font-size:11.5px;color:var(--faint);}
-.rest::after{content:"";position:absolute;left:-24px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 1.8px #a9b2c0,0 0 0 2px #fff;}
-.r-ic{flex:none;background:#eef0f4;color:#8a93a3;font-weight:700;border-radius:6px;padding:2px 6px;font-size:10px;}
-.r-t{flex:0 0 auto;color:#8a93a3;font-variant-numeric:tabular-nums;font-size:11px;font-weight:600;line-height:1.3;}
-.r-name{flex:1 1 auto;min-width:0;font-weight:600;color:#8a93a3;}
-.r-stay{margin-left:auto;font-size:10px;color:#8a93a3;padding:2px 8px 2px 6px;}
+.seg-note{flex:1;min-width:20px;min-height:16px;border-bottom:1px dotted #d1d1d6;outline:none;color:var(--ink);padding:0 3px;border-radius:3px 3px 0 0;}
+.rest{display:flex;align-items:center;gap:9px;padding:3px 12px 3px 12px;font-size:11.5px;color:var(--faint);}
+.rest::after{content:"";position:absolute;left:-24px;top:50%;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:#fff;box-shadow:inset 0 0 0 1.8px #b4b4ba,0 0 0 2px #fff;}
+.r-ic{flex:none;background:#f0f0f2;color:#8e8e93;font-weight:700;border-radius:4px;padding:2px 6px;font-size:10px;}
+.r-t{flex:0 0 auto;color:#8e8e93;font-variant-numeric:tabular-nums;font-size:11px;font-weight:600;line-height:1.3;}
+.r-name{flex:1 1 auto;min-width:0;font-weight:600;color:#8e8e93;}
+.r-stay{color:#8e8e93;}
 .r-stay::before{opacity:.7;}
-/* 予算表 */
-.budget{border:1px solid var(--line);border-radius:12px;overflow:hidden;}
-.budget::before{content:"BUDGET　旅の予算";display:block;padding:5px 11px 4px;font-family:var(--cap),"Hiragino Sans",sans-serif;font-size:8.5px;font-weight:700;letter-spacing:.22em;color:var(--sub);background:var(--sand);border-bottom:1px solid var(--sand-l);}
-.ctbl{width:100%;border-collapse:collapse;border-style:hidden;font-size:9.5px;}
-.ctbl td{border:1px solid var(--hair);padding:3px 7px;line-height:1.3;color:var(--ink);}
-.ctbl .k{background:#fafbfc;font-weight:600;white-space:nowrap;width:1%;color:var(--sub);}
-.ctbl .big{font-size:11px;font-weight:500;}
-.ctbl td.km{font-size:14px;font-weight:700;color:var(--km);padding:4px 8px;font-variant-numeric:tabular-nums;}
-.ctbl .cost-sub{font-size:7.5px;color:var(--faint);}
-.ctbl .grey{background:#f1f2f5;color:#a9b0bc;} .ctbl .k.grey{color:#a9b0bc;}
-.ctbl .ce{min-height:12px;outline:none;border-radius:3px;}
-.sumtbl{border-top:1px solid var(--hair);}
-.sumtbl td{border:none;}
-.sumtbl .k{background:none;width:auto;font-size:10.5px;font-weight:600;padding:7px 12px;color:var(--sub);}
-.sumtbl .sum{text-align:right;font-size:14px;font-weight:700;padding:6px 14px;font-variant-numeric:tabular-nums;}
-.sumtbl tr:first-child{background:var(--ink);} .sumtbl tr:first-child td{color:#fff;} .sumtbl tr:first-child .k{color:var(--gold);letter-spacing:.08em;}
-.sumtbl tr:first-child .sum{font-size:19px;letter-spacing:.01em;}
-.sumtbl tr:last-child{background:var(--sand);}
+/* 予算表（燃料／レンタカー・有料道路・保険・キロ程と合計だけ） */
+.budget{border:1px solid var(--line);border-radius:7px;overflow:hidden;}
+.bg-h{padding:6px 12px 5px;font-family:var(--cap);font-size:8.5px;font-weight:700;letter-spacing:.26em;color:var(--sub);border-bottom:1px solid var(--hair);}
+.bgrid{display:grid;grid-template-columns:repeat(4,1fr);}
+.bc{padding:8px 12px 9px;min-width:0;}
+.bc+.bc{border-left:1px solid var(--hair);}
+.bc .k{display:block;font-size:9px;font-weight:600;color:var(--sub);white-space:nowrap;margin-bottom:3px;}
+.bc .bv{display:inline-block;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.2;}
+.bc .km{color:var(--km);}
+.bc .cost-sub{display:block;font-size:7.5px;line-height:1.35;color:var(--faint);margin-top:2px;}
+.bc .ce{min-width:70px;min-height:18px;outline:none;border-bottom:1px dashed #c7c7cc;border-radius:2px 2px 0 0;}
+.btot{display:flex;align-items:baseline;justify-content:space-between;padding:8px 14px;background:var(--blk);color:#fff;}
+.btot .k{font-size:10.5px;font-weight:600;letter-spacing:.08em;color:var(--gold);}
+.btot .sum{font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;}
+.bper{display:flex;align-items:baseline;justify-content:space-between;padding:6px 14px;background:#f5f5f7;}
+.bper .k{font-size:10px;font-weight:600;color:var(--sub);}
+.bper .sum{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;}
+@media print{.bc .ce{border-bottom-color:transparent;}}
 /* 右1/3＝メモ欄（方眼。クリックして入力できる。文字の行は方眼の行に合わせる。空けたまま印刷すれば手書き用） */
-.col-right{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;min-width:0;padding-left:11px;border-left:2px dotted #c3cad6;position:relative;}
+.col-right{flex:1 1 auto;display:flex;flex-direction:column;min-height:0;min-width:0;padding-left:11px;border-left:2px dotted #c7c7cc;position:relative;}
 .memo-ttl{flex:0 0 auto;display:flex;align-items:center;gap:6px;font-family:var(--cap);font-size:9px;font-weight:700;letter-spacing:.3em;text-transform:uppercase;color:var(--sub);padding:1px 0 8px;}
-.memo-ttl::before{content:"";width:11px;height:11px;flex:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235d6880' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20l1.1-4.3L16.6 4.2a2.2 2.2 0 0 1 3.1 3.1L8.3 18.9 4 20z'/%3E%3Cpath d='M14.6 6.3l3.1 3.1'/%3E%3C/svg%3E") center/contain no-repeat;}
+.memo-ttl::before{content:"";width:11px;height:11px;flex:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b6b70' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20l1.1-4.3L16.6 4.2a2.2 2.2 0 0 1 3.1 3.1L8.3 18.9 4 20z'/%3E%3Cpath d='M14.6 6.3l3.1 3.1'/%3E%3C/svg%3E") center/contain no-repeat;}
 .memo-ttl::after{content:"";flex:1;border-top:1px solid var(--line);}
 .memo-grid{flex:1 1 auto;min-height:0;overflow:hidden;outline:none;cursor:text;white-space:pre-wrap;overflow-wrap:anywhere;word-break:break-all;
   font-family:"Hiragino Maru Gothic ProN","Hiragino Sans","Yu Gothic UI","Yu Gothic",Meiryo,sans-serif;font-size:12.5px;line-height:22px;color:#23314e;padding:0 5px;
@@ -5959,6 +5962,16 @@ function exportSchedule(){
     +'</table>'
     +'<table class="ctbl sumtbl"><tr><td class="k">予算総額</td><td class="sum" id="budgetTotal">'+yen(travelCost)+'</td></tr>'
     +'<tr><td class="k">1人当たり予算（'+splitN+'人）</td><td class="sum" id="budgetPer">'+yen(Math.ceil(travelCost/splitN))+'/人</td></tr></table>';
+  // ドライブ版の予算表：車にかかる費用（燃料またはレンタカー・有料道路・保険）とキロ程だけ。合計は .cst を足す（保険は空欄なら記入できる）
+  const bc=(k,v,sub)=>'<div class="bc"><span class="k">'+k+'</span>'+v+(sub?'<span class="cost-sub">'+sub+'</span>':'')+'</div>';
+  const costT='<div class="bg-h">BUDGET</div><div class="bgrid">'
+    +bc('キロ程','<span class="bv km">'+lastDistanceKm.toFixed(1)+' km</span>')
+    +(timesOn?bc('レンタカー予算','<span class="bv cst">'+yen(rental)+'</span>',TIMES_RANK_LBL[timesRank]+'・'+(timesNight?'ナイトパック':(timesHours+'時間')))
+             :bc('燃料予算','<span class="bv cst">'+yen(gas)+'</span>',(price||'-')+'円/L・'+(eff||'-')+'km/L（'+liters.toFixed(1)+'L）'))
+    +bc('有料道路（ETC）予算','<span class="bv cst">'+yen(t.toll)+'</span>')
+    +bc('保険料金',timesOn?'<span class="bv cst">¥500</span>':'<span class="bv ce cst" contenteditable="true">'+(otherIn>0?yen(otherIn):'')+'</span>')
+    +'</div><div class="btot"><span class="k">予算総額</span><span class="sum" id="budgetTotal">'+yen(travelCost)+'</span></div>'
+    +'<div class="bper"><span class="k">1人当たり予算（'+splitN+'人）</span><span class="sum" id="budgetPer">'+yen(Math.ceil(travelCost/splitN))+'/人</span></div>';
   const cssOld='*{box-sizing:border-box;}'
     +'html,body{margin:0;padding:0;}'
     +'body{font-family:-apple-system,"Hiragino Kaku Gothic ProN","Yu Gothic",sans-serif;color:#111;font-size:12px;line-height:1.4;background:#e9e9ec;}'
@@ -6014,7 +6027,7 @@ function exportSchedule(){
     +'function memoCheck(mg){if(!mg.textContent&&mg.firstChild&&mg.children.length<=1)mg.innerHTML="";mg.classList.toggle("over",mg.scrollHeight>mg.clientHeight+2);}'
     +'function memoInit(mg){mg.setAttribute("contenteditable","plaintext-only");if(mg.contentEditable!=="plaintext-only")mg.setAttribute("contenteditable","true");mg.setAttribute("spellcheck","false");mg.setAttribute("data-ph","クリックしてメモを入力できます\\n（空けたまま印刷して手書きにも）");mg.addEventListener("input",function(){memoCheck(mg);});mg.addEventListener("paste",function(e){if(mg.contentEditable==="plaintext-only")return;e.preventDefault();var t=(e.clipboardData||window.clipboardData).getData("text");document.execCommand("insertText",false,t);});mg.addEventListener("blur",function(){mg.scrollTop=0;});}'
     /* 地名が枠に収まらないとき：1行に収まる大きさまで縮める。18pxを下回るなら2行に折り返す大きさにする（用紙を変えるたびに決め直す） */
-    +'function fitNames(meas,rows){for(var i=0;i<rows.length;i++)meas.appendChild(rows[i]);var ps=meas.querySelectorAll(".stop-box:not(.sb-plain) .sb-place");for(var j=0;j<ps.length;j++){var p=ps[j];p.style.fontSize="";p.style.whiteSpace="nowrap";var av=p.clientWidth,nw=p.scrollWidth;p.style.whiteSpace="";if(av>0&&nw>av){var fs=Math.floor(260*(av-3)/nw)/10;if(fs<18)fs=Math.max(15,Math.min(22,Math.floor(260*av/(nw/2)*0.9)/10));p.style.fontSize=fs+"px";}}while(meas.firstChild)meas.removeChild(meas.firstChild);}'
+    +'function fitNames(meas,rows){for(var i=0;i<rows.length;i++)meas.appendChild(rows[i]);var ps=meas.querySelectorAll(".stop-box:not(.sb-plain) .sb-place");for(var j=0;j<ps.length;j++){var p=ps[j];p.style.fontSize="";p.style.whiteSpace="nowrap";var av=p.clientWidth,nw=p.scrollWidth;p.style.whiteSpace="";if(av>0&&nw>av){var fs=Math.floor(240*(av-3)/nw)/10;if(fs<18)fs=Math.max(15,Math.min(22,Math.floor(240*av/(nw/2)*0.9)/10));p.style.fontSize=fs+"px";}}while(meas.firstChild)meas.removeChild(meas.firstChild);}'
     +'function fitRows(list,avail,meas){var n=0;for(var i=0;i<list.length;i++){meas.appendChild(list[i]);if(meas.offsetHeight>avail){meas.removeChild(list[i]);break;}n++;}return n;}'
     +'function paginate(){var doc=document.getElementById("doc");var memos=TRAVEL?[].map.call(document.querySelectorAll(".memo-grid"),function(e){return (e.innerText||"").replace(/\\n$/,"");}):[];calcMM();var P=PAPER[paper];var contentH=(P.h-MT-MB)*MM,gap=GAP*MM;doc.innerHTML="";'
     +'var s1=mkSheet(true,true);doc.appendChild(s1.sheet);s1.hdr.appendChild(SRC.hdr);var hdrH=SRC.hdr.offsetHeight;var colW=s1.itin.clientWidth;s1.budget.appendChild(SRC.budget);var budgetH=SRC.budget.offsetHeight;'
@@ -6032,13 +6045,13 @@ function exportSchedule(){
        :'<div class="toolbar"><span class="tlab">用紙</span><button class="szbtn" data-s="A4" onclick="setSize(\'A4\')">A4</button><button class="szbtn" data-s="B5" onclick="setSize(\'B5\')">B5</button><button onclick="window.print()">印刷 / PDF保存</button></div>')
     +'<div id="stage" aria-hidden="true">'
     +(T?'<div id="srcHdr" class="hdr"><div class="hdr-bar"><div class="tk-top"><span>DRIVE ITINERARY</span><span class="tk-dots"></span><span class="tk-car"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 11l1.5-4.2A2 2 0 0 1 8.4 5.5h7.2a2 2 0 0 1 1.9 1.3L19 11"/><rect x="3" y="11" width="18" height="6.5" rx="2"/><path d="M6.2 17.5v1.6M17.8 17.5v1.6M7 14.2h.01M17 14.2h.01"/></svg></span></div><div class="tk-main"><span class="tk-jp">行程表</span><span class="ed tk-title" contenteditable="true">'+escapeHtml(title)+'</span></div></div>'
-        +'<div class="hdr-right"><div class="tk-f period"><span class="tk-lbl">DATE<small>期間</small></span><span class="ed" contenteditable="true">'+period+'</span></div><div class="tk-f veh-field"><span class="tk-lbl">CAR<small>車両</small></span><span class="ed veh-ed" contenteditable="true" data-ph="号車・車名"></span></div></div></div>'
+        +'<div class="hdr-right"><div class="tk-f period"><span class="tk-lbl">DATE</span><span class="ed" contenteditable="true">'+period+'</span></div><div class="tk-f veh-field"><span class="tk-lbl">CAR</span><span class="ed veh-ed" contenteditable="true" data-ph="号車・車名"></span></div></div></div>'
        :'<div id="srcHdr" class="hdr"><div class="hdr-bar">行程表【<span class="ed" contenteditable="true">'+escapeHtml(title)+'</span>】</div><div class="hdr-right"><div class="veh-field"><span class="veh-lbl">車両</span><span class="ed veh-ed" contenteditable="true" data-ph="号車・車名"></span></div><div class="period">期間 <span class="ed" contenteditable="true">'+period+'</span></div></div></div>')
     +'<div id="srcRows">'+rows+'</div>'
-    +'<div id="srcBudget" class="budget">'+cost+'</div>'
+    +'<div id="srcBudget" class="budget">'+(T?costT:cost)+'</div>'
     +'</div>'
     +'<div id="doc"></div>'
-    +(T?'<div class="hint">タイトル・期間・車両・費用の空欄・右のメモ欄は、クリックして直接記入できます（食費・宿泊費などを入れると予算総額が自動計算）。<br>メモ欄は空けたまま印刷すれば手書き用の方眼になります。予算表は必ず1枚目の下部に配置されます。用紙（A4/B5）を選んで「印刷 / PDF保存」してください。</div>'
+    +(T?'<div class="hint">タイトル・期間・車両・保険料金・右のメモ欄は、クリックして直接記入できます（保険料金を入れると予算総額が自動計算）。<br>メモ欄は空けたまま印刷すれば手書き用の方眼になります。予算表は必ず1枚目の下部に配置されます。用紙（A4/B5）を選んで「印刷 / PDF保存」してください。</div>'
        :'<div class="hint">タイトル・期間・車両・費用の空欄はクリックして直接記入できます（食費・宿泊費などを入れると予算総額が自動計算）。右の1/3は手書きメモ用の白紙です。予算表は必ず1枚目の下部に配置されます。用紙(A4/B5)を選んで「印刷 / PDF保存」してください。</div>')
     +'<script>'+SCRIPT+'<\/script>'
     +'</body></html>';
@@ -8998,7 +9011,9 @@ function taxiOnFix(pos){
 function taxiShow(auto){
   const el=document.getElementById('taxiMeter');if(!el)return;
   taxiAuto=!!auto;
+  const was=el.classList.contains('open');
   el.classList.add('open');
+  if(!was){const n=document.getElementById('txmToast');if(n){n.classList.remove('go');void n.offsetWidth;n.classList.add('go');}}   // 表示した瞬間だけ、注意の通知を出す
   el.classList.toggle('dock-t',taxiCfg.dock==='t');el.classList.toggle('dock-b',taxiCfg.dock!=='t');
   if(taxiState==='idle'){taxiFolded=false;el.classList.remove('mini','show-rcpt','show-tbl');}
   if(!taxiTimer){taxiTickT=0;taxiTimer=setInterval(taxiTickFn,1000);}

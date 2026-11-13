@@ -383,7 +383,7 @@
     --tx-2:rgba(235,235,245,.64);--tx-3:rgba(235,235,245,.34);--tx-fill:rgba(118,118,128,.26);--tx-sep:rgba(84,84,88,.62);--tx-y:#ffd60a;
     background:rgba(28,28,30,.84);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);
     border-radius:22px;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.16),0 0 0 .5px rgba(0,0,0,.35),0 14px 40px rgba(0,0,0,.36);
-    color:#fff;padding:0 14px 12px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;}
+    color:#fff;padding:0 14px 14px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;}
   #taxiMeter.open{display:block;}
   #taxiMeter.dock-b{bottom:calc(26px + env(safe-area-inset-bottom));}
   #taxiMeter.dock-t{top:calc(136px + var(--qk,0px) + env(safe-area-inset-top));}
@@ -428,8 +428,13 @@
   #taxiMeter:has(.txm-lamp[data-l="hire"].on) #txmPay{background:var(--tx-y);color:#1c1c1e;}
   .txm-acts button.ic{flex:0 0 40px;border-radius:50%;padding:0;color:var(--tx-2);display:flex;align-items:center;justify-content:center;}
   .txm-acts button.ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;display:block;}
-  .txm-disc{font-size:10px;color:var(--tx-3);line-height:1.5;margin-top:9px;text-align:center;text-wrap:balance;}
-  .txm-disc b{font-weight:600;color:var(--tx-2);}
+  /* 表示した瞬間だけ出る注意の通知（メーターの上。上に置いているときは下） */
+  .txm-toast{position:absolute;left:50%;bottom:calc(100% + 10px);transform:translate(-50%,6px);max-width:calc(100% - 16px);width:max-content;padding:8px 14px;border-radius:12px;
+    background:rgba(28,28,30,.9);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);box-shadow:inset 0 0 0 .5px rgba(255,255,255,.16),0 8px 24px rgba(0,0,0,.3);
+    color:#fff;font-size:12px;font-weight:500;line-height:1.45;text-align:center;opacity:0;pointer-events:none;}
+  #taxiMeter.dock-t .txm-toast{bottom:auto;top:calc(100% + 10px);transform:translate(-50%,-6px);}
+  .txm-toast.go{animation:txmToast 3.2s ease forwards;}
+  @keyframes txmToast{0%{opacity:0;}10%,78%{opacity:1;transform:translate(-50%,0);}100%{opacity:0;transform:translate(-50%,0);}}
   /* 運賃表・設定 */
   .txm-tbl{display:none;margin-top:2px;background:rgba(118,118,128,.18);border-radius:14px;padding:11px 12px 6px;max-height:30dvh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(235,235,245,.3) transparent;}
   #taxiMeter.show-tbl .txm-subs{display:none;}   /* 運賃表を開いている間は画面を取りすぎないようにする */
@@ -469,7 +474,7 @@
   #taxiMeter.mini .txm-grip{flex:0 0 100%;}
   #taxiMeter.mini .txm-lamps{flex:1 1 auto;min-width:0;margin-bottom:0;}
   #taxiMeter.mini .txm-lamp:not(.on),#taxiMeter.mini .txm-cur{display:none;}
-  #taxiMeter.mini .txm-subs,#taxiMeter.mini .txm-acts,#taxiMeter.mini .txm-disc,#taxiMeter.mini .txm-tbl,#taxiMeter.mini .txm-rcpt,#taxiMeter.mini .txm-area{display:none;}
+  #taxiMeter.mini .txm-subs,#taxiMeter.mini .txm-acts,#taxiMeter.mini .txm-tbl,#taxiMeter.mini .txm-rcpt,#taxiMeter.mini .txm-area{display:none;}
   #taxiMeter.mini .txm-lcd{display:block;flex:none;}
   #taxiMeter.mini .txm-fare{padding:0;}
   #taxiMeter.mini #txmFare{font-size:28px;}
@@ -486,7 +491,7 @@
     .txm-acts{gap:6px;margin-top:10px;}
     .txm-acts button{font-size:13px;min-height:38px;}
     .txm-acts button.ic{flex-basis:38px;}
-    .txm-disc{margin-top:8px;font-size:8.7px;letter-spacing:-.01em;}
+    .txm-toast,#taxiMeter.dock-t .txm-toast{top:24px;bottom:auto;font-size:11.5px;transform:translate(-50%,-4px);}   /* スマホは上に時計が来るので、メーターの表示灯の上に重ねる */
     .txm-set-r{font-size:12px;}
     .txm-seg button{padding:0 9px;}
   }
