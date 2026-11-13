@@ -375,3 +375,118 @@
     § .rs-head b{font-size:18px;}
     § #baseBar .seg button{height:26px;padding:0 11px;font-size:12px;}
   }
+
+  /* ===== タクシーメーター（追跡ボタンの演出。東京の運賃体系を参考にしたパロディ表示）=====
+     計器らしく、明るいテーマでも暗いテーマでも「暗い半透明の面に白い数字」。色は iOS の暗い配色、差し色はタクシーの黄。
+     部品は本祭支援ツールでは取り除くので、ここの指定はドライブ版だけに効く（位置・たたむ／運賃表／領収書の切替は従来どおり） */
+  #taxiMeter{display:none;position:fixed;left:8px;right:76px;max-width:620px;z-index:1120;
+    --tx-2:rgba(235,235,245,.64);--tx-3:rgba(235,235,245,.34);--tx-fill:rgba(118,118,128,.26);--tx-sep:rgba(84,84,88,.62);--tx-y:#ffd60a;
+    background:rgba(28,28,30,.84);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);
+    border-radius:22px;box-shadow:inset 0 0 0 .5px rgba(255,255,255,.16),0 0 0 .5px rgba(0,0,0,.35),0 14px 40px rgba(0,0,0,.36);
+    color:#fff;padding:0 14px 12px;font-variant-numeric:tabular-nums;-webkit-font-smoothing:antialiased;}
+  #taxiMeter.open{display:block;}
+  #taxiMeter.dock-b{bottom:calc(26px + env(safe-area-inset-bottom));}
+  #taxiMeter.dock-t{top:calc(136px + var(--qk,0px) + env(safe-area-inset-top));}
+  body:has(#routeSheet.open:not(.collapsed)) #taxiMeter.dock-b{bottom:calc(46dvh + 8px);}   /* ルートのシートを開いているときはその上に逃がす */
+  .txm-grip{height:19px;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .txm-grip::after{content:"";width:36px;height:5px;border-radius:99px;background:rgba(235,235,245,.3);}
+  /* 表示灯（空車・賃走・支払・割増・迎車） */
+  .txm-lamps{display:flex;align-items:center;gap:5px;margin-bottom:6px;}
+  .txm-lamp{flex:none;white-space:nowrap;font-size:11px;font-weight:600;letter-spacing:.04em;line-height:1.3;padding:4px 9px;border-radius:99px;background:var(--tx-fill);color:var(--tx-3);transition:background .15s,color .15s;}
+  .txm-lamp[data-l="vac"].on{background:#30d158;color:#03260f;}
+  .txm-lamp[data-l="hire"].on{background:#ff453a;color:#fff;}
+  .txm-lamp[data-l="pay"].on{background:var(--tx-y);color:#2b2300;}
+  .txm-lamp[data-l="night"].on{background:#ff9f0a;color:#2b1900;}
+  .txm-lamp[data-l="meet"].on{background:#0a84ff;color:#fff;}
+  .txm-area{margin-left:auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font-size:10.5px;font-weight:500;color:var(--tx-2);text-align:right;white-space:nowrap;}
+  /* 運賃 */
+  .txm-lcd{position:relative;}
+  .txm-fare{position:relative;display:flex;align-items:baseline;gap:6px;padding:0 1px 9px;}
+  .txm-cur{margin-right:auto;font-size:12px;font-weight:600;letter-spacing:.1em;color:var(--tx-2);}
+  .txm-digits{position:relative;min-width:0;}
+  #txmFare{display:block;font-family:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Helvetica Neue","Segoe UI",sans-serif;font-size:46px;line-height:1.05;font-weight:600;letter-spacing:-.01em;color:#fff;font-variant-numeric:tabular-nums;text-align:right;transform-origin:100% 70%;}
+  #txmFare.dim{color:var(--tx-3);}
+  #txmFare.bump{animation:txmBump .38s cubic-bezier(.2,.9,.3,1.25);}
+  @keyframes txmBump{0%{transform:scale(1);}30%{transform:scale(1.07);color:var(--tx-y);}100%{transform:scale(1);}}
+  .txm-yen{font-size:15px;font-weight:600;color:var(--tx-2);}
+  .txm-pop{position:absolute;left:44px;bottom:12px;font-size:13px;font-weight:600;color:var(--tx-y);opacity:0;pointer-events:none;}
+  .txm-pop.go{animation:txmPop 1.1s ease;}
+  @keyframes txmPop{0%{opacity:0;transform:translateY(8px);}22%{opacity:1;}100%{opacity:0;transform:translateY(-14px);}}
+  .txm-subs{display:grid;grid-template-columns:repeat(4,1fr);gap:0 10px;border-top:.5px solid var(--tx-sep);padding-top:9px;}
+  .txm-subs>div{min-width:0;}
+  .txm-subs i{display:block;font-style:normal;font-size:10px;font-weight:500;color:var(--tx-2);white-space:nowrap;margin-bottom:1px;}
+  .txm-subs b{font-size:17px;font-weight:600;letter-spacing:-.01em;color:#fff;font-variant-numeric:tabular-nums;}
+  .txm-subs u{text-decoration:none;font-size:10px;font-weight:500;color:var(--tx-2);margin-left:2px;}
+  /* 操作。空車のときは「賃走」、走っている間は「精算」を主のボタンにする（走行中の「空車」は取り消しなので赤い文字） */
+  .txm-acts{display:flex;gap:8px;margin-top:12px;}
+  .txm-acts button{flex:1;min-height:40px;border:none;border-radius:12px;background:var(--tx-fill);color:#fff;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;padding:0 4px;transition:opacity .12s,transform .12s;}
+  .txm-acts button:active{opacity:.68;transform:scale(.98);}
+  .txm-acts button[disabled]{opacity:.34;cursor:default;}
+  .txm-acts button.pri{background:var(--tx-y);color:#1c1c1e;}
+  .txm-acts button.amb{background:rgba(255,214,10,.16);color:var(--tx-y);}
+  #taxiMeter:has(.txm-lamp[data-l="hire"].on) #txmStart{background:var(--tx-fill);color:#ff6961;}
+  #taxiMeter:has(.txm-lamp[data-l="hire"].on) #txmPay{background:var(--tx-y);color:#1c1c1e;}
+  .txm-acts button.ic{flex:0 0 40px;border-radius:50%;padding:0;color:var(--tx-2);display:flex;align-items:center;justify-content:center;}
+  .txm-acts button.ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;display:block;}
+  .txm-disc{font-size:10px;color:var(--tx-3);line-height:1.5;margin-top:9px;text-align:center;text-wrap:balance;}
+  .txm-disc b{font-weight:600;color:var(--tx-2);}
+  /* 運賃表・設定 */
+  .txm-tbl{display:none;margin-top:2px;background:rgba(118,118,128,.18);border-radius:14px;padding:11px 12px 6px;max-height:30dvh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(235,235,245,.3) transparent;}
+  #taxiMeter.show-tbl .txm-subs{display:none;}   /* 運賃表を開いている間は画面を取りすぎないようにする */
+  #taxiMeter.show-tbl .txm-fare{padding-bottom:6px;}
+  #taxiMeter.show-tbl .txm-tbl{display:block;}
+  .txm-tbl-h{font-size:13px;font-weight:600;color:#fff;margin-bottom:4px;}
+  .txm-ft{width:100%;border-collapse:collapse;font-size:11.5px;}
+  .txm-ft th,.txm-ft td{border-bottom:.5px solid var(--tx-sep);padding:6px 2px;text-align:left;vertical-align:top;line-height:1.45;}
+  .txm-ft tr:last-child th,.txm-ft tr:last-child td{border-bottom:none;}
+  .txm-ft th{font-weight:500;color:var(--tx-2);width:38%;white-space:nowrap;}
+  .txm-ft td{color:rgba(235,235,245,.86);}
+  .txm-ft td b{color:#fff;font-weight:600;}
+  .txm-src{font-size:10px;color:var(--tx-2);margin-top:6px;line-height:1.55;}
+  .txm-src b{font-weight:600;color:#fff;}
+  .txm-set{margin-top:9px;border-top:.5px solid var(--tx-sep);display:flex;flex-direction:column;}
+  .txm-set-r{display:flex;align-items:center;gap:10px;min-height:42px;font-size:12.5px;color:#fff;border-bottom:.5px solid var(--tx-sep);}
+  .txm-set-r:last-child{border-bottom:none;}
+  .txm-set-r>span:first-child{flex:1;min-width:0;}
+  .txm-seg{flex:none;display:flex;background:rgba(118,118,128,.3);border-radius:9px;padding:2px;}
+  .txm-seg button{border:none;background:transparent;color:#fff;font-family:inherit;font-size:12px;font-weight:500;padding:0 11px;min-height:28px;border-radius:7px;cursor:pointer;}
+  .txm-seg button.on{background:#636366;font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.3);}
+  /* 領収書（白い紙。下の端はレシートの切り口） */
+  .txm-rcpt{display:none;margin-top:2px;background:#fbfaf6;color:#1c1c1e;border-radius:12px 12px 0 0;padding:14px 16px 20px;max-height:min(46dvh,400px);overflow-y:auto;scrollbar-width:thin;
+    -webkit-mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50% 0/12px 100%;mask:conic-gradient(from -45deg at bottom,#0000,#000 1deg 89deg,#0000 90deg) 50% 0/12px 100%;}
+  #taxiMeter.show-rcpt .txm-rcpt{display:block;}
+  #taxiMeter.show-rcpt .txm-lcd{display:none;}
+  .txm-rc-h{text-align:center;font-size:14px;font-weight:700;letter-spacing:.4em;padding-bottom:8px;margin-bottom:8px;border-bottom:1px dashed #c9c5b8;}
+  .txm-rc-h span{letter-spacing:0;font-size:10px;font-weight:500;color:#8a8778;}
+  .txm-rc-l{display:flex;justify-content:space-between;gap:10px;font-size:12.5px;line-height:1.75;color:#48484a;}
+  .txm-rc-l b{font-variant-numeric:tabular-nums;font-weight:600;color:#1c1c1e;}
+  .txm-rc-sep{border-top:1px dashed #c9c5b8;margin:6px 0;}
+  .txm-rc-t{display:flex;justify-content:space-between;align-items:baseline;border-top:1.5px solid #1c1c1e;margin-top:7px;padding-top:7px;font-size:13px;font-weight:700;}
+  .txm-rc-t b{font-family:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,"Helvetica Neue","Segoe UI",sans-serif;font-size:24px;font-weight:700;font-variant-numeric:tabular-nums;}
+  .txm-rc-n{font-size:10px;color:#8a8778;line-height:1.6;margin-top:8px;}
+  /* たたんだ状態：点いている表示灯と運賃だけの1行 */
+  #taxiMeter.open.mini{display:flex;flex-wrap:wrap;align-items:center;column-gap:10px;padding-bottom:10px;}
+  #taxiMeter.mini .txm-grip{flex:0 0 100%;}
+  #taxiMeter.mini .txm-lamps{flex:1 1 auto;min-width:0;margin-bottom:0;}
+  #taxiMeter.mini .txm-lamp:not(.on),#taxiMeter.mini .txm-cur{display:none;}
+  #taxiMeter.mini .txm-subs,#taxiMeter.mini .txm-acts,#taxiMeter.mini .txm-disc,#taxiMeter.mini .txm-tbl,#taxiMeter.mini .txm-rcpt,#taxiMeter.mini .txm-area{display:none;}
+  #taxiMeter.mini .txm-lcd{display:block;flex:none;}
+  #taxiMeter.mini .txm-fare{padding:0;}
+  #taxiMeter.mini #txmFare{font-size:28px;}
+  #taxiMeter.mini .txm-pop{left:auto;right:calc(100% + 8px);bottom:6px;}
+  @media(max-width:600px){
+    #taxiMeter{left:6px;right:62px;padding:0 12px 10px;border-radius:20px;}
+    #taxiMeter.dock-t{top:calc(104px + var(--qk,0px) + env(safe-area-inset-top));}
+    #txmFare{font-size:42px;}
+    .txm-lamps{gap:4px;}
+    .txm-lamp{font-size:10.5px;padding:4px 7px;letter-spacing:.02em;}
+    .txm-area{font-size:10px;}
+    .txm-subs{gap:0 6px;}
+    .txm-subs b{font-size:15px;}
+    .txm-acts{gap:6px;margin-top:10px;}
+    .txm-acts button{font-size:13px;min-height:38px;}
+    .txm-acts button.ic{flex-basis:38px;}
+    .txm-disc{margin-top:8px;font-size:8.7px;letter-spacing:-.01em;}
+    .txm-set-r{font-size:12px;}
+    .txm-seg button{padding:0 9px;}
+  }
